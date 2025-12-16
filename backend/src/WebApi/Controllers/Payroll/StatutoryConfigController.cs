@@ -168,9 +168,12 @@ public class StatutoryConfigController : ControllerBase
         if (existing == null)
             return NotFound($"Statutory config with ID {id} not found");
 
+        // Preserve IsActive if not explicitly set in the update
+        var preserveIsActive = existing.IsActive;
+
         // Use AutoMapper to update, but handle field name differences manually
         _mapper.Map(dto, existing);
-        
+
         // Handle field name differences between DTO and Entity
         if (!string.IsNullOrEmpty(dto.PfEstablishmentCode))
             existing.PfRegistrationNumber = dto.PfEstablishmentCode;
@@ -178,6 +181,10 @@ public class StatutoryConfigController : ControllerBase
             existing.EsiRegistrationNumber = dto.EsiCode;
         if (dto.EsiWageCeiling.HasValue)
             existing.EsiGrossCeiling = dto.EsiWageCeiling.Value;
+
+        // Restore IsActive if not explicitly provided in the DTO
+        if (!dto.IsActive.HasValue)
+            existing.IsActive = preserveIsActive;
 
         existing.UpdatedAt = DateTime.UtcNow;
 

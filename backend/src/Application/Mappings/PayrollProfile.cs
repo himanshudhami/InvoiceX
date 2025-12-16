@@ -204,6 +204,9 @@ namespace Application.Mappings
 
             CreateMap<CreateCompanyStatutoryConfigDto, CompanyStatutoryConfig>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.PfRegistrationNumber, opt => opt.MapFrom(src => src.PfEstablishmentCode))
+                .ForMember(dest => dest.EsiRegistrationNumber, opt => opt.MapFrom(src => src.EsiCode))
+                .ForMember(dest => dest.EsiGrossCeiling, opt => opt.MapFrom(src => src.EsiWageCeiling))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
@@ -212,12 +215,18 @@ namespace Application.Mappings
             CreateMap<UpdateCompanyStatutoryConfigDto, CompanyStatutoryConfig>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.CompanyId, opt => opt.Ignore())
+                .ForMember(dest => dest.PfRegistrationNumber, opt => opt.MapFrom(src => src.PfEstablishmentCode))
+                .ForMember(dest => dest.EsiRegistrationNumber, opt => opt.MapFrom(src => src.EsiCode))
+                .ForMember(dest => dest.EsiGrossCeiling, opt => opt.MapFrom(src => src.EsiWageCeiling))
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Company, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<CompanyStatutoryConfig, CompanyStatutoryConfigDto>()
+                .ForMember(dest => dest.PfEstablishmentCode, opt => opt.MapFrom(src => src.PfRegistrationNumber))
+                .ForMember(dest => dest.EsiCode, opt => opt.MapFrom(src => src.EsiRegistrationNumber))
+                .ForMember(dest => dest.EsiWageCeiling, opt => opt.MapFrom(src => src.EsiGrossCeiling))
                 .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : null));
 
             // ==================== TaxParameter ====================

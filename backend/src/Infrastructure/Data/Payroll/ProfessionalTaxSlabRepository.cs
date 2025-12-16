@@ -12,7 +12,7 @@ namespace Infrastructure.Data.Payroll
         private static readonly string[] AllowedColumns = new[]
         {
             "id", "state", "min_monthly_income", "max_monthly_income", "monthly_tax",
-            "is_active", "created_at", "updated_at"
+            "february_tax", "effective_from", "effective_to", "is_active", "created_at", "updated_at"
         };
 
         public ProfessionalTaxSlabRepository(string connectionString)
@@ -93,10 +93,10 @@ namespace Infrastructure.Data.Payroll
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO professional_tax_slabs
                 (state, min_monthly_income, max_monthly_income, monthly_tax,
-                 is_active, created_at, updated_at)
+                 february_tax, effective_from, effective_to, is_active, created_at, updated_at)
                 VALUES
                 (@State, @MinMonthlyIncome, @MaxMonthlyIncome, @MonthlyTax,
-                 @IsActive, NOW(), NOW())
+                 @FebruaryTax, @EffectiveFrom, @EffectiveTo, @IsActive, NOW(), NOW())
                 RETURNING *";
 
             return await connection.QuerySingleAsync<ProfessionalTaxSlab>(sql, entity);
@@ -110,6 +110,9 @@ namespace Infrastructure.Data.Payroll
                 min_monthly_income = @MinMonthlyIncome,
                 max_monthly_income = @MaxMonthlyIncome,
                 monthly_tax = @MonthlyTax,
+                february_tax = @FebruaryTax,
+                effective_from = @EffectiveFrom,
+                effective_to = @EffectiveTo,
                 is_active = @IsActive,
                 updated_at = NOW()
                 WHERE id = @Id";
@@ -132,16 +135,48 @@ namespace Infrastructure.Data.Payroll
             {
                 var sql = @"INSERT INTO professional_tax_slabs
                     (state, min_monthly_income, max_monthly_income, monthly_tax,
-                     is_active, created_at, updated_at)
+                     february_tax, effective_from, effective_to, is_active, created_at, updated_at)
                     VALUES
                     (@State, @MinMonthlyIncome, @MaxMonthlyIncome, @MonthlyTax,
-                     @IsActive, NOW(), NOW())
+                     @FebruaryTax, @EffectiveFrom, @EffectiveTo, @IsActive, NOW(), NOW())
                     RETURNING *";
                 var created = await connection.QuerySingleAsync<ProfessionalTaxSlab>(sql, entity);
                 results.Add(created);
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Get distinct states that have PT slabs configured
+        /// </summary>
+        public async Task<IEnumerable<string>> GetDistinctStatesAsync()
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<string>(
+                "SELECT DISTINCT state FROM professional_tax_slabs WHERE is_active = true ORDER BY state");
+        }
+
+        /// <summary>
+        /// Check if a slab exists for a state within a given income range (for overlap validation)
+        /// </summary>
+        public async Task<bool> ExistsForStateAndRangeAsync(string state, decimal minIncome, decimal? maxIncome, Guid? excludeId = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"SELECT EXISTS(
+                SELECT 1 FROM professional_tax_slabs
+                WHERE state = @state
+                  AND is_active = true
+                  AND (@excludeId IS NULL OR id != @excludeId)
+                  AND (
+                    (min_monthly_income <= @minIncome AND (max_monthly_income IS NULL OR max_monthly_income >= @minIncome))
+                    OR
+                    (@maxIncome IS NOT NULL AND min_monthly_income <= @maxIncome AND (max_monthly_income IS NULL OR max_monthly_income >= @maxIncome))
+                    OR
+                    (min_monthly_income >= @minIncome AND (@maxIncome IS NULL OR min_monthly_income <= @maxIncome))
+                  )
+            )";
+            return await connection.ExecuteScalarAsync<bool>(sql, new { state, minIncome, maxIncome, excludeId });
         }
     }
 }

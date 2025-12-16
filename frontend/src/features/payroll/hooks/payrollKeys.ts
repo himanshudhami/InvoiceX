@@ -78,14 +78,22 @@ export const payrollKeys = {
   activeStatutoryConfigs: () => [...payrollKeys.statutoryConfigs(), 'active'] as const,
   
   // Tax Configuration
-  taxSlabs: (regime?: string, financialYear?: string) => 
+  taxSlabs: (regime?: string, financialYear?: string) =>
     [...payrollKeys.all, 'tax-slabs', regime ?? 'all', financialYear ?? 'all'] as const,
-  taxSlabForIncome: (income: number, regime: string, financialYear: string) => 
+  taxSlabForIncome: (income: number, regime: string, financialYear: string) =>
     [...payrollKeys.taxSlabs(regime, financialYear), 'for-income', income] as const,
-  professionalTaxSlabs: (state?: string) => 
+  professionalTaxSlabs: (state?: string) =>
     [...payrollKeys.all, 'pt-slabs', state ?? 'all'] as const,
-  professionalTaxSlabForIncome: (monthlyIncome: number, state: string) => 
+  professionalTaxSlab: (id: string) =>
+    [...payrollKeys.all, 'pt-slabs', 'detail', id] as const,
+  professionalTaxSlabForIncome: (monthlyIncome: number, state: string) =>
     [...payrollKeys.professionalTaxSlabs(state), 'for-income', monthlyIncome] as const,
+  distinctPtStates: () =>
+    [...payrollKeys.all, 'pt-slabs', 'states'] as const,
+  indianStates: () =>
+    [...payrollKeys.all, 'indian-states'] as const,
+  noPtStates: () =>
+    [...payrollKeys.all, 'no-pt-states'] as const,
 }
 
 

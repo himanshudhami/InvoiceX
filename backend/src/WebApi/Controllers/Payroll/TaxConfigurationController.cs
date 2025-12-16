@@ -1,3 +1,6 @@
+using Application.DTOs.Payroll;
+using Application.Interfaces.Payroll;
+using Core.Common;
 using Core.Entities.Payroll;
 using Core.Interfaces.Payroll;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers.Payroll;
 
 /// <summary>
-/// Tax configuration read-only endpoints (tax slabs and PT slabs)
+/// Tax configuration endpoints (tax slabs and PT slabs) - read and write operations
 /// </summary>
 [ApiController]
 [Route("api/payroll/tax-config")]
@@ -14,13 +17,16 @@ public class TaxConfigurationController : ControllerBase
 {
     private readonly ITaxSlabRepository _taxSlabRepository;
     private readonly IProfessionalTaxSlabRepository _ptSlabRepository;
+    private readonly IProfessionalTaxSlabService _ptSlabService;
 
     public TaxConfigurationController(
         ITaxSlabRepository taxSlabRepository,
-        IProfessionalTaxSlabRepository ptSlabRepository)
+        IProfessionalTaxSlabRepository ptSlabRepository,
+        IProfessionalTaxSlabService ptSlabService)
     {
         _taxSlabRepository = taxSlabRepository ?? throw new ArgumentNullException(nameof(taxSlabRepository));
         _ptSlabRepository = ptSlabRepository ?? throw new ArgumentNullException(nameof(ptSlabRepository));
+        _ptSlabService = ptSlabService ?? throw new ArgumentNullException(nameof(ptSlabService));
     }
 
     /// <summary>
@@ -108,6 +114,158 @@ public class TaxConfigurationController : ControllerBase
             return NotFound($"No professional tax slab found for monthly income {monthlyIncome} in state {state}");
 
         return Ok(slab);
+    }
+
+    /// <summary>
+    /// Get all distinct states that have PT slabs configured
+    /// </summary>
+    [HttpGet("professional-tax-slabs/states")]
+    [ProducesResponseType(typeof(IEnumerable<string>), 200)]
+    public async Task<IActionResult> GetDistinctStates()
+    {
+        var result = await _ptSlabService.GetDistinctStatesAsync();
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get a professional tax slab by ID
+    /// </summary>
+    [HttpGet("professional-tax-slabs/{id:guid}")]
+    [ProducesResponseType(typeof(ProfessionalTaxSlabDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetProfessionalTaxSlabById(Guid id)
+    {
+        var result = await _ptSlabService.GetByIdAsync(id);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.NotFound => NotFound(result.Error.Message),
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, "An error occurred")
+            };
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Create a new professional tax slab
+    /// </summary>
+    [HttpPost("professional-tax-slabs")]
+    [ProducesResponseType(typeof(ProfessionalTaxSlabDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> CreateProfessionalTaxSlab([FromBody] CreateProfessionalTaxSlabDto dto)
+    {
+        var result = await _ptSlabService.CreateAsync(dto);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                ErrorType.Conflict => Conflict(result.Error.Message),
+                _ => StatusCode(500, "An error occurred")
+            };
+        }
+
+        return CreatedAtAction(
+            nameof(GetProfessionalTaxSlabById),
+            new { id = result.Value!.Id },
+            result.Value);
+    }
+
+    /// <summary>
+    /// Update an existing professional tax slab
+    /// </summary>
+    [HttpPut("professional-tax-slabs/{id:guid}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> UpdateProfessionalTaxSlab(Guid id, [FromBody] UpdateProfessionalTaxSlabDto dto)
+    {
+        var result = await _ptSlabService.UpdateAsync(id, dto);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.NotFound => NotFound(result.Error.Message),
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                ErrorType.Conflict => Conflict(result.Error.Message),
+                _ => StatusCode(500, "An error occurred")
+            };
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Delete a professional tax slab
+    /// </summary>
+    [HttpDelete("professional-tax-slabs/{id:guid}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> DeleteProfessionalTaxSlab(Guid id)
+    {
+        var result = await _ptSlabService.DeleteAsync(id);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.NotFound => NotFound(result.Error.Message),
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, "An error occurred")
+            };
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Bulk create professional tax slabs (for imports)
+    /// </summary>
+    [HttpPost("professional-tax-slabs/bulk")]
+    [ProducesResponseType(typeof(IEnumerable<ProfessionalTaxSlabDto>), 201)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> BulkCreateProfessionalTaxSlabs([FromBody] IEnumerable<CreateProfessionalTaxSlabDto> dtos)
+    {
+        var result = await _ptSlabService.BulkCreateAsync(dtos);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, "An error occurred")
+            };
+        }
+
+        return StatusCode(201, result.Value);
+    }
+
+    /// <summary>
+    /// Get the list of Indian states
+    /// </summary>
+    [HttpGet("indian-states")]
+    [ProducesResponseType(typeof(IEnumerable<string>), 200)]
+    public IActionResult GetIndianStates()
+    {
+        return Ok(IndianStates.All);
+    }
+
+    /// <summary>
+    /// Get the list of states that do NOT levy Professional Tax
+    /// </summary>
+    [HttpGet("no-pt-states")]
+    [ProducesResponseType(typeof(IEnumerable<string>), 200)]
+    public IActionResult GetNoPtStates()
+    {
+        return Ok(IndianStates.NoPtStates);
     }
 }
 

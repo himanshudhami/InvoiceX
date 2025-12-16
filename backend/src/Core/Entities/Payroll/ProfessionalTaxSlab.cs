@@ -27,6 +27,22 @@ namespace Core.Entities.Payroll
         /// </summary>
         public decimal MonthlyTax { get; set; }
 
+        /// <summary>
+        /// Special PT amount for February month (some states like Karnataka, Maharashtra
+        /// have different rates in February to meet annual statutory cap)
+        /// </summary>
+        public decimal? FebruaryTax { get; set; }
+
+        /// <summary>
+        /// Date from which this slab is effective
+        /// </summary>
+        public DateTime? EffectiveFrom { get; set; }
+
+        /// <summary>
+        /// Date until which this slab is effective (null = currently active)
+        /// </summary>
+        public DateTime? EffectiveTo { get; set; }
+
         public bool IsActive { get; set; } = true;
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

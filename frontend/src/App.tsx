@@ -52,6 +52,7 @@ const EmployeeTaxDeclarations = lazy(() => import('./pages/EmployeeTaxDeclaratio
 const ContractorPaymentsPage = lazy(() => import('./pages/ContractorPaymentsPage'))
 const PayrollSettings = lazy(() => import('./pages/PayrollSettings'))
 const PayslipView = lazy(() => import('./pages/PayslipView'))
+const ProfessionalTaxSlabsManagement = lazy(() => import('./pages/ProfessionalTaxSlabsManagement'))
 const BankAccountsManagement = lazy(() => import('./pages/BankAccountsManagement'))
 const BankStatementImport = lazy(() => import('./pages/BankStatementImport'))
 const BankTransactionsPage = lazy(() => import('./pages/BankTransactionsPage'))
@@ -133,6 +134,7 @@ function App() {
                       <Route path="/payroll/tax-declarations" element={<EmployeeTaxDeclarations />} />
                       <Route path="/payroll/contractors" element={<ContractorPaymentsPage />} />
                       <Route path="/payroll/settings" element={<PayrollSettings />} />
+                      <Route path="/payroll/settings/pt-slabs" element={<ProfessionalTaxSlabsManagement />} />
                       <Route path="/payroll/payslip/:transactionId" element={<PayslipView />} />
 
                       {/* Bank Routes */}

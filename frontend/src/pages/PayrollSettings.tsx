@@ -25,6 +25,8 @@ const defaultFormData = {
   lwfEnabled: false,
   lwfEmployeeAmount: 0,
   lwfEmployerAmount: 0,
+  gratuityEnabled: false,
+  gratuityRate: 4.81,
 }
 
 const PayrollSettings = () => {
@@ -56,6 +58,8 @@ const PayrollSettings = () => {
         lwfEnabled: config.lwfEnabled,
         lwfEmployeeAmount: config.lwfEmployeeAmount,
         lwfEmployerAmount: config.lwfEmployerAmount,
+        gratuityEnabled: config.gratuityEnabled ?? false,
+        gratuityRate: config.gratuityRate ?? 4.81,
       })
     } else if (selectedCompanyId && !isLoading) {
       // Reset to defaults when company changes and no config exists
@@ -286,8 +290,19 @@ const PayrollSettings = () => {
           {/* PT Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle>Professional Tax (PT) Configuration</CardTitle>
-              <CardDescription>State-wise professional tax settings</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Professional Tax (PT) Configuration</CardTitle>
+                  <CardDescription>State-wise professional tax settings</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/payroll/settings/pt-slabs')}
+                >
+                  Manage PT Slabs
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
@@ -338,6 +353,12 @@ const PayrollSettings = () => {
                       placeholder="PT registration number"
                     />
                   </div>
+
+                  <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700">
+                    <p>
+                      <strong>Note:</strong> PT slabs are configured globally for all states. Click "Manage PT Slabs" to view or modify the income slabs and tax amounts for each state.
+                    </p>
+                  </div>
                 </>
               )}
             </CardContent>
@@ -386,6 +407,56 @@ const PayrollSettings = () => {
                       onChange={(e) => setFormData({ ...formData, lwfEmployerAmount: parseFloat(e.target.value) })}
                     />
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Gratuity Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Gratuity Configuration</CardTitle>
+              <CardDescription>
+                Gratuity provision settings (optional - not mandatory for payroll)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="gratuityEnabled"
+                  checked={formData.gratuityEnabled}
+                  onChange={(e) => setFormData({ ...formData, gratuityEnabled: e.target.checked })}
+                />
+                <label htmlFor="gratuityEnabled" className="text-sm font-medium">
+                  Enable Gratuity Provision
+                </label>
+              </div>
+
+              <div className="bg-yellow-50 p-3 rounded-md text-sm text-yellow-800">
+                <p>
+                  <strong>Note:</strong> Gratuity is payable only after 5 years of continuous service.
+                  Enabling this will add a monthly provision to employer cost calculations, but it's
+                  not a statutory deduction from salary. Most companies don't provision monthly and
+                  pay gratuity only when an employee completes 5 years and leaves.
+                </p>
+              </div>
+
+              {formData.gratuityEnabled && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Gratuity Rate (% of Basic)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    value={formData.gratuityRate}
+                    onChange={(e) => setFormData({ ...formData, gratuityRate: parseFloat(e.target.value) })}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Standard rate is 4.81% (formula: 15/26 days per month = 15/26/12 = 4.81%)
+                  </p>
                 </div>
               )}
             </CardContent>

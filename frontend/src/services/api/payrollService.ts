@@ -25,6 +25,8 @@ import type {
   UpdateCompanyStatutoryConfigDto,
   TaxSlab,
   ProfessionalTaxSlab,
+  CreateProfessionalTaxSlabDto,
+  UpdateProfessionalTaxSlabDto,
 } from '@/features/payroll/types/payroll';
 
 /**
@@ -342,6 +344,40 @@ export class PayrollService {
 
   async getProfessionalTaxSlabForIncome(monthlyIncome: number, state: string = 'Karnataka'): Promise<ProfessionalTaxSlab> {
     return apiClient.get<ProfessionalTaxSlab>(`${this.taxConfigEndpoint}/professional-tax-slabs/for-income`, { monthlyIncome, state });
+  }
+
+  // ==================== Professional Tax Slab CRUD ====================
+
+  async getProfessionalTaxSlabById(id: string): Promise<ProfessionalTaxSlab> {
+    return apiClient.get<ProfessionalTaxSlab>(`${this.taxConfigEndpoint}/professional-tax-slabs/${id}`);
+  }
+
+  async getDistinctPtStates(): Promise<string[]> {
+    return apiClient.get<string[]>(`${this.taxConfigEndpoint}/professional-tax-slabs/states`);
+  }
+
+  async createProfessionalTaxSlab(data: CreateProfessionalTaxSlabDto): Promise<ProfessionalTaxSlab> {
+    return apiClient.post<ProfessionalTaxSlab, CreateProfessionalTaxSlabDto>(`${this.taxConfigEndpoint}/professional-tax-slabs`, data);
+  }
+
+  async updateProfessionalTaxSlab(id: string, data: UpdateProfessionalTaxSlabDto): Promise<void> {
+    return apiClient.put<void, UpdateProfessionalTaxSlabDto>(`${this.taxConfigEndpoint}/professional-tax-slabs/${id}`, data);
+  }
+
+  async deleteProfessionalTaxSlab(id: string): Promise<void> {
+    return apiClient.delete<void>(`${this.taxConfigEndpoint}/professional-tax-slabs/${id}`);
+  }
+
+  async bulkCreateProfessionalTaxSlabs(data: CreateProfessionalTaxSlabDto[]): Promise<ProfessionalTaxSlab[]> {
+    return apiClient.post<ProfessionalTaxSlab[], CreateProfessionalTaxSlabDto[]>(`${this.taxConfigEndpoint}/professional-tax-slabs/bulk`, data);
+  }
+
+  async getIndianStates(): Promise<string[]> {
+    return apiClient.get<string[]>(`${this.taxConfigEndpoint}/indian-states`);
+  }
+
+  async getNoPtStates(): Promise<string[]> {
+    return apiClient.get<string[]>(`${this.taxConfigEndpoint}/no-pt-states`);
   }
 }
 

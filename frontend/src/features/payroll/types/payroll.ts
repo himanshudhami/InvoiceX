@@ -588,6 +588,8 @@ export interface CompanyStatutoryConfig {
   lwfEnabled: boolean;
   lwfEmployeeAmount: number;
   lwfEmployerAmount: number;
+  gratuityEnabled: boolean;
+  gratuityRate: number;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -612,6 +614,8 @@ export interface CreateCompanyStatutoryConfigDto {
   lwfEnabled?: boolean;
   lwfEmployeeAmount?: number;
   lwfEmployerAmount?: number;
+  gratuityEnabled?: boolean;
+  gratuityRate?: number;
 }
 
 export interface UpdateCompanyStatutoryConfigDto {
@@ -631,6 +635,8 @@ export interface UpdateCompanyStatutoryConfigDto {
   lwfEnabled?: boolean;
   lwfEmployeeAmount?: number;
   lwfEmployerAmount?: number;
+  gratuityEnabled?: boolean;
+  gratuityRate?: number;
   isActive?: boolean;
 }
 
@@ -654,12 +660,82 @@ export interface ProfessionalTaxSlab {
   id: string;
   state: string;
   minMonthlyIncome: number;
-  maxMonthlyIncome?: number;
+  maxMonthlyIncome?: number | null;
   monthlyTax: number;
+  februaryTax?: number | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface CreateProfessionalTaxSlabDto {
+  state: string;
+  minMonthlyIncome: number;
+  maxMonthlyIncome?: number | null;
+  monthlyTax: number;
+  februaryTax?: number | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateProfessionalTaxSlabDto {
+  state: string;
+  minMonthlyIncome: number;
+  maxMonthlyIncome?: number | null;
+  monthlyTax: number;
+  februaryTax?: number | null;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  isActive: boolean;
+}
+
+// List of Indian states for PT slab configuration
+export const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+] as const;
+
+// States that do NOT levy Professional Tax
+export const NO_PT_STATES = [
+  'Delhi',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Punjab',
+  'Rajasthan',
+  'Uttar Pradesh',
+  'Uttarakhand',
+] as const;
 
 // ==================== Payslip ====================
 export interface Payslip {

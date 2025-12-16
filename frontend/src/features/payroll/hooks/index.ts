@@ -8,6 +8,7 @@ export * from './useContractorPayments'
 export * from './useStatutoryConfig'
 export * from './useTaxConfiguration'
 export * from './usePayrollInfo'
+export * from './useProfessionalTaxSlabs'
 
 
 

@@ -109,12 +109,14 @@ namespace Infrastructure.Data.Payroll
             var sql = @"INSERT INTO company_statutory_configs
                 (company_id, pf_enabled, pf_registration_number, pf_employee_rate, pf_employer_rate,
                  pf_wage_ceiling, esi_enabled, esi_registration_number, esi_employee_rate, esi_employer_rate,
-                 esi_gross_ceiling, pt_enabled, pt_state, pt_registration_number, effective_from,
+                 esi_gross_ceiling, pt_enabled, pt_state, pt_registration_number,
+                 gratuity_enabled, gratuity_rate, effective_from,
                  is_active, created_at, updated_at)
                 VALUES
                 (@CompanyId, @PfEnabled, @PfRegistrationNumber, @PfEmployeeRate, @PfEmployerRate,
                  @PfWageCeiling, @EsiEnabled, @EsiRegistrationNumber, @EsiEmployeeRate, @EsiEmployerRate,
-                 @EsiGrossCeiling, @PtEnabled, @PtState, @PtRegistrationNumber, @EffectiveFrom,
+                 @EsiGrossCeiling, @PtEnabled, @PtState, @PtRegistrationNumber,
+                 @GratuityEnabled, @GratuityRate, @EffectiveFrom,
                  @IsActive, NOW(), NOW())
                 RETURNING *";
 
@@ -139,6 +141,8 @@ namespace Infrastructure.Data.Payroll
                 pt_enabled = @PtEnabled,
                 pt_state = @PtState,
                 pt_registration_number = @PtRegistrationNumber,
+                gratuity_enabled = @GratuityEnabled,
+                gratuity_rate = @GratuityRate,
                 is_active = @IsActive,
                 updated_at = NOW()
                 WHERE id = @Id";

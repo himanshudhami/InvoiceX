@@ -309,10 +309,18 @@ public class PayrollCalculationService
         // Calculate net payable
         transaction.NetPayable = transaction.GrossEarnings - transaction.TotalDeductions;
 
-        // Gratuity provision (4.81% of basic)
-        transaction.GratuityProvision = Math.Round(transaction.BasicEarned * 0.0481m, 0, MidpointRounding.AwayFromZero);
-        if (transaction.GratuityProvision > 0)
-            lines.Add(CreateLine("employer_contribution", ++lineSeq, "GRATUITY_PROVISION", "Gratuity Provision", transaction.BasicEarned, 4.81m, transaction.GratuityProvision));
+        // Gratuity provision (only if enabled in company config)
+        if (companyConfig.GratuityEnabled)
+        {
+            var gratuityRate = companyConfig.GratuityRate > 0 ? companyConfig.GratuityRate : 4.81m;
+            transaction.GratuityProvision = Math.Round(transaction.BasicEarned * (gratuityRate / 100m), 0, MidpointRounding.AwayFromZero);
+            if (transaction.GratuityProvision > 0)
+                lines.Add(CreateLine("employer_contribution", ++lineSeq, "GRATUITY_PROVISION", "Gratuity Provision", transaction.BasicEarned, gratuityRate, transaction.GratuityProvision));
+        }
+        else
+        {
+            transaction.GratuityProvision = 0;
+        }
 
         // Total employer cost
         transaction.TotalEmployerCost = transaction.GrossEarnings + transaction.PfEmployer +

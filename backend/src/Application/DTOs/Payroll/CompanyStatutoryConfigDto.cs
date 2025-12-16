@@ -29,6 +29,10 @@ public class CompanyStatutoryConfigDto
     public decimal LwfEmployeeAmount { get; set; }
     public decimal LwfEmployerAmount { get; set; }
 
+    // Gratuity Configuration
+    public bool GratuityEnabled { get; set; }
+    public decimal GratuityRate { get; set; }
+
     public bool IsActive { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -64,6 +68,10 @@ public class CreateCompanyStatutoryConfigDto
     public bool LwfEnabled { get; set; } = false;
     public decimal LwfEmployeeAmount { get; set; }
     public decimal LwfEmployerAmount { get; set; }
+
+    // Gratuity Configuration
+    public bool GratuityEnabled { get; set; } = false;
+    public decimal GratuityRate { get; set; } = 4.81m;
 }
 
 public class UpdateCompanyStatutoryConfigDto
@@ -91,6 +99,10 @@ public class UpdateCompanyStatutoryConfigDto
     public bool? LwfEnabled { get; set; }
     public decimal? LwfEmployeeAmount { get; set; }
     public decimal? LwfEmployerAmount { get; set; }
+
+    // Gratuity Configuration
+    public bool? GratuityEnabled { get; set; }
+    public decimal? GratuityRate { get; set; }
 
     public bool? IsActive { get; set; }
 }

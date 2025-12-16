@@ -5,11 +5,11 @@ namespace Application.Services.Payroll;
 
 /// <summary>
 /// Service for Professional Tax (PT) calculations
-/// PT varies by state in India. Key states:
-/// - Karnataka: ₹200/month (if salary > ₹15,000)
-/// - Maharashtra: ₹200/month (Feb), ₹175/month (other months) for salary > ₹10,000
+/// PT varies by state in India. Key states (as of April 2025):
+/// - Karnataka: ₹200/month if salary >= ₹25,000 (₹300 in Feb) - Act No. 33 of 2025
+/// - Maharashtra: ₹200/month (₹300 in Feb) for salary > ₹10,000
 /// - Tamil Nadu: ₹0 (no PT)
-/// - Gujarat: ₹200/month max
+/// - Gujarat: ₹200/month max for salary >= ₹12,000
 /// - Delhi: No PT
 /// </summary>
 public class ProfessionalTaxCalculationService
@@ -47,7 +47,17 @@ public class ProfessionalTaxCalculationService
 
         if (slab != null)
         {
-            result.TaxAmount = slab.MonthlyTax;
+            // Use February tax if available and it's February
+            // Some states like Karnataka and Maharashtra have higher PT in February
+            // to ensure the annual total matches the statutory cap (e.g., Rs 2,500)
+            if (paymentMonth == 2 && slab.FebruaryTax.HasValue)
+            {
+                result.TaxAmount = slab.FebruaryTax.Value;
+            }
+            else
+            {
+                result.TaxAmount = slab.MonthlyTax;
+            }
         }
         else
         {
@@ -92,7 +102,7 @@ public class ProfessionalTaxCalculationService
 
         return stateLower switch
         {
-            "karnataka" => CalculateKarnatakaPt(grossSalary),
+            "karnataka" => CalculateKarnatakaPt(grossSalary, paymentMonth),
             "maharashtra" => CalculateMaharashtraPt(grossSalary, paymentMonth),
             "tamil nadu" or "tamilnadu" => 0, // No PT in Tamil Nadu
             "delhi" => 0, // No PT in Delhi
@@ -106,11 +116,13 @@ public class ProfessionalTaxCalculationService
         };
     }
 
-    private decimal CalculateKarnatakaPt(decimal grossSalary)
+    private decimal CalculateKarnatakaPt(decimal grossSalary, int paymentMonth)
     {
-        // Karnataka PT slabs (monthly)
-        if (grossSalary <= 15000) return 0;
-        return 200m;
+        // Karnataka PT slabs (effective April 1, 2025 - Act No. 33 of 2025)
+        // Middle-income relief: Rs 0-24,999 = NIL
+        // Rs 25,000+ = Rs 200/month (Rs 300 in February to reach annual cap of Rs 2,500)
+        if (grossSalary < 25000) return 0;
+        return paymentMonth == 2 ? 300m : 200m;
     }
 
     private decimal CalculateMaharashtraPt(decimal grossSalary, int paymentMonth)

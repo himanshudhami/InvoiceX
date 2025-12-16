@@ -19,5 +19,7 @@ namespace Core.Interfaces.Payroll
         Task UpdateAsync(ProfessionalTaxSlab entity);
         Task DeleteAsync(Guid id);
         Task<IEnumerable<ProfessionalTaxSlab>> BulkAddAsync(IEnumerable<ProfessionalTaxSlab> entities);
+        Task<IEnumerable<string>> GetDistinctStatesAsync();
+        Task<bool> ExistsForStateAndRangeAsync(string state, decimal minIncome, decimal? maxIncome, Guid? excludeId = null);
     }
 }
