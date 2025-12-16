@@ -8,3 +8,4 @@ DROP COLUMN IF EXISTS transaction_type;
 
 
 
+

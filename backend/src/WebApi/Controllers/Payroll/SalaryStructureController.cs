@@ -41,13 +41,50 @@ public class SalaryStructureController : ControllerBase
     [ProducesResponseType(typeof(PagedResponse<EmployeeSalaryStructureDto>), 200)]
     public async Task<IActionResult> GetAll([FromQuery] EmployeeSalaryStructureFilterRequest request)
     {
+        var filters = request.GetFilters();
+
+        // When searching, support searching by employee name by resolving matching employee IDs
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var employeeFilters = new Dictionary<string, object>();
+            if (request.CompanyId.HasValue)
+            {
+                employeeFilters["company_id"] = request.CompanyId.Value;
+            }
+
+            // Use a reasonably high page size to capture matching employees; this is only for ID lookup
+            var (matchingEmployees, _) = await _employeesRepository.GetPagedAsync(
+                pageNumber: 1,
+                pageSize: 500,
+                searchTerm: request.SearchTerm,
+                sortBy: "employee_name",
+                sortDescending: false,
+                filters: employeeFilters);
+
+            var matchingEmployeeIds = matchingEmployees.Select(e => e.Id).Distinct().ToList();
+
+            // If no employees match the search term, return an empty page early
+            if (matchingEmployeeIds.Count == 0)
+            {
+                var empty = new PagedResponse<EmployeeSalaryStructureDto>(
+                    Enumerable.Empty<EmployeeSalaryStructureDto>(),
+                    0,
+                    request.PageNumber,
+                    request.PageSize);
+                return Ok(empty);
+            }
+
+            // Use an IN filter on employee_id for matching employees
+            filters["employee_id_in"] = matchingEmployeeIds;
+        }
+
         var (items, totalCount) = await _repository.GetPagedAsync(
             request.PageNumber,
             request.PageSize,
-            request.SearchTerm,
+            null, // search term handled via employee name above
             request.SortBy,
             request.SortDescending,
-            request.GetFilters());
+            filters);
 
         var dtos = _mapper.Map<IEnumerable<EmployeeSalaryStructureDto>>(items).ToList();
         
@@ -79,13 +116,46 @@ public class SalaryStructureController : ControllerBase
     [ProducesResponseType(typeof(PagedResponse<EmployeeSalaryStructureDto>), 200)]
     public async Task<IActionResult> GetAllPaged([FromQuery] EmployeeSalaryStructureFilterRequest request)
     {
+        var filters = request.GetFilters();
+
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var employeeFilters = new Dictionary<string, object>();
+            if (request.CompanyId.HasValue)
+            {
+                employeeFilters["company_id"] = request.CompanyId.Value;
+            }
+
+            var (matchingEmployees, _) = await _employeesRepository.GetPagedAsync(
+                pageNumber: 1,
+                pageSize: 500,
+                searchTerm: request.SearchTerm,
+                sortBy: "employee_name",
+                sortDescending: false,
+                filters: employeeFilters);
+
+            var matchingEmployeeIds = matchingEmployees.Select(e => e.Id).Distinct().ToList();
+
+            if (matchingEmployeeIds.Count == 0)
+            {
+                var empty = new PagedResponse<EmployeeSalaryStructureDto>(
+                    Enumerable.Empty<EmployeeSalaryStructureDto>(),
+                    0,
+                    request.PageNumber,
+                    request.PageSize);
+                return Ok(empty);
+            }
+
+            filters["employee_id_in"] = matchingEmployeeIds;
+        }
+
         var (items, totalCount) = await _repository.GetPagedAsync(
             request.PageNumber,
             request.PageSize,
-            request.SearchTerm,
+            null,
             request.SortBy,
             request.SortDescending,
-            request.GetFilters());
+            filters);
 
         var dtos = _mapper.Map<IEnumerable<EmployeeSalaryStructureDto>>(items).ToList();
         
@@ -379,6 +449,8 @@ public class SalaryStructureController : ControllerBase
         return NoContent();
     }
 }
+
+
 
 
 

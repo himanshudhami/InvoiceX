@@ -65,6 +65,10 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.IBankTransactionRepository>(sp =>
                 new Infrastructure.Data.BankTransactionRepository(connectionString));
 
+            // TDS Receivable repository
+            services.AddScoped<Core.Interfaces.ITdsReceivableRepository>(sp =>
+                new Infrastructure.Data.TdsReceivableRepository(connectionString));
+
             // Payroll repositories
             services.AddScoped<Core.Interfaces.Payroll.ITaxSlabRepository>(sp =>
                 new Infrastructure.Data.Payroll.TaxSlabRepository(connectionString));

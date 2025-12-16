@@ -1,0 +1,4 @@
+## Architecture Context
+- **Backend**: .NET Core 9, Clean Architecture (Core → Infrastructure → Application → WebApi), Dapper ORM, PostgreSQL
+- **Frontend**: React + TypeScript, React Query, nuqs for URL state, shadcn/ui components
+- **Migrations**: Sequential numbering (016+), paired up/down files, idempotent SQL

@@ -26,6 +26,7 @@ const Layout: FC<Props> = ({ children }) => {
     { name: 'Subscriptions', href: '/subscriptions', icon: '🪙' },
     { name: 'Expense Reports', href: '/expense-dashboard', icon: '📈' },
     { name: 'Financial Report', href: '/financial-report', icon: '📊' },
+    { name: 'TDS Receivables', href: '/tds-receivables', icon: '🧾' },
     { name: 'Settings', href: '/settings', icon: '⚙️' },
   ]
 

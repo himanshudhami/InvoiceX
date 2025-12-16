@@ -12,3 +12,4 @@ INSERT INTO professional_tax_slabs (state, min_monthly_income, max_monthly_incom
 ('Gujarat', 12000, NULL, 200);
 
 
+

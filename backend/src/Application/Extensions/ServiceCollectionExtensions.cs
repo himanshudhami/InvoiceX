@@ -70,6 +70,10 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.IBankTransactionService,
                               Application.Services.BankTransactionService>();
 
+            // TDS Receivable service
+            services.AddScoped<Application.Interfaces.ITdsReceivableService,
+                              Application.Services.TdsReceivableService>();
+
             // Payroll calculation services
             services.AddScoped<Application.Services.Payroll.PfCalculationService>();
             services.AddScoped<Application.Services.Payroll.EsiCalculationService>();

@@ -16,6 +16,7 @@ import { PaymentDetails } from './payment-details'
 import { LineItems } from './line-items'
 import { Summary } from './summary'
 import { NoteDetails } from './note-details'
+import { GstDetails } from './gst-details'
 
 interface LineItem {
   id: string
@@ -27,6 +28,17 @@ interface LineItem {
   discountRate?: number
   lineTotal: number
   sortOrder?: number
+  // GST fields
+  hsnSacCode?: string
+  isService?: boolean
+  cgstRate?: number
+  cgstAmount?: number
+  sgstRate?: number
+  sgstAmount?: number
+  igstRate?: number
+  igstAmount?: number
+  cessRate?: number
+  cessAmount?: number
 }
 
 type InvoiceFormState = Omit<CreateInvoiceDto, 'status' | 'taxAmount' | 'discountAmount' | 'paidAmount' | 'currency'> & {
@@ -36,6 +48,16 @@ type InvoiceFormState = Omit<CreateInvoiceDto, 'status' | 'taxAmount' | 'discoun
   paidAmount: number
   currency: string
   lineItems: LineItem[]
+  // GST Classification
+  invoiceType: string
+  supplyType?: string
+  placeOfSupply?: string
+  reverseCharge: boolean
+  // GST Totals
+  totalCgst: number
+  totalSgst: number
+  totalIgst: number
+  totalCess: number
 }
 
 interface InvoiceFormProps {
@@ -64,6 +86,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     poNumber: '',
     projectName: '',
     lineItems: [],
+    // GST defaults
+    invoiceType: 'export',
+    supplyType: 'export',
+    placeOfSupply: '',
+    reverseCharge: false,
+    totalCgst: 0,
+    totalSgst: 0,
+    totalIgst: 0,
+    totalCess: 0,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -131,6 +162,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         poNumber: invoice.poNumber || '',
         projectName: invoice.projectName || '',
         lineItems: [], // Will be populated by existingItems effect
+        // GST fields
+        invoiceType: invoice.invoiceType || 'export',
+        supplyType: invoice.supplyType || 'export',
+        placeOfSupply: invoice.placeOfSupply || '',
+        reverseCharge: invoice.reverseCharge || false,
+        totalCgst: invoice.totalCgst || 0,
+        totalSgst: invoice.totalSgst || 0,
+        totalIgst: invoice.totalIgst || 0,
+        totalCess: invoice.totalCess || 0,
       })
     }
   }, [invoice])
@@ -151,25 +191,61 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           discountRate: item.discountRate || 0,
           lineTotal: item.lineTotal,
           sortOrder: item.sortOrder ?? index,
+          // GST fields
+          hsnSacCode: item.hsnSacCode || '',
+          isService: item.isService ?? true,
+          cgstRate: item.cgstRate || 0,
+          cgstAmount: item.cgstAmount || 0,
+          sgstRate: item.sgstRate || 0,
+          sgstAmount: item.sgstAmount || 0,
+          igstRate: item.igstRate || 0,
+          igstAmount: item.igstAmount || 0,
+          cessRate: item.cessRate || 0,
+          cessAmount: item.cessAmount || 0,
         }))
 
       setFormData(prev => ({ ...prev, lineItems }))
     }
   }, [invoice, existingItems])
 
-  // Recalculate totals when line items change
+  // Recalculate totals when line items or invoice type change
   useEffect(() => {
     const subtotal = formData.lineItems.reduce((sum, item) => sum + item.lineTotal, 0)
-    const taxAmount = formData.lineItems.reduce((sum, item) => sum + (item.lineTotal * item.taxRate / 100), 0)
+
+    // Calculate GST based on supply type
+    let totalCgst = 0
+    let totalSgst = 0
+    let totalIgst = 0
+    let totalCess = 0
+    let taxAmount = 0
+
+    // Only calculate GST for domestic invoices
+    if (formData.invoiceType !== 'export') {
+      formData.lineItems.forEach(item => {
+        totalCgst += item.cgstAmount || 0
+        totalSgst += item.sgstAmount || 0
+        totalIgst += item.igstAmount || 0
+        totalCess += item.cessAmount || 0
+      })
+      taxAmount = totalCgst + totalSgst + totalIgst + totalCess
+    } else {
+      // For export invoices, use the simple tax calculation
+      taxAmount = formData.lineItems.reduce((sum, item) => sum + (item.lineTotal * item.taxRate / 100), 0)
+    }
+
     const totalAmount = subtotal + taxAmount - (formData.discountAmount || 0)
-    
-    setFormData(prev => ({ 
-      ...prev, 
+
+    setFormData(prev => ({
+      ...prev,
       subtotal,
       taxAmount,
-      totalAmount: Math.max(0, totalAmount)
+      totalAmount: Math.max(0, totalAmount),
+      totalCgst,
+      totalSgst,
+      totalIgst,
+      totalCess,
     }))
-  }, [formData.lineItems, formData.discountAmount])
+  }, [formData.lineItems, formData.discountAmount, formData.invoiceType])
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -204,12 +280,41 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       ...prev,
       lineItems: prev.lineItems.map(item => {
         if (item.id !== id) return item
-        
+
         const updated = { ...item, [field]: value }
-        
+
         // Recalculate line total
         updated.lineTotal = updated.quantity * updated.unitPrice
-        
+
+        // Recalculate GST amounts based on supply type
+        if (prev.invoiceType !== 'export') {
+          const taxableAmount = updated.lineTotal
+          const gstRate = updated.taxRate || 0
+
+          if (prev.supplyType === 'intra_state') {
+            // CGST + SGST (split equally)
+            updated.cgstRate = gstRate / 2
+            updated.sgstRate = gstRate / 2
+            updated.igstRate = 0
+            updated.cgstAmount = taxableAmount * (updated.cgstRate / 100)
+            updated.sgstAmount = taxableAmount * (updated.sgstRate / 100)
+            updated.igstAmount = 0
+          } else {
+            // IGST (inter-state)
+            updated.igstRate = gstRate
+            updated.cgstRate = 0
+            updated.sgstRate = 0
+            updated.igstAmount = taxableAmount * (gstRate / 100)
+            updated.cgstAmount = 0
+            updated.sgstAmount = 0
+          }
+
+          // Calculate cess
+          if (updated.cessRate) {
+            updated.cessAmount = taxableAmount * (updated.cessRate / 100)
+          }
+        }
+
         return updated
       })
     }))
@@ -376,6 +481,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           terms: formData.terms,
           poNumber: formData.poNumber,
           projectName: formData.projectName,
+          // GST fields
+          invoiceType: formData.invoiceType,
+          supplyType: formData.supplyType,
+          placeOfSupply: formData.placeOfSupply,
+          reverseCharge: formData.reverseCharge,
+          totalCgst: formData.totalCgst,
+          totalSgst: formData.totalSgst,
+          totalIgst: formData.totalIgst,
+          totalCess: formData.totalCess,
         }
         await updateInvoice.mutateAsync({ id: invoice.id, data: updateData })
         
@@ -400,6 +514,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           terms: formData.terms,
           poNumber: formData.poNumber,
           projectName: formData.projectName,
+          // GST fields
+          invoiceType: formData.invoiceType,
+          supplyType: formData.supplyType,
+          placeOfSupply: formData.placeOfSupply,
+          reverseCharge: formData.reverseCharge,
+          totalCgst: formData.totalCgst,
+          totalSgst: formData.totalSgst,
+          totalIgst: formData.totalIgst,
+          totalCess: formData.totalCess,
         }
         const createdInvoice = await createInvoice.mutateAsync(createData)
         
@@ -481,6 +604,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           <FromDetails />
           <CustomerDetails />
         </div>
+
+        {/* GST Details */}
+        <GstDetails />
 
         {/* Dates */}
         <InvoiceDates />

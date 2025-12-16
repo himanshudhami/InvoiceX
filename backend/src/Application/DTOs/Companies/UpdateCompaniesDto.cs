@@ -96,5 +96,37 @@ namespace Application.DTOs.Companies
         /// </summary>
         [StringLength(50, ErrorMessage = "SignatureColor cannot exceed 50 characters")]
         public string? SignatureColor { get; set; }
+
+        // ==================== Indian Tax Compliance ====================
+
+        /// <summary>
+        /// GST Identification Number (15 characters)
+        /// </summary>
+        [StringLength(20, ErrorMessage = "GSTIN cannot exceed 20 characters")]
+        public string? Gstin { get; set; }
+
+        /// <summary>
+        /// GST State Code (first 2 digits of GSTIN)
+        /// </summary>
+        [StringLength(5, ErrorMessage = "GST State Code cannot exceed 5 characters")]
+        public string? GstStateCode { get; set; }
+
+        /// <summary>
+        /// PAN Number (10 characters)
+        /// </summary>
+        [StringLength(15, ErrorMessage = "PAN cannot exceed 15 characters")]
+        public string? PanNumber { get; set; }
+
+        /// <summary>
+        /// Corporate Identity Number (21 characters)
+        /// </summary>
+        [StringLength(25, ErrorMessage = "CIN cannot exceed 25 characters")]
+        public string? CinNumber { get; set; }
+
+        /// <summary>
+        /// GST Registration Type (regular, composition, unregistered, overseas)
+        /// </summary>
+        [StringLength(50, ErrorMessage = "GST Registration Type cannot exceed 50 characters")]
+        public string? GstRegistrationType { get; set; }
 }
 }

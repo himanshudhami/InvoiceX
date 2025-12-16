@@ -94,3 +94,4 @@ export const DepreciationImpact = ({ data }: DepreciationImpactProps) => {
 
 
 
+

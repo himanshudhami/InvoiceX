@@ -8,3 +8,4 @@ DROP INDEX IF EXISTS idx_employees_company_id;
 ALTER TABLE employees DROP COLUMN IF EXISTS company_id;
 
 
+

@@ -10,9 +10,18 @@ import {
   ColumnFiltersState,
   VisibilityState,
   ColumnDef,
+  Table,
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
+
+interface ServerPaginationConfig {
+  pageIndex: number
+  pageSize: number
+  totalCount: number
+  onPageChange: (pageIndex: number) => void
+  onPageSizeChange: (pageSize: number) => void
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -23,8 +32,17 @@ interface DataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void
   onAdd?: () => void
   addButtonText?: string
+  /** For client-side tables: override initial page size */
   pageSizeOverride?: number
+  /**
+   * When provided, DataTable will behave in server-side pagination mode:
+   * - Pagination UI is driven by this object
+   * - Page/pageSize changes call back to the parent instead of changing React Table's internal state only
+   */
+  pagination?: ServerPaginationConfig
   hidePaginationControls?: boolean
+  /** Optional footer row renderer - receives the table instance and should return a tfoot element */
+  footer?: (table: Table<TData>) => React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -37,7 +55,9 @@ export function DataTable<TData, TValue>({
   onAdd,
   addButtonText = "Add New",
   pageSizeOverride,
-  hidePaginationControls = false
+  pagination,
+  hidePaginationControls = false,
+  footer
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -55,11 +75,24 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: 'includesString',
-    initialState: { pagination: { pageSize: pageSizeOverride || 20 } },
+    initialState: {
+      pagination: {
+        pageSize: pagination?.pageSize || pageSizeOverride || 20,
+        pageIndex: pagination?.pageIndex ?? 0,
+      },
+    },
     state: {
       sorting,
       columnFilters,
       columnVisibility,
+      ...(pagination
+        ? {
+            pagination: {
+              pageIndex: pagination.pageIndex,
+              pageSize: pagination.pageSize,
+            },
+          }
+        : {}),
       // Only use globalFilter for client-side filtering when searchValue is not provided
       globalFilter: searchValue === undefined ? globalFilter : '',
     },
@@ -72,8 +105,8 @@ export function DataTable<TData, TValue>({
   
   const table = useReactTable(tableConfig)
 
-  // Keep table page size in sync with server-driven page size when provided
-  if (pageSizeOverride && table.getState().pagination.pageSize !== pageSizeOverride) {
+  // Keep table page size in sync with explicit overrides when not in server-side mode
+  if (!pagination && pageSizeOverride && table.getState().pagination.pageSize !== pageSizeOverride) {
     table.setPageSize(pageSizeOverride)
   }
 
@@ -159,6 +192,7 @@ export function DataTable<TData, TValue>({
               </tr>
             )}
           </tbody>
+          {footer && footer(table)}
         </table>
         </div>
       </div>
@@ -167,24 +201,43 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-700">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+              Page {(pagination?.pageIndex ?? table.getState().pagination.pageIndex) + 1}{' '}
+              of {pagination ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)) : table.getPageCount()}
             </span>
             <span className="text-sm text-gray-500">
-              ({table.getFilteredRowModel().rows.length} total rows)
+              ({pagination?.totalCount ?? table.getFilteredRowModel().rows.length} total rows)
             </span>
             <PageSizeSelect
-              value={table.getState().pagination.pageSize}
-              onChange={(size) => table.setPageSize(size)}
+              value={pagination?.pageSize ?? table.getState().pagination.pageSize}
+              onChange={(size) => {
+                if (pagination) {
+                  pagination.onPageSizeChange(size)
+                } else {
+                  table.setPageSize(size)
+                }
+              }}
             />
           </div>
           
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => {
+                if (pagination) {
+                  if (pagination.pageIndex > 0) {
+                    pagination.onPageChange(pagination.pageIndex - 1)
+                  }
+                } else {
+                  table.previousPage()
+                }
+              }}
+              disabled={
+                pagination ? pagination.pageIndex <= 0 : !table.getCanPreviousPage()
+              }
               className={cn(
                 "px-3 py-1 rounded-md text-sm transition-colors",
-                table.getCanPreviousPage()
+                pagination
+                  ? pagination.pageIndex > 0
+                  : table.getCanPreviousPage()
                   ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               )}
@@ -193,36 +246,76 @@ export function DataTable<TData, TValue>({
             </button>
             
             <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, table.getPageCount()) }, (_, i) => {
-                const pageIndex = table.getState().pagination.pageIndex;
-                const startPage = Math.max(0, pageIndex - 2);
-                const page = startPage + i;
-                
-                if (page >= table.getPageCount()) return null;
-                
-                return (
-                  <button
-                    key={page}
-                    onClick={() => table.setPageIndex(page)}
-                    className={cn(
-                      "w-8 h-8 rounded text-sm transition-colors",
-                      page === pageIndex
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    )}
-                  >
-                    {page + 1}
-                  </button>
-                );
-              })}
+              {Array.from(
+                {
+                  length: Math.min(
+                    5,
+                    pagination
+                      ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
+                      : table.getPageCount()
+                  ),
+                },
+                (_, i) => {
+                  const currentIndex =
+                    pagination?.pageIndex ?? table.getState().pagination.pageIndex
+                  const pageCount = pagination
+                    ? Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize))
+                    : table.getPageCount()
+                  const startPage = Math.max(0, currentIndex - 2)
+                  const page = startPage + i
+
+                  if (page >= pageCount) return null
+
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => {
+                        if (pagination) {
+                          pagination.onPageChange(page)
+                        } else {
+                          table.setPageIndex(page)
+                        }
+                      }}
+                      className={cn(
+                        "w-8 h-8 rounded text-sm transition-colors",
+                        page === currentIndex
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                      )}
+                    >
+                      {page + 1}
+                    </button>
+                  );
+                }
+              )}
             </div>
             
             <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => {
+                if (pagination) {
+                  const pageCount = Math.max(
+                    1,
+                    Math.ceil(pagination.totalCount / pagination.pageSize)
+                  )
+                  if (pagination.pageIndex < pageCount - 1) {
+                    pagination.onPageChange(pagination.pageIndex + 1)
+                  }
+                } else {
+                  table.nextPage()
+                }
+              }}
+              disabled={
+                pagination
+                  ? pagination.pageIndex >=
+                    Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)) - 1
+                  : !table.getCanNextPage()
+              }
               className={cn(
                 "px-3 py-1 rounded-md text-sm transition-colors",
-                table.getCanNextPage()
+                pagination
+                  ? pagination.pageIndex <
+                    Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)) - 1
+                  : table.getCanNextPage()
                   ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               )}

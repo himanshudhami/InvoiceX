@@ -44,3 +44,4 @@ ON CONFLICT (employee_id) DO NOTHING;
 COMMENT ON TABLE employee_payroll_info IS 'Payroll-specific information for employees. Auto-created when salary structure is created.';
 
 
+

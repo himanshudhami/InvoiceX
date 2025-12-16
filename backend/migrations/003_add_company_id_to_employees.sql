@@ -35,3 +35,4 @@ WHERE e.company IS NOT NULL AND e.company_id IS NULL;
 COMMENT ON COLUMN employees.company_id IS 'Foreign key to companies table. Migrated from company (string) field.';
 
 
+

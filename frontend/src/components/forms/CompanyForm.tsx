@@ -23,6 +23,12 @@ export const CompanyForm = ({ company, onSuccess, onCancel }: CompanyFormProps) 
     phone: '',
     website: '',
     taxNumber: '',
+    // GST Compliance
+    gstin: '',
+    gstStateCode: '',
+    panNumber: '',
+    cinNumber: '',
+    gstRegistrationType: 'regular',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -48,6 +54,12 @@ export const CompanyForm = ({ company, onSuccess, onCancel }: CompanyFormProps) 
         phone: company.phone || '',
         website: company.website || '',
         taxNumber: company.taxNumber || '',
+        // GST Compliance
+        gstin: company.gstin || '',
+        gstStateCode: company.gstStateCode || '',
+        panNumber: company.panNumber || '',
+        cinNumber: company.cinNumber || '',
+        gstRegistrationType: company.gstRegistrationType || 'regular',
       })
     }
   }, [company])
@@ -65,6 +77,16 @@ export const CompanyForm = ({ company, onSuccess, onCancel }: CompanyFormProps) 
 
     if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
       newErrors.website = 'Please enter a valid website URL (starting with http:// or https://)'
+    }
+
+    // GSTIN validation (15 characters: 2 state + 10 PAN + 1 entity + 1 check + Z)
+    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
+      newErrors.gstin = 'Invalid GSTIN format (e.g., 27AAACP1234C1Z5)'
+    }
+
+    // PAN validation (10 characters: 5 letters + 4 digits + 1 letter)
+    if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber)) {
+      newErrors.panNumber = 'Invalid PAN format (e.g., AAACP1234C)'
     }
 
     setErrors(newErrors)
@@ -284,6 +306,98 @@ export const CompanyForm = ({ company, onSuccess, onCancel }: CompanyFormProps) 
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder="TAX123456"
           />
+        </div>
+      </div>
+
+      {/* Indian Tax Compliance Section */}
+      <div className="border-t pt-4 mt-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3">Indian Tax Compliance</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="gstin" className="block text-sm font-medium text-gray-700 mb-1">
+              GSTIN
+            </label>
+            <input
+              id="gstin"
+              type="text"
+              value={formData.gstin}
+              onChange={(e) => handleChange('gstin', e.target.value.toUpperCase())}
+              className={cn(
+                "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
+                errors.gstin ? "border-red-500" : "border-gray-300"
+              )}
+              placeholder="27AAACP1234C1Z5"
+              maxLength={15}
+            />
+            {errors.gstin && <p className="text-red-500 text-sm mt-1">{errors.gstin}</p>}
+          </div>
+          <div>
+            <label htmlFor="gstStateCode" className="block text-sm font-medium text-gray-700 mb-1">
+              GST State Code
+            </label>
+            <input
+              id="gstStateCode"
+              type="text"
+              value={formData.gstStateCode}
+              onChange={(e) => handleChange('gstStateCode', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="27"
+              maxLength={2}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label htmlFor="panNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              PAN Number
+            </label>
+            <input
+              id="panNumber"
+              type="text"
+              value={formData.panNumber}
+              onChange={(e) => handleChange('panNumber', e.target.value.toUpperCase())}
+              className={cn(
+                "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
+                errors.panNumber ? "border-red-500" : "border-gray-300"
+              )}
+              placeholder="AAACP1234C"
+              maxLength={10}
+            />
+            {errors.panNumber && <p className="text-red-500 text-sm mt-1">{errors.panNumber}</p>}
+          </div>
+          <div>
+            <label htmlFor="cinNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              CIN (Corporate Identity Number)
+            </label>
+            <input
+              id="cinNumber"
+              type="text"
+              value={formData.cinNumber}
+              onChange={(e) => handleChange('cinNumber', e.target.value.toUpperCase())}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="U74999MH2020PTC123456"
+              maxLength={21}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="gstRegistrationType" className="block text-sm font-medium text-gray-700 mb-1">
+            GST Registration Type
+          </label>
+          <select
+            id="gstRegistrationType"
+            value={formData.gstRegistrationType}
+            onChange={(e) => handleChange('gstRegistrationType', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="regular">Regular</option>
+            <option value="composition">Composition</option>
+            <option value="unregistered">Unregistered</option>
+            <option value="overseas">Overseas</option>
+          </select>
         </div>
       </div>
 

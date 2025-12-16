@@ -190,18 +190,14 @@ const EmployeeSalaryStructures = () => {
       <DataTable
         columns={columns}
         data={data?.items || []}
-        isLoading={isLoading}
         searchPlaceholder="Search by employee name..."
-        onSearch={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
+        onSearchChange={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
           pageIndex: (data?.pageNumber || urlState.page) - 1,
           pageSize: data?.pageSize || urlState.pageSize,
           totalCount: data?.totalCount || 0,
-          onPageChange: (page) => setUrlState({ page: page + 1 }),
+          onPageChange: (pageIndex) => setUrlState({ page: pageIndex + 1 }),
           onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
-        }}
-        footerInfo={() => {
-          return `${data?.totalCount || 0} salary structures • Page ${data?.pageNumber || urlState.page} of ${data?.totalPages || 1}`
         }}
       />
 
@@ -268,6 +264,8 @@ const EmployeeSalaryStructures = () => {
 }
 
 export default EmployeeSalaryStructures
+
+
 
 
 

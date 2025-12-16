@@ -7,3 +7,4 @@ ALTER TABLE employee_salary_transactions
     DROP COLUMN IF EXISTS company_id;
 
 
+

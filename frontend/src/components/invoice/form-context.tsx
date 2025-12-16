@@ -19,6 +19,16 @@ interface InvoiceFormData {
   poNumber?: string
   projectName?: string
   lineItems: LineItem[]
+  // GST Classification
+  invoiceType: string // 'export' | 'domestic_b2b' | 'domestic_b2c' | 'sez' | 'deemed_export'
+  supplyType?: string // 'intra_state' | 'inter_state' | 'export'
+  placeOfSupply?: string // State code or 'export'
+  reverseCharge: boolean
+  // GST Totals
+  totalCgst: number
+  totalSgst: number
+  totalIgst: number
+  totalCess: number
 }
 
 interface LineItem {
@@ -31,6 +41,17 @@ interface LineItem {
   discountRate?: number
   lineTotal: number
   sortOrder?: number
+  // GST fields
+  hsnSacCode?: string
+  isService?: boolean
+  cgstRate?: number
+  cgstAmount?: number
+  sgstRate?: number
+  sgstAmount?: number
+  igstRate?: number
+  igstAmount?: number
+  cessRate?: number
+  cessAmount?: number
 }
 
 interface InvoiceFormContextType {

@@ -358,7 +358,8 @@ public class PayrollController : ControllerBase
             }
             else
             {
-                await _transactionRepository.AddAsync(transaction);
+                // Capture the returned transaction which has the generated ID
+                transaction = await _transactionRepository.AddAsync(transaction);
             }
 
             // Save calculation lines for auditability (Rule 9)

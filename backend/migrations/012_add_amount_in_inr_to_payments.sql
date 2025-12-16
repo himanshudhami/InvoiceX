@@ -12,3 +12,4 @@ COMMENT ON COLUMN payments.amount_in_inr IS 'Actual INR amount received at payme
 CREATE INDEX IF NOT EXISTS idx_payments_amount_in_inr ON payments(amount_in_inr) WHERE amount_in_inr IS NOT NULL;
 
 
+

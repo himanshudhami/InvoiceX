@@ -84,5 +84,36 @@ namespace Application.DTOs.Customers
         /// IsActive
         /// </summary>
         public bool? IsActive { get; set; }
+
+        // ==================== Indian GST Compliance ====================
+
+        /// <summary>
+        /// GST Identification Number (15 characters)
+        /// </summary>
+        [StringLength(20, ErrorMessage = "GSTIN cannot exceed 20 characters")]
+        public string? Gstin { get; set; }
+
+        /// <summary>
+        /// GST State Code (2 digits)
+        /// </summary>
+        [StringLength(5, ErrorMessage = "GST State Code cannot exceed 5 characters")]
+        public string? GstStateCode { get; set; }
+
+        /// <summary>
+        /// Customer type for GST classification (b2b, b2c, overseas, sez)
+        /// </summary>
+        [StringLength(20, ErrorMessage = "Customer Type cannot exceed 20 characters")]
+        public string? CustomerType { get; set; }
+
+        /// <summary>
+        /// Whether the customer is GST registered
+        /// </summary>
+        public bool IsGstRegistered { get; set; }
+
+        /// <summary>
+        /// PAN Number (for TDS purposes)
+        /// </summary>
+        [StringLength(15, ErrorMessage = "PAN cannot exceed 15 characters")]
+        public string? PanNumber { get; set; }
 }
 }

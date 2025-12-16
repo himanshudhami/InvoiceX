@@ -36,6 +36,11 @@ export interface Product {
   is_active: boolean
   created_at: string
   updated_at: string
+  // GST Compliance fields
+  hsn_sac_code?: string
+  is_service?: boolean
+  default_gst_rate?: number
+  cess_rate?: number
 }
 
 export interface InvoiceDB {
@@ -64,6 +69,27 @@ export interface InvoiceDB {
   updated_at: string
   items?: InvoiceItem[]
   payments?: Payment[]
+  // GST Classification
+  invoice_type?: string
+  supply_type?: string
+  place_of_supply?: string
+  reverse_charge?: boolean
+  // GST Totals
+  total_cgst?: number
+  total_sgst?: number
+  total_igst?: number
+  total_cess?: number
+  // E-invoicing fields
+  e_invoice_applicable?: boolean
+  e_invoice_irn?: string
+  e_invoice_ack_number?: string
+  e_invoice_ack_date?: string
+  e_invoice_qr_code?: string
+  // Shipping details
+  shipping_address?: string
+  transporter_name?: string
+  vehicle_number?: string
+  eway_bill_number?: string
 }
 
 export interface InvoiceItem {
@@ -80,6 +106,17 @@ export interface InvoiceItem {
   sort_order: number
   created_at: string
   updated_at: string
+  // GST Compliance fields
+  hsn_sac_code?: string
+  is_service?: boolean
+  cgst_rate?: number
+  cgst_amount?: number
+  sgst_rate?: number
+  sgst_amount?: number
+  igst_rate?: number
+  igst_amount?: number
+  cess_rate?: number
+  cess_amount?: number
 }
 
 export interface Payment {

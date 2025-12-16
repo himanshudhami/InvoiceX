@@ -125,3 +125,4 @@ If you're not seeing detailed logs:
 4. **Ensure Serilog is properly configured** in `Program.cs` and `SerilogConfiguration.cs`
 
 
+

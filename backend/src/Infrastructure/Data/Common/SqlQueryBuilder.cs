@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -54,6 +55,29 @@ namespace Infrastructure.Data.Common
             return this;
         }
 
+        public SqlQueryBuilder WhereIn<T>(string column, IEnumerable<T>? values)
+        {
+            if (values is null) return this;
+            var list = values is IList<T> typedList ? typedList : new List<T>(values);
+            if (list.Count == 0)
+            {
+                // No values means no results should match
+                _whereClauses.Add("1 = 0");
+                return this;
+            }
+
+            EnsureAllowed(column);
+            var paramNames = new List<string>();
+            foreach (var value in list)
+            {
+                var p = AddParameter(value!, column);
+                paramNames.Add($"@{p}");
+            }
+
+            _whereClauses.Add($"{column} IN ({string.Join(", ", paramNames)})");
+            return this;
+        }
+
         public SqlQueryBuilder WhereLike(string column, string? pattern, bool caseInsensitive = true)
         {
             if (string.IsNullOrWhiteSpace(pattern)) return this;
@@ -87,7 +111,30 @@ namespace Infrastructure.Data.Common
             foreach (var kv in filters)
             {
                 if (kv.Value is null) continue;
-                WhereEquals(kv.Key, kv.Value);
+                // Support simple equality filters and basic IN filters (keys ending with "_in")
+                if (kv.Key.EndsWith("_in", StringComparison.OrdinalIgnoreCase) &&
+                    kv.Value is IEnumerable enumerable &&
+                    kv.Value is not string)
+                {
+                    var column = kv.Key[..^3];
+                    var list = new List<object>();
+                    foreach (var item in enumerable)
+                    {
+                        if (item != null) list.Add(item);
+                    }
+                    if (list.Count > 0)
+                    {
+                        WhereIn<object>(column, list);
+                    }
+                    else
+                    {
+                        _whereClauses.Add("1 = 0");
+                    }
+                }
+                else
+                {
+                    WhereEquals(kv.Key, kv.Value);
+                }
             }
             return this;
         }

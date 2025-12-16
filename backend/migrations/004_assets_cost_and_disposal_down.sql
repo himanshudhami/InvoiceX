@@ -11,3 +11,4 @@ ALTER TABLE assets DROP COLUMN IF EXISTS depreciation_start_date;
 DROP INDEX IF EXISTS idx_assets_purchase_type;
 
 
+

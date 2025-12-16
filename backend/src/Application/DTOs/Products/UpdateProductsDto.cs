@@ -56,5 +56,27 @@ namespace Application.DTOs.Products
         /// IsActive
         /// </summary>
         public bool? IsActive { get; set; }
+
+        // GST Compliance fields
+        /// <summary>
+        /// HSN code (goods) or SAC code (services) for GST
+        /// </summary>
+        [StringLength(20, ErrorMessage = "HSN/SAC code cannot exceed 20 characters")]
+        public string? HsnSacCode { get; set; }
+
+        /// <summary>
+        /// True for SAC code (services), false for HSN code (goods)
+        /// </summary>
+        public bool? IsService { get; set; }
+
+        /// <summary>
+        /// Default GST rate percentage (0, 5, 12, 18, 28)
+        /// </summary>
+        public decimal? DefaultGstRate { get; set; }
+
+        /// <summary>
+        /// Cess rate percentage for specific goods
+        /// </summary>
+        public decimal? CessRate { get; set; }
 }
 }

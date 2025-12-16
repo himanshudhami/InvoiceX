@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Product, CreateProductDto, UpdateProductDto } from '@/services/api/types'
 import { useCreateProduct, useUpdateProduct } from '@/hooks/api/useProducts'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { cn } from '@/lib/utils'
+import { Combobox, ComboboxOption } from '@/components/ui/combobox'
 
 interface ProductFormProps {
   product?: Product
@@ -21,6 +22,11 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     unit: '',
     taxRate: 0,
     isActive: true,
+    // GST fields
+    hsnSacCode: '',
+    isService: true,
+    defaultGstRate: 18,
+    cessRate: 0,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -58,6 +64,57 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
     'license',
   ]
 
+  // Common GST rates in India
+  const gstRates = [
+    { value: 0, label: '0% (Exempt)' },
+    { value: 5, label: '5%' },
+    { value: 12, label: '12%' },
+    { value: 18, label: '18% (Standard)' },
+    { value: 28, label: '28%' },
+  ]
+
+  // Common HSN/SAC codes for IT services and software with GST rates
+  const commonHsnSacCodes = [
+    { code: '998313', description: 'IT consulting and support services', type: 'SAC', gstRate: 18 },
+    { code: '998314', description: 'IT design and development services', type: 'SAC', gstRate: 18 },
+    { code: '998315', description: 'Hosting and IT infrastructure services', type: 'SAC', gstRate: 18 },
+    { code: '998311', description: 'Management consulting services', type: 'SAC', gstRate: 18 },
+    { code: '998312', description: 'Business consulting services', type: 'SAC', gstRate: 18 },
+    { code: '997331', description: 'Software licensing services', type: 'SAC', gstRate: 18 },
+    { code: '999291', description: 'Commercial training services', type: 'SAC', gstRate: 18 },
+    { code: '998211', description: 'Financial auditing services', type: 'SAC', gstRate: 18 },
+    { code: '998221', description: 'Tax consulting services', type: 'SAC', gstRate: 18 },
+    { code: '8523', description: 'Recorded media / packaged software', type: 'HSN', gstRate: 18 },
+    { code: '8471', description: 'Computers and data processing machines', type: 'HSN', gstRate: 18 },
+    { code: '8473', description: 'Computer parts and accessories', type: 'HSN', gstRate: 18 },
+  ]
+
+  // Handle HSN/SAC code selection - auto-update GST rate and isService
+  const handleHsnSacChange = (code: string) => {
+    handleChange('hsnSacCode', code)
+
+    // Find the code in our list and auto-fill related fields
+    const matchedCode = commonHsnSacCodes.find(c => c.code === code)
+    if (matchedCode) {
+      setFormData(prev => ({
+        ...prev,
+        hsnSacCode: code,
+        defaultGstRate: matchedCode.gstRate,
+        isService: matchedCode.type === 'SAC',
+      }))
+    }
+  }
+
+  // Convert HSN/SAC codes to combobox options
+  const hsnSacOptions: ComboboxOption[] = useMemo(() =>
+    commonHsnSacCodes.map((item) => ({
+      value: item.code,
+      label: item.description,
+      description: `${item.type} - ${item.gstRate}% GST`,
+    })),
+    []
+  )
+
   // Populate form with existing product data
   useEffect(() => {
     if (product) {
@@ -72,6 +129,11 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         unit: product.unit || '',
         taxRate: product.taxRate || 0,
         isActive: product.isActive ?? true,
+        // GST fields
+        hsnSacCode: product.hsnSacCode || '',
+        isService: product.isService ?? true,
+        defaultGstRate: product.defaultGstRate ?? 18,
+        cessRate: product.cessRate || 0,
       })
     }
   }, [product])
@@ -273,26 +335,81 @@ export const ProductForm = ({ product, onSuccess, onCancel }: ProductFormProps) 
         </div>
       </div>
 
-      {/* Tax Rate */}
-      <div>
-        <label htmlFor="taxRate" className="block text-sm font-medium text-gray-700 mb-1">
-          Tax Rate (%)
-        </label>
-        <input
-          id="taxRate"
-          type="number"
-          step="0.01"
-          min="0"
-          max="100"
-          value={formData.taxRate}
-          onChange={(e) => handleChange('taxRate', parseFloat(e.target.value) || 0)}
-          className={cn(
-            "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
-            errors.taxRate ? "border-red-500" : "border-gray-300"
-          )}
-          placeholder="0.00"
-        />
-        {errors.taxRate && <p className="text-red-500 text-sm mt-1">{errors.taxRate}</p>}
+      {/* GST Compliance Section */}
+      <div className="border-t border-gray-200 pt-4 mt-4">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">GST Details (for Domestic Invoices)</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* HSN/SAC Code */}
+          <div>
+            <label htmlFor="hsnSacCode" className="block text-sm font-medium text-gray-700 mb-1">
+              {formData.isService ? 'SAC Code' : 'HSN Code'}
+            </label>
+            <Combobox
+              options={hsnSacOptions}
+              value={formData.hsnSacCode || ''}
+              onChange={handleHsnSacChange}
+              placeholder={formData.isService ? 'Search SAC codes...' : 'Search HSN codes...'}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.isService ? 'Service Accounting Code for services' : 'Harmonized System Nomenclature for goods'}
+            </p>
+          </div>
+
+          {/* Default GST Rate */}
+          <div>
+            <label htmlFor="defaultGstRate" className="block text-sm font-medium text-gray-700 mb-1">
+              Default GST Rate
+            </label>
+            <select
+              id="defaultGstRate"
+              value={formData.defaultGstRate}
+              onChange={(e) => handleChange('defaultGstRate', parseFloat(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {gstRates.map((rate) => (
+                <option key={rate.value} value={rate.value}>
+                  {rate.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* Is Service Toggle */}
+          <div className="flex items-center">
+            <input
+              id="isService"
+              type="checkbox"
+              checked={formData.isService}
+              onChange={(e) => handleChange('isService', e.target.checked)}
+              className="h-4 w-4 text-primary focus:ring-ring border-gray-300 rounded"
+            />
+            <label htmlFor="isService" className="ml-2 block text-sm text-gray-900">
+              This is a service (uses SAC code)
+            </label>
+          </div>
+
+          {/* Cess Rate (optional) */}
+          <div>
+            <label htmlFor="cessRate" className="block text-sm font-medium text-gray-700 mb-1">
+              Cess Rate (%) <span className="text-gray-400 font-normal">- optional</span>
+            </label>
+            <input
+              id="cessRate"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={formData.cessRate}
+              onChange={(e) => handleChange('cessRate', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="0.00"
+            />
+            <p className="text-xs text-gray-500 mt-1">Additional cess for specific goods (luxury items, tobacco, etc.)</p>
+          </div>
+        </div>
       </div>
 
       {/* Active Status */}

@@ -26,6 +26,12 @@ export interface Company {
   tanNumber?: string;            // Tax Account Number (for TDS)
   pfRegistrationNumber?: string; // PF Establishment Code
   esiRegistrationNumber?: string; // ESI Code
+  // GST Compliance fields
+  gstin?: string;                // GSTIN (15 characters)
+  gstStateCode?: string;         // GST State Code (first 2 digits of GSTIN)
+  panNumber?: string;            // PAN Number (10 characters)
+  cinNumber?: string;            // CIN (Corporate Identity Number)
+  gstRegistrationType?: string;  // 'regular' | 'composition' | 'unregistered' | 'overseas'
 }
 
 export interface Customer {
@@ -48,6 +54,12 @@ export interface Customer {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // GST Compliance fields
+  gstin?: string;              // GSTIN (15 characters)
+  gstStateCode?: string;       // GST State Code (2 digits)
+  customerType?: string;       // 'b2b' | 'b2c' | 'overseas' | 'sez'
+  isGstRegistered?: boolean;   // Whether customer is GST registered
+  panNumber?: string;          // PAN Number (for TDS purposes)
 }
 
 export interface Product {
@@ -64,6 +76,11 @@ export interface Product {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  // GST Compliance fields
+  hsnSacCode?: string;           // HSN code (goods) or SAC code (services)
+  isService?: boolean;           // True for SAC code (services), false for HSN code (goods)
+  defaultGstRate?: number;       // Default GST rate percentage (0, 5, 12, 18, 28)
+  cessRate?: number;             // Cess rate percentage for specific goods
 }
 
 export interface Invoice {
@@ -91,6 +108,27 @@ export interface Invoice {
   createdAt?: string;
   updatedAt?: string;
   items?: InvoiceItem[]; // Client-side: Invoice items embedded for TanStack DB
+  // GST Classification
+  invoiceType?: string;          // 'export' | 'domestic_b2b' | 'domestic_b2c' | 'sez' | 'deemed_export'
+  supplyType?: string;           // 'intra_state' | 'inter_state' | 'export'
+  placeOfSupply?: string;        // State code or 'export'
+  reverseCharge?: boolean;       // Whether reverse charge mechanism applies
+  // GST Totals
+  totalCgst?: number;            // Total CGST amount
+  totalSgst?: number;            // Total SGST amount
+  totalIgst?: number;            // Total IGST amount
+  totalCess?: number;            // Total Cess amount
+  // E-invoicing fields
+  eInvoiceApplicable?: boolean;  // Whether e-invoicing is applicable
+  eInvoiceIrn?: string;          // Invoice Reference Number from e-invoice portal
+  eInvoiceAckNumber?: string;    // Acknowledgement number from e-invoice portal
+  eInvoiceAckDate?: string;      // Acknowledgement date from e-invoice portal
+  eInvoiceQrCode?: string;       // QR code data for e-invoice
+  // Shipping details
+  shippingAddress?: string;      // Shipping/delivery address
+  transporterName?: string;      // Name of transporter
+  vehicleNumber?: string;        // Vehicle number
+  ewayBillNumber?: string;       // E-way bill number
 }
 
 export interface Quote {
@@ -151,6 +189,17 @@ export interface InvoiceItem {
   sortOrder?: number;
   createdAt?: string;
   updatedAt?: string;
+  // GST Compliance fields
+  hsnSacCode?: string;           // HSN code (goods) or SAC code (services)
+  isService?: boolean;           // True for SAC code (services), false for HSN code (goods)
+  cgstRate?: number;             // Central GST rate percentage
+  cgstAmount?: number;           // Central GST amount calculated
+  sgstRate?: number;             // State GST rate percentage
+  sgstAmount?: number;           // State GST amount calculated
+  igstRate?: number;             // Integrated GST rate percentage
+  igstAmount?: number;           // Integrated GST amount calculated
+  cessRate?: number;             // Cess rate percentage
+  cessAmount?: number;           // Cess amount calculated
 }
 
 export interface TaxRate {
@@ -197,6 +246,12 @@ export interface CreateCompanyDto {
   signatureName?: string;
   signatureFont?: string;
   signatureColor?: string;
+  // GST Compliance fields
+  gstin?: string;
+  gstStateCode?: string;
+  panNumber?: string;
+  cinNumber?: string;
+  gstRegistrationType?: string;
 }
 
 export interface UpdateCompanyDto extends CreateCompanyDto {}
@@ -218,6 +273,12 @@ export interface CreateCustomerDto {
   creditLimit?: number;
   paymentTerms?: number;
   isActive?: boolean;
+  // GST Compliance fields
+  gstin?: string;
+  gstStateCode?: string;
+  customerType?: string;
+  isGstRegistered?: boolean;
+  panNumber?: string;
 }
 
 export interface UpdateCustomerDto extends CreateCustomerDto {}
@@ -233,6 +294,11 @@ export interface CreateProductDto {
   unit?: string;
   taxRate?: number;
   isActive?: boolean;
+  // GST Compliance fields
+  hsnSacCode?: string;
+  isService?: boolean;
+  defaultGstRate?: number;
+  cessRate?: number;
 }
 
 export interface UpdateProductDto extends CreateProductDto {}
@@ -255,6 +321,27 @@ export interface CreateInvoiceDto {
   paymentInstructions?: string;
   poNumber?: string;
   projectName?: string;
+  // GST Classification
+  invoiceType?: string;
+  supplyType?: string;
+  placeOfSupply?: string;
+  reverseCharge?: boolean;
+  // GST Totals
+  totalCgst?: number;
+  totalSgst?: number;
+  totalIgst?: number;
+  totalCess?: number;
+  // E-invoicing fields
+  eInvoiceApplicable?: boolean;
+  eInvoiceIrn?: string;
+  eInvoiceAckNumber?: string;
+  eInvoiceAckDate?: string;
+  eInvoiceQrCode?: string;
+  // Shipping details
+  shippingAddress?: string;
+  transporterName?: string;
+  vehicleNumber?: string;
+  ewayBillNumber?: string;
 }
 
 export interface UpdateInvoiceDto extends CreateInvoiceDto {
@@ -1334,4 +1421,124 @@ export interface CashFlowStatementDto {
   operatingDetails: OperatingActivitiesDetail;
   investingDetails: InvestingActivitiesDetail;
   financingDetails: FinancingActivitiesDetail;
+}
+
+// ==================== TDS Receivable Types ====================
+// TDS credits from customer payments - for Form 26AS reconciliation
+
+export interface TdsReceivable {
+  id: string;
+  companyId: string;
+  financialYear: string; // Format: '2024-25'
+  quarter: string; // 'Q1', 'Q2', 'Q3', 'Q4'
+  // Deductor details
+  customerId?: string;
+  deductorName: string;
+  deductorTan?: string;
+  deductorPan?: string;
+  // Transaction details
+  paymentDate: string;
+  tdsSection: string; // 194J, 194C, 194H, 194O
+  grossAmount: number;
+  tdsRate: number;
+  tdsAmount: number;
+  netReceived: number;
+  // Certificate details
+  certificateNumber?: string;
+  certificateDate?: string;
+  certificateDownloaded: boolean;
+  // Linked records
+  paymentId?: string;
+  invoiceId?: string;
+  // 26AS matching
+  matchedWith26As: boolean;
+  form26AsAmount?: number;
+  amountDifference?: number;
+  matchedAt?: string;
+  // Status
+  status: 'pending' | 'matched' | 'claimed' | 'disputed' | 'written_off';
+  claimedInReturn?: string;
+  // Additional
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTdsReceivableDto {
+  companyId: string;
+  financialYear: string;
+  quarter: string;
+  customerId?: string;
+  deductorName: string;
+  deductorTan?: string;
+  deductorPan?: string;
+  paymentDate: string;
+  tdsSection: string;
+  grossAmount: number;
+  tdsRate: number;
+  tdsAmount: number;
+  netReceived: number;
+  certificateNumber?: string;
+  certificateDate?: string;
+  certificateDownloaded?: boolean;
+  paymentId?: string;
+  invoiceId?: string;
+  notes?: string;
+}
+
+export interface UpdateTdsReceivableDto {
+  financialYear?: string;
+  quarter?: string;
+  customerId?: string;
+  deductorName?: string;
+  deductorTan?: string;
+  deductorPan?: string;
+  paymentDate?: string;
+  tdsSection?: string;
+  grossAmount?: number;
+  tdsRate?: number;
+  tdsAmount?: number;
+  netReceived?: number;
+  certificateNumber?: string;
+  certificateDate?: string;
+  certificateDownloaded?: boolean;
+  paymentId?: string;
+  invoiceId?: string;
+  notes?: string;
+}
+
+export interface Match26AsDto {
+  form26AsAmount: number;
+}
+
+export interface UpdateTdsStatusDto {
+  status: 'pending' | 'matched' | 'claimed' | 'disputed' | 'written_off';
+  claimedInReturn?: string;
+}
+
+export interface TdsReceivableSummary {
+  financialYear: string;
+  totalGrossAmount: number;
+  totalTdsAmount: number;
+  totalNetReceived: number;
+  totalEntries: number;
+  matchedEntries: number;
+  unmatchedEntries: number;
+  matchedAmount: number;
+  unmatchedAmount: number;
+  quarterlySummary: TdsQuarterlySummary[];
+}
+
+export interface TdsQuarterlySummary {
+  quarter: string;
+  tdsAmount: number;
+  entryCount: number;
+}
+
+export interface TdsReceivableFilterParams extends PaginationParams {
+  companyId?: string;
+  financialYear?: string;
+  quarter?: string;
+  status?: string;
+  matchedWith26As?: boolean;
 }

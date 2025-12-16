@@ -30,3 +30,4 @@ CREATE TABLE IF NOT EXISTS asset_disposals (
 CREATE INDEX IF NOT EXISTS idx_asset_disposals_asset ON asset_disposals(asset_id);
 
 
+

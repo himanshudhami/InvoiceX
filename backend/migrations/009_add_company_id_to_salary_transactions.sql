@@ -16,3 +16,4 @@ WHERE st.employee_id = e.id
   AND e.company_id IS NOT NULL;
 
 
+

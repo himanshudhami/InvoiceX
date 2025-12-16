@@ -53,16 +53,16 @@ public class UpdateLoanDtoValidator : AbstractValidator<UpdateLoanDto>
             .WithMessage("Status must be 'active', 'closed', 'foreclosed', or 'defaulted'");
     }
 
-    private bool BeValidLoanType(string type) =>
+    private bool BeValidLoanType(string? type) =>
         new[] { "secured", "unsecured", "asset_financing" }.Contains(type?.ToLowerInvariant());
 
-    private bool BeValidInterestType(string type) =>
+    private bool BeValidInterestType(string? type) =>
         new[] { "fixed", "floating", "reducing" }.Contains(type?.ToLowerInvariant());
 
-    private bool BeValidCompoundingFrequency(string frequency) =>
+    private bool BeValidCompoundingFrequency(string? frequency) =>
         new[] { "monthly", "quarterly", "annually" }.Contains(frequency?.ToLowerInvariant());
 
-    private bool BeValidStatus(string status) =>
+    private bool BeValidStatus(string? status) =>
         new[] { "active", "closed", "foreclosed", "defaulted" }.Contains(status?.ToLowerInvariant());
 }
 
@@ -104,6 +104,7 @@ public class PrepaymentDtoValidator : AbstractValidator<PrepaymentDto>
     private bool BeValidPaymentMethod(string method) =>
         new[] { "bank_transfer", "cheque", "cash", "online", "other" }.Contains(method?.ToLowerInvariant());
 }
+
 
 
 

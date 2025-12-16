@@ -6,3 +6,4 @@ ALTER TABLE payments
 DROP COLUMN IF EXISTS amount_in_inr;
 
 
+

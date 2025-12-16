@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { formatINR } from '@/lib/currency'
 import { ArrowLeft, CheckCircle, DollarSign, Download, Eye } from 'lucide-react'
 import { format } from 'date-fns'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { exportPayrollRunToExcel } from '@/services/export/payrollExportService'
 
 const PayrollRunDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +31,24 @@ const PayrollRunDetail = () => {
   const markPayrollAsPaid = useMarkPayrollAsPaid()
 
   const transactions = transactionsData?.items || []
+
+  // Calculate totals for footer
+  const totals = useMemo(() => {
+    const result = {
+      grossEarnings: 0,
+      totalDeductions: 0,
+      netPayable: 0,
+      count: transactions.length
+    }
+
+    transactions.forEach(transaction => {
+      result.grossEarnings += transaction.grossEarnings || 0
+      result.totalDeductions += transaction.totalDeductions || 0
+      result.netPayable += transaction.netPayable || 0
+    })
+
+    return result
+  }, [transactions])
 
   const handleApprove = async () => {
     if (!run) return
@@ -62,6 +81,17 @@ const PayrollRunDetail = () => {
 
   const handleViewPayslip = (transactionId: string) => {
     navigate(`/payroll/payslip/${transactionId}`)
+  }
+
+  const handleExportToExcel = () => {
+    if (!run || transactions.length === 0) {
+      return
+    }
+    
+    exportPayrollRunToExcel({
+      payrollRun: run,
+      transactions,
+    })
   }
 
   const getStatusBadge = (status: string) => {
@@ -166,9 +196,9 @@ const PayrollRunDetail = () => {
               Mark as Paid
             </Button>
           )}
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportToExcel} disabled={!run || transactions.length === 0}>
             <Download className="w-4 h-4 mr-2" />
-            Export
+            Export to Excel
           </Button>
         </div>
       </div>
@@ -264,6 +294,28 @@ const PayrollRunDetail = () => {
             data={transactions}
             isLoading={isLoadingTransactions}
             searchPlaceholder="Search employees..."
+            footer={(table) => {
+              if (table.getFilteredRowModel().rows.length === 0) return null
+              return (
+                <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+                  <tr className="font-semibold">
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      Totals ({totals.count} {totals.count === 1 ? 'employee' : 'employees'})
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="font-bold">{formatINR(totals.grossEarnings)}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="font-bold">{formatINR(totals.totalDeductions)}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="font-bold">{formatINR(totals.netPayable)}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900"></td>
+                  </tr>
+                </tfoot>
+              )
+            }}
           />
         </CardContent>
       </Card>
@@ -360,6 +412,8 @@ const PayrollRunDetail = () => {
 }
 
 export default PayrollRunDetail
+
+
 
 
 

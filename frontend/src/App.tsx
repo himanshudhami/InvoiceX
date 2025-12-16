@@ -55,6 +55,7 @@ const PayslipView = lazy(() => import('./pages/PayslipView'))
 const BankAccountsManagement = lazy(() => import('./pages/BankAccountsManagement'))
 const BankStatementImport = lazy(() => import('./pages/BankStatementImport'))
 const BankTransactionsPage = lazy(() => import('./pages/BankTransactionsPage'))
+const TdsReceivablesManagement = lazy(() => import('./pages/TdsReceivablesManagement'))
 
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
@@ -138,6 +139,9 @@ function App() {
                       <Route path="/bank/accounts" element={<BankAccountsManagement />} />
                       <Route path="/bank/import" element={<BankStatementImport />} />
                       <Route path="/bank/transactions" element={<BankTransactionsPage />} />
+
+                      {/* Tax Compliance Routes */}
+                      <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />
                     </Routes>
                   </Suspense>
                 </ErrorBoundary>
