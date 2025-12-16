@@ -16,6 +16,9 @@ import type {
   EmployeeTaxDeclaration,
   CreateEmployeeTaxDeclarationDto,
   UpdateEmployeeTaxDeclarationDto,
+  RejectDeclarationDto,
+  DeclarationHistoryEntry,
+  TaxDeclarationSummary,
   ContractorPayment,
   CreateContractorPaymentDto,
   UpdateContractorPaymentDto,
@@ -229,6 +232,47 @@ export class PayrollService {
 
   async deleteTaxDeclaration(id: string): Promise<void> {
     return apiClient.delete<void>(`${this.taxDeclarationEndpoint}/${id}`);
+  }
+
+  // Rejection workflow methods
+  async rejectTaxDeclaration(id: string, data: RejectDeclarationDto, rejectedBy?: string): Promise<void> {
+    const url = rejectedBy
+      ? `${this.taxDeclarationEndpoint}/${id}/reject?rejectedBy=${encodeURIComponent(rejectedBy)}`
+      : `${this.taxDeclarationEndpoint}/${id}/reject`;
+    return apiClient.post<void, RejectDeclarationDto>(url, data);
+  }
+
+  async reviseTaxDeclaration(id: string, data: UpdateEmployeeTaxDeclarationDto, submittedBy?: string): Promise<void> {
+    const url = submittedBy
+      ? `${this.taxDeclarationEndpoint}/${id}/revise?submittedBy=${encodeURIComponent(submittedBy)}`
+      : `${this.taxDeclarationEndpoint}/${id}/revise`;
+    return apiClient.post<void, UpdateEmployeeTaxDeclarationDto>(url, data);
+  }
+
+  async getTaxDeclarationHistory(id: string): Promise<DeclarationHistoryEntry[]> {
+    return apiClient.get<DeclarationHistoryEntry[]>(`${this.taxDeclarationEndpoint}/${id}/history`);
+  }
+
+  async getTaxDeclarationSummary(id: string): Promise<TaxDeclarationSummary> {
+    return apiClient.get<TaxDeclarationSummary>(`${this.taxDeclarationEndpoint}/${id}/summary`);
+  }
+
+  async validateTaxDeclaration(data: CreateEmployeeTaxDeclarationDto): Promise<TaxDeclarationSummary> {
+    return apiClient.post<TaxDeclarationSummary, CreateEmployeeTaxDeclarationDto>(`${this.taxDeclarationEndpoint}/validate`, data);
+  }
+
+  async getRejectedDeclarations(financialYear?: string): Promise<EmployeeTaxDeclaration[]> {
+    const url = financialYear
+      ? `${this.taxDeclarationEndpoint}/rejected?financialYear=${financialYear}`
+      : `${this.taxDeclarationEndpoint}/rejected`;
+    return apiClient.get<EmployeeTaxDeclaration[]>(url);
+  }
+
+  async unlockTaxDeclaration(id: string, unlockedBy?: string): Promise<void> {
+    const url = unlockedBy
+      ? `${this.taxDeclarationEndpoint}/${id}/unlock?unlockedBy=${encodeURIComponent(unlockedBy)}`
+      : `${this.taxDeclarationEndpoint}/${id}/unlock`;
+    return apiClient.post<void>(url, {});
   }
 
   // ==================== Contractor Payments ====================

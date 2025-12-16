@@ -3,6 +3,7 @@ using Application.DTOs.Employees;
 using Application.DTOs.EmployeesBulk;
 using Core.Entities;
 using Core.Common;
+using Core.Interfaces.Payroll;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -21,13 +22,15 @@ namespace WebApi.Controllers
     public class EmployeesController : ControllerBase
     {
         private readonly IEmployeesService _service;
+        private readonly IEmployeePayrollInfoRepository _payrollInfoRepository;
 
         /// <summary>
         /// Initializes a new instance of the EmployeesController
         /// </summary>
-        public EmployeesController(IEmployeesService service)
+        public EmployeesController(IEmployeesService service, IEmployeePayrollInfoRepository payrollInfoRepository)
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
+            _payrollInfoRepository = payrollInfoRepository ?? throw new ArgumentNullException(nameof(payrollInfoRepository));
         }
 
         /// <summary>
@@ -329,7 +332,7 @@ namespace WebApi.Controllers
         public async Task<IActionResult> CheckEmailUnique([FromQuery] string email, [FromQuery] Guid? excludeId = null)
         {
             var result = await _service.IsEmailUniqueAsync(email, excludeId);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -338,8 +341,152 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Resign an employee (set last working day, deactivate from payroll)
+        /// </summary>
+        /// <param name="id">The Employee ID</param>
+        /// <param name="dto">Resignation details</param>
+        /// <returns>No content if successful</returns>
+        /// <response code="204">Employee resigned successfully</response>
+        /// <response code="400">Invalid request data</response>
+        /// <response code="404">Employee not found</response>
+        [HttpPost("{id}/resign")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Resign(Guid id, [FromBody] ResignEmployeeDto dto)
+        {
+            // Validate employee exists
+            var employeeResult = await _service.GetByIdAsync(id);
+            if (employeeResult.IsFailure)
+            {
+                return employeeResult.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(employeeResult.Error.Message),
+                    _ => BadRequest(employeeResult.Error.Message)
+                };
+            }
+
+            var employee = employeeResult.Value!;
+
+            // Check if employee is already resigned
+            if (employee.Status == "resigned")
+            {
+                return BadRequest("Employee is already resigned");
+            }
+
+            // Update employee status to 'resigned' and store resignation details
+            var updateDto = new UpdateEmployeesDto
+            {
+                EmployeeName = employee.EmployeeName,
+                Email = employee.Email,
+                Phone = employee.Phone,
+                EmployeeId = employee.EmployeeId,
+                Department = employee.Department,
+                Designation = employee.Designation,
+                HireDate = employee.HireDate,
+                Status = "resigned",
+                BankAccountNumber = employee.BankAccountNumber,
+                BankName = employee.BankName,
+                IfscCode = employee.IfscCode,
+                PanNumber = employee.PanNumber,
+                AddressLine1 = employee.AddressLine1,
+                AddressLine2 = employee.AddressLine2,
+                City = employee.City,
+                State = employee.State,
+                ZipCode = employee.ZipCode,
+                Country = employee.Country,
+                ContractType = employee.ContractType,
+                Company = employee.Company,
+                CompanyId = employee.CompanyId
+            };
+
+            var updateResult = await _service.UpdateAsync(id, updateDto);
+            if (updateResult.IsFailure)
+            {
+                return StatusCode(500, updateResult.Error!.Message);
+            }
+
+            // Update payroll info (date_of_leaving, is_active=false)
+            await _payrollInfoRepository.ResignEmployeeAsync(id, dto.LastWorkingDay);
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Rejoin a previously resigned employee
+        /// </summary>
+        /// <param name="id">The Employee ID</param>
+        /// <param name="dto">Optional rejoining details</param>
+        /// <returns>No content if successful</returns>
+        /// <response code="204">Employee rejoined successfully</response>
+        /// <response code="400">Invalid request data or employee is not resigned</response>
+        /// <response code="404">Employee not found</response>
+        [HttpPost("{id}/rejoin")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Rejoin(Guid id, [FromBody] RejoinEmployeeDto? dto = null)
+        {
+            // Validate employee exists
+            var employeeResult = await _service.GetByIdAsync(id);
+            if (employeeResult.IsFailure)
+            {
+                return employeeResult.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(employeeResult.Error.Message),
+                    _ => BadRequest(employeeResult.Error.Message)
+                };
+            }
+
+            var employee = employeeResult.Value!;
+
+            // Check if employee is resigned
+            if (employee.Status != "resigned")
+            {
+                return BadRequest("Only resigned employees can be rejoined");
+            }
+
+            // Update employee status back to 'active'
+            var updateDto = new UpdateEmployeesDto
+            {
+                EmployeeName = employee.EmployeeName,
+                Email = employee.Email,
+                Phone = employee.Phone,
+                EmployeeId = employee.EmployeeId,
+                Department = employee.Department,
+                Designation = employee.Designation,
+                HireDate = employee.HireDate,
+                Status = "active",
+                BankAccountNumber = employee.BankAccountNumber,
+                BankName = employee.BankName,
+                IfscCode = employee.IfscCode,
+                PanNumber = employee.PanNumber,
+                AddressLine1 = employee.AddressLine1,
+                AddressLine2 = employee.AddressLine2,
+                City = employee.City,
+                State = employee.State,
+                ZipCode = employee.ZipCode,
+                Country = employee.Country,
+                ContractType = employee.ContractType,
+                Company = employee.Company,
+                CompanyId = employee.CompanyId
+            };
+
+            var updateResult = await _service.UpdateAsync(id, updateDto);
+            if (updateResult.IsFailure)
+            {
+                return StatusCode(500, updateResult.Error!.Message);
+            }
+
+            // Update payroll info (clear date_of_leaving, set is_active=true)
+            await _payrollInfoRepository.RejoinEmployeeAsync(id, dto?.RejoiningDate);
+
+            return NoContent();
         }
     }
 }

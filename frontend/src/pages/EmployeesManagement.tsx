@@ -1,15 +1,16 @@
 import { useMemo, useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
-import { useEmployeesPaged, useDeleteEmployee, useEmployees } from '@/hooks/api/useEmployees'
+import { useEmployeesPaged, useDeleteEmployee, useEmployees, useRejoinEmployee } from '@/hooks/api/useEmployees'
 import { Employee, PagedResponse } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import { EmployeeForm } from '@/components/forms/EmployeeForm'
 import { EmployeeBulkUploadModal } from '@/components/forms/EmployeeBulkUploadModal'
+import { ResignEmployeeModal } from '@/components/modals/ResignEmployeeModal'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
-import { Edit, Trash2, User, Phone, Mail, Calendar, MapPin, Badge, Upload, Eye } from 'lucide-react'
+import { Edit, Trash2, User, Phone, Mail, Calendar, MapPin, Badge, Upload, Eye, UserMinus, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 
@@ -59,6 +60,7 @@ const EmployeesManagement = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null)
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null)
+  const [resigningEmployee, setResigningEmployee] = useState<Employee | null>(null)
   const [sortBy] = useState('employeeName')
   const [sortDescending] = useState(false)
 
@@ -103,8 +105,9 @@ const EmployeesManagement = () => {
   })
 
   const deleteEmployee = useDeleteEmployee()
+  const rejoinEmployee = useRejoinEmployee()
 
-  const statusOptions = ['all', 'active', 'inactive', 'terminated', 'permanent']
+  const statusOptions = ['all', 'active', 'inactive', 'terminated', 'resigned', 'permanent']
   
   // Get department options from all employees, not just current page
   const departmentOptions = useMemo(
@@ -154,11 +157,25 @@ const EmployeesManagement = () => {
     refetch()
   }
 
+  const handleResign = (employee: Employee) => {
+    setResigningEmployee(employee)
+  }
+
+  const handleRejoin = async (employee: Employee) => {
+    try {
+      await rejoinEmployee.mutateAsync({ id: employee.id })
+      refetch()
+    } catch (error) {
+      console.error('Failed to rejoin employee:', error)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const colors = {
       active: 'bg-green-100 text-green-800',
       inactive: 'bg-yellow-100 text-yellow-800',
-      terminated: 'bg-red-100 text-red-800'
+      terminated: 'bg-red-100 text-red-800',
+      resigned: 'bg-orange-100 text-orange-800'
     }
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
@@ -294,6 +311,25 @@ const EmployeesManagement = () => {
             >
               <Edit size={16} />
             </button>
+            {employee.status === 'active' && (
+              <button
+                onClick={() => handleResign(employee)}
+                className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors"
+                title="Resign employee"
+              >
+                <UserMinus size={16} />
+              </button>
+            )}
+            {employee.status === 'resigned' && (
+              <button
+                onClick={() => handleRejoin(employee)}
+                disabled={rejoinEmployee.isPending}
+                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors disabled:opacity-50"
+                title="Rejoin employee"
+              >
+                <UserPlus size={16} />
+              </button>
+            )}
             <button
               onClick={() => handleDelete(employee)}
               className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
@@ -576,6 +612,19 @@ const EmployeesManagement = () => {
         onClose={() => setIsBulkUploadOpen(false)}
         onSuccess={refetch}
       />
+
+      {/* Resign Employee Modal */}
+      {resigningEmployee && (
+        <ResignEmployeeModal
+          employee={resigningEmployee}
+          isOpen={!!resigningEmployee}
+          onClose={() => setResigningEmployee(null)}
+          onSuccess={() => {
+            setResigningEmployee(null)
+            refetch()
+          }}
+        />
+      )}
     </div>
   )
 }

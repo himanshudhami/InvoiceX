@@ -331,19 +331,91 @@ export interface EmployeeTaxDeclaration {
   prevEmployerPf: number;
   prevEmployerPt: number;
   // Status
-  status: 'draft' | 'submitted' | 'verified' | 'locked';
+  status: 'draft' | 'submitted' | 'verified' | 'rejected' | 'locked';
   submittedAt?: string;
   verifiedBy?: string;
   verifiedAt?: string;
   lockedAt?: string;
   proofDocuments?: string;
+  // Rejection workflow
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  revisionCount: number;
+  // Timestamps
   createdAt?: string;
   updatedAt?: string;
+  // Calculated totals
   total80cDeduction: number;
   total80dDeduction: number;
   totalDeductions: number;
   employeeName?: string;
 }
+
+// Rejection workflow DTOs
+export interface RejectDeclarationDto {
+  reason: string;
+  comments?: string;
+}
+
+export interface DeclarationHistoryEntry {
+  id: string;
+  declarationId: string;
+  action: 'created' | 'updated' | 'submitted' | 'verified' | 'rejected' | 'locked' | 'unlocked' | 'revised';
+  changedBy: string;
+  changedAt: string;
+  previousValues?: string;
+  newValues?: string;
+  rejectionReason?: string;
+  rejectionComments?: string;
+}
+
+// Tax declaration summary with capped values
+export interface TaxDeclarationSummary {
+  declarationId?: string;
+  financialYear: string;
+  taxRegime: string;
+  // Section 80C
+  section80CTotal: number;
+  section80CAllowed: number;
+  section80CExcess: number;
+  // Section 80CCD(1B)
+  section80ccdTotal: number;
+  section80ccdAllowed: number;
+  // Section 80D
+  section80DSelfFamilyAllowed: number;
+  section80DParentsAllowed: number;
+  section80DPreventiveAllowed: number;
+  section80DTotal: number;
+  // Other Sections
+  section80ETotal: number;
+  section24Allowed: number;
+  section80GAllowed: number;
+  section80TTAAllowed: number;
+  // HRA
+  hraRentDeclared: number;
+  requiresPanForHra: boolean;
+  hasValidLandlordPan: boolean;
+  // Grand Total
+  totalAllowedDeductions: number;
+  // Validation
+  warnings: string[];
+  errors: string[];
+}
+
+// Tax deduction limits (for frontend validation)
+export const TAX_LIMITS = {
+  MAX_80C: 150000,
+  MAX_80CCD_NPS: 50000,
+  MAX_80D_SELF_FAMILY: 25000,
+  MAX_80D_SELF_FAMILY_SENIOR: 50000,
+  MAX_80D_PARENTS: 25000,
+  MAX_80D_PARENTS_SENIOR: 50000,
+  MAX_80D_PREVENTIVE: 5000,
+  MAX_SECTION_24: 200000,
+  MAX_80TTA: 10000,
+  HRA_PAN_THRESHOLD: 100000,
+} as const;
 
 export interface CreateEmployeeTaxDeclarationDto {
   employeeId: string;

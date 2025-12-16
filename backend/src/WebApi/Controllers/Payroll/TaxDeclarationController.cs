@@ -1,4 +1,5 @@
 using Application.DTOs.Payroll;
+using Application.Interfaces.Payroll;
 using Core.Entities.Payroll;
 using Core.Interfaces;
 using Core.Interfaces.Payroll;
@@ -20,15 +21,18 @@ public class TaxDeclarationController : ControllerBase
     private readonly IEmployeeTaxDeclarationRepository _repository;
     private readonly IMapper _mapper;
     private readonly IEmployeesRepository _employeesRepository;
+    private readonly ITaxDeclarationService? _taxDeclarationService;
 
     public TaxDeclarationController(
         IEmployeeTaxDeclarationRepository repository,
         IEmployeesRepository employeesRepository,
-        IMapper mapper)
+        IMapper mapper,
+        ITaxDeclarationService? taxDeclarationService = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _employeesRepository = employeesRepository ?? throw new ArgumentNullException(nameof(employeesRepository));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _taxDeclarationService = taxDeclarationService;
     }
 
     /// <summary>
@@ -317,24 +321,24 @@ public class TaxDeclarationController : ControllerBase
     }
 
     /// <summary>
-    /// Submit a tax declaration (draft → submitted)
+    /// Submit a tax declaration (draft/rejected → submitted)
     /// </summary>
     [HttpPost("{id}/submit")]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Submit(Guid id)
+    public async Task<IActionResult> Submit(Guid id, [FromQuery] string? submittedBy = null)
     {
         var declaration = await _repository.GetByIdAsync(id);
         if (declaration == null)
             return NotFound($"Tax declaration with ID {id} not found");
 
-        if (declaration.Status != "draft")
-            return BadRequest($"Only draft declarations can be submitted. Current status: {declaration.Status}");
+        // Allow both draft and rejected declarations to be submitted
+        if (declaration.Status != "draft" && declaration.Status != "rejected")
+            return BadRequest($"Only draft or rejected declarations can be submitted. Current status: {declaration.Status}");
 
-        await _repository.UpdateStatusAsync(id, "submitted");
-        
-        // Update submitted date
+        // Update status and submitted date together
+        declaration.Status = "submitted";
         declaration.SubmittedAt = DateTime.UtcNow;
         declaration.UpdatedAt = DateTime.UtcNow;
         await _repository.UpdateAsync(declaration);
@@ -358,9 +362,9 @@ public class TaxDeclarationController : ControllerBase
         if (declaration.Status != "submitted")
             return BadRequest($"Only submitted declarations can be verified. Current status: {declaration.Status}");
 
-        await _repository.UpdateStatusAsync(id, "verified", verifiedBy);
-        
-        // Update verified date
+        // Update status and verified date together
+        declaration.Status = "verified";
+        declaration.VerifiedBy = verifiedBy;
         declaration.VerifiedAt = DateTime.UtcNow;
         declaration.UpdatedAt = DateTime.UtcNow;
         await _repository.UpdateAsync(declaration);
@@ -396,6 +400,210 @@ public class TaxDeclarationController : ControllerBase
             return BadRequest($"Cannot delete a {declaration.Status} tax declaration");
 
         await _repository.DeleteAsync(id);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reject a submitted tax declaration (submitted → rejected)
+    /// </summary>
+    [HttpPost("{id}/reject")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Reject(Guid id, [FromBody] RejectDeclarationDto dto, [FromQuery] string? rejectedBy = null)
+    {
+        if (_taxDeclarationService == null)
+        {
+            // Fallback if service not registered
+            var declaration = await _repository.GetByIdAsync(id);
+            if (declaration == null)
+                return NotFound($"Tax declaration with ID {id} not found");
+
+            if (declaration.Status != "submitted")
+                return BadRequest($"Only submitted declarations can be rejected. Current status: {declaration.Status}");
+
+            if (string.IsNullOrWhiteSpace(dto.Reason))
+                return BadRequest("Rejection reason is required");
+
+            await _repository.UpdateStatusWithRejectionAsync(id, "rejected", rejectedBy, dto.Reason);
+            return NoContent();
+        }
+
+        var result = await _taxDeclarationService.RejectAsync(id, dto, rejectedBy ?? "system");
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                Core.Common.ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Revise a rejected declaration and resubmit (rejected → submitted)
+    /// </summary>
+    [HttpPost("{id}/revise")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Revise(Guid id, [FromBody] UpdateEmployeeTaxDeclarationDto dto, [FromQuery] string? submittedBy = null)
+    {
+        if (_taxDeclarationService == null)
+        {
+            // Fallback if service not registered
+            var declaration = await _repository.GetByIdAsync(id);
+            if (declaration == null)
+                return NotFound($"Tax declaration with ID {id} not found");
+
+            if (declaration.Status != "rejected")
+                return BadRequest($"Only rejected declarations can be revised. Current status: {declaration.Status}");
+
+            // Clear rejection and resubmit
+            await _repository.ClearRejectionAsync(id);
+            await _repository.IncrementRevisionCountAsync(id);
+            await _repository.UpdateStatusAsync(id, "submitted");
+            return NoContent();
+        }
+
+        var result = await _taxDeclarationService.ReviseAndResubmitAsync(id, dto, submittedBy ?? "system");
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                Core.Common.ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get audit history for a tax declaration
+    /// </summary>
+    [HttpGet("{id}/history")]
+    [ProducesResponseType(typeof(IEnumerable<DeclarationHistoryDto>), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetHistory(Guid id)
+    {
+        if (_taxDeclarationService == null)
+            return NotFound("Tax declaration service not available");
+
+        var result = await _taxDeclarationService.GetHistoryAsync(id);
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Validate a tax declaration without saving
+    /// </summary>
+    [HttpPost("validate")]
+    [ProducesResponseType(typeof(TaxDeclarationSummaryDto), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> Validate([FromBody] CreateEmployeeTaxDeclarationDto dto)
+    {
+        if (_taxDeclarationService == null)
+            return BadRequest("Tax declaration service not available");
+
+        var result = await _taxDeclarationService.ValidateAsync(dto, dto.EmployeeId);
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                Core.Common.ErrorType.Validation => BadRequest(new { error = result.Error.Message, summary = result.Value }),
+                Core.Common.ErrorType.Conflict => Conflict(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get tax declaration summary with capped deduction values
+    /// </summary>
+    [HttpGet("{id}/summary")]
+    [ProducesResponseType(typeof(TaxDeclarationSummaryDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetSummary(Guid id)
+    {
+        if (_taxDeclarationService == null)
+            return NotFound("Tax declaration service not available");
+
+        var result = await _taxDeclarationService.GetSummaryAsync(id);
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
+    /// Get rejected declarations pending revision
+    /// </summary>
+    [HttpGet("rejected")]
+    [ProducesResponseType(typeof(IEnumerable<EmployeeTaxDeclarationDto>), 200)]
+    public async Task<IActionResult> GetRejectedDeclarations([FromQuery] string? financialYear = null)
+    {
+        var declarations = await _repository.GetRejectedDeclarationsAsync(financialYear);
+        var dtos = _mapper.Map<IEnumerable<EmployeeTaxDeclarationDto>>(declarations).ToList();
+
+        // Populate employee names
+        var employeeIds = dtos.Select(d => d.EmployeeId).Distinct().ToList();
+        var employees = new Dictionary<Guid, string>();
+        foreach (var employeeId in employeeIds)
+        {
+            var employee = await _employeesRepository.GetByIdAsync(employeeId);
+            if (employee != null)
+            {
+                employees[employeeId] = employee.EmployeeName;
+            }
+        }
+
+        foreach (var dto in dtos)
+        {
+            dto.EmployeeName = employees.GetValueOrDefault(dto.EmployeeId);
+        }
+
+        return Ok(dtos);
+    }
+
+    /// <summary>
+    /// Unlock a locked declaration (admin action)
+    /// </summary>
+    [HttpPost("{id}/unlock")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Unlock(Guid id, [FromQuery] string? unlockedBy = null)
+    {
+        var declaration = await _repository.GetByIdAsync(id);
+        if (declaration == null)
+            return NotFound($"Tax declaration with ID {id} not found");
+
+        if (declaration.Status != "locked")
+            return BadRequest($"Only locked declarations can be unlocked. Current status: {declaration.Status}");
+
+        // Unlock back to verified status
+        await _repository.UpdateStatusAsync(id, "verified");
         return NoContent();
     }
 }

@@ -96,6 +96,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                 new Infrastructure.Data.Payroll.PayrollCalculationLineRepository(connectionString));
             services.AddScoped<Core.Interfaces.Payroll.IEsiEligibilityRepository>(sp =>
                 new Infrastructure.Data.Payroll.EsiEligibilityRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Payroll.IEmployeeTaxDeclarationHistoryRepository>(sp =>
+                new Infrastructure.Data.Payroll.EmployeeTaxDeclarationHistoryRepository(connectionString));
 
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();

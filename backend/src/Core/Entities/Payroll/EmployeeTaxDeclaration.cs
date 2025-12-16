@@ -137,7 +137,7 @@ namespace Core.Entities.Payroll
         // ==================== Workflow Status ====================
 
         /// <summary>
-        /// Status: draft, submitted, verified, locked
+        /// Status: draft, submitted, verified, rejected, locked
         /// </summary>
         public string Status { get; set; } = "draft";
 
@@ -145,6 +145,28 @@ namespace Core.Entities.Payroll
         public string? VerifiedBy { get; set; }
         public DateTime? VerifiedAt { get; set; }
         public DateTime? LockedAt { get; set; }
+
+        // ==================== Rejection Workflow ====================
+
+        /// <summary>
+        /// Timestamp when declaration was rejected
+        /// </summary>
+        public DateTime? RejectedAt { get; set; }
+
+        /// <summary>
+        /// User who rejected the declaration
+        /// </summary>
+        public string? RejectedBy { get; set; }
+
+        /// <summary>
+        /// Reason for rejection
+        /// </summary>
+        public string? RejectionReason { get; set; }
+
+        /// <summary>
+        /// Number of times declaration has been revised after rejection
+        /// </summary>
+        public int RevisionCount { get; set; }
 
         /// <summary>
         /// Proof documents (JSON array of document references)

@@ -85,6 +85,12 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.Payroll.IProfessionalTaxSlabService,
                               Application.Services.Payroll.ProfessionalTaxSlabService>();
 
+            // Tax declaration services
+            services.AddScoped<Application.Services.Payroll.ITaxDeclarationValidationService,
+                              Application.Services.Payroll.TaxDeclarationValidationService>();
+            services.AddScoped<Application.Interfaces.Payroll.ITaxDeclarationService,
+                              Application.Services.Payroll.TaxDeclarationService>();
+
             // Register FluentValidation validators
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 

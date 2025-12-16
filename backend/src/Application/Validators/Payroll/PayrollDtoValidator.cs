@@ -201,6 +201,11 @@ public class CreateEmployeeTaxDeclarationDtoValidator : AbstractValidator<Create
 {
     private const decimal MAX_80C = 150000m;
     private const decimal MAX_80CCD = 50000m;
+    private const decimal MAX_80D_SELF_FAMILY = 25000m;
+    private const decimal MAX_80D_SELF_FAMILY_SENIOR = 50000m;
+    private const decimal MAX_80D_PARENTS = 25000m;
+    private const decimal MAX_80D_PARENTS_SENIOR = 50000m;
+    private const decimal MAX_80D_PREVENTIVE = 5000m;
     private const decimal MAX_24_HOME_LOAN = 200000m;
     private const decimal MAX_80TTA = 10000m;
 
@@ -211,7 +216,7 @@ public class CreateEmployeeTaxDeclarationDtoValidator : AbstractValidator<Create
             .WithMessage("FinancialYear must be in format 'YYYY-YY' (e.g., 2024-25)");
         RuleFor(x => x.TaxRegime).Must(BeValidTaxRegime).WithMessage("TaxRegime must be 'old' or 'new'");
 
-        // 80C validations
+        // 80C individual field validations
         RuleFor(x => x.Sec80cPpf).GreaterThanOrEqualTo(0).WithMessage("PPF must be >= 0");
         RuleFor(x => x.Sec80cElss).GreaterThanOrEqualTo(0).WithMessage("ELSS must be >= 0");
         RuleFor(x => x.Sec80cLifeInsurance).GreaterThanOrEqualTo(0).WithMessage("Life Insurance must be >= 0");
@@ -222,28 +227,61 @@ public class CreateEmployeeTaxDeclarationDtoValidator : AbstractValidator<Create
         RuleFor(x => x.Sec80cFixedDeposit).GreaterThanOrEqualTo(0).WithMessage("Fixed Deposit must be >= 0");
         RuleFor(x => x.Sec80cOthers).GreaterThanOrEqualTo(0).WithMessage("80C Others must be >= 0");
 
+        // 80C TOTAL LIMIT - Critical business rule
+        RuleFor(x => x)
+            .Must(x => Calculate80CTotal(x) <= MAX_80C)
+            .WithMessage($"Total Section 80C deductions cannot exceed ₹{MAX_80C:N0}. Current total: {{PropertyValue}}")
+            .WithName("Section80CTotal");
+
         // 80CCD(1B) validation
         RuleFor(x => x.Sec80ccdNps).GreaterThanOrEqualTo(0).LessThanOrEqualTo(MAX_80CCD)
-            .WithMessage($"NPS (80CCD) must be between 0 and {MAX_80CCD}");
+            .WithMessage($"NPS (80CCD) must be between 0 and ₹{MAX_80CCD:N0}");
 
-        // 80D validations
+        // 80D validations with senior citizen logic
         RuleFor(x => x.Sec80dSelfFamily).GreaterThanOrEqualTo(0).WithMessage("Self/Family health insurance must be >= 0");
-        RuleFor(x => x.Sec80dParents).GreaterThanOrEqualTo(0).WithMessage("Parents health insurance must be >= 0");
-        RuleFor(x => x.Sec80dPreventiveCheckup).GreaterThanOrEqualTo(0).LessThanOrEqualTo(5000)
-            .WithMessage("Preventive checkup must be between 0 and 5000");
+        RuleFor(x => x.Sec80dSelfFamily)
+            .LessThanOrEqualTo(x => x.Sec80dSelfSeniorCitizen ? MAX_80D_SELF_FAMILY_SENIOR : MAX_80D_SELF_FAMILY)
+            .WithMessage(x => $"Self/Family health insurance cannot exceed ₹{(x.Sec80dSelfSeniorCitizen ? MAX_80D_SELF_FAMILY_SENIOR : MAX_80D_SELF_FAMILY):N0}" +
+                             (x.Sec80dSelfSeniorCitizen ? " (senior citizen limit)" : " (check senior citizen box for ₹50,000 limit)"));
 
-        // Other sections
+        RuleFor(x => x.Sec80dParents).GreaterThanOrEqualTo(0).WithMessage("Parents health insurance must be >= 0");
+        RuleFor(x => x.Sec80dParents)
+            .LessThanOrEqualTo(x => x.Sec80dParentsSeniorCitizen ? MAX_80D_PARENTS_SENIOR : MAX_80D_PARENTS)
+            .WithMessage(x => $"Parents health insurance cannot exceed ₹{(x.Sec80dParentsSeniorCitizen ? MAX_80D_PARENTS_SENIOR : MAX_80D_PARENTS):N0}" +
+                             (x.Sec80dParentsSeniorCitizen ? " (senior citizen limit)" : " (check senior citizen box for ₹50,000 limit)"));
+
+        RuleFor(x => x.Sec80dPreventiveCheckup).GreaterThanOrEqualTo(0).LessThanOrEqualTo(MAX_80D_PREVENTIVE)
+            .WithMessage($"Preventive checkup must be between 0 and ₹{MAX_80D_PREVENTIVE:N0}");
+
+        // Section 80E - Education loan (no upper limit)
         RuleFor(x => x.Sec80eEducationLoan).GreaterThanOrEqualTo(0).WithMessage("Education loan interest must be >= 0");
+
+        // Section 24 - Home Loan Interest with LIMIT
         RuleFor(x => x.Sec24HomeLoanInterest).GreaterThanOrEqualTo(0).WithMessage("Home loan interest must be >= 0");
+        RuleFor(x => x.Sec24HomeLoanInterest).LessThanOrEqualTo(MAX_24_HOME_LOAN)
+            .WithMessage($"Section 24 home loan interest cannot exceed ₹{MAX_24_HOME_LOAN:N0}");
+
+        // Section 80G - Donations (50% deduction, no direct limit here)
         RuleFor(x => x.Sec80gDonations).GreaterThanOrEqualTo(0).WithMessage("Donations must be >= 0");
+
+        // Section 80TTA - Savings interest
         RuleFor(x => x.Sec80ttaSavingsInterest).GreaterThanOrEqualTo(0).LessThanOrEqualTo(MAX_80TTA)
-            .WithMessage($"Savings interest must be between 0 and {MAX_80TTA}");
+            .WithMessage($"Savings interest must be between 0 and ₹{MAX_80TTA:N0}");
 
         // HRA validation
         RuleFor(x => x.HraRentPaidAnnual).GreaterThanOrEqualTo(0).WithMessage("Rent paid must be >= 0");
-        RuleFor(x => x.HraLandlordPan).Matches("^[A-Z]{5}[0-9]{4}[A-Z]$")
-            .When(x => !string.IsNullOrEmpty(x.HraLandlordPan) && x.HraRentPaidAnnual > 100000)
-            .WithMessage("Landlord PAN is required and must be valid when rent > ₹1 lakh");
+
+        // Landlord PAN is REQUIRED if rent > ₹1 lakh
+        RuleFor(x => x.HraLandlordPan)
+            .NotEmpty()
+            .When(x => x.HraRentPaidAnnual > 100000)
+            .WithMessage("Landlord PAN is mandatory when annual rent exceeds ₹1,00,000");
+
+        // Validate PAN format when provided
+        RuleFor(x => x.HraLandlordPan)
+            .Matches("^[A-Z]{5}[0-9]{4}[A-Z]$")
+            .When(x => !string.IsNullOrEmpty(x.HraLandlordPan))
+            .WithMessage("Landlord PAN must be in valid format (e.g., ABCDE1234F)");
 
         // Previous employer
         RuleFor(x => x.PrevEmployerIncome).GreaterThanOrEqualTo(0).WithMessage("Previous employer income must be >= 0");
@@ -253,6 +291,14 @@ public class CreateEmployeeTaxDeclarationDtoValidator : AbstractValidator<Create
 
         // Other income
         RuleFor(x => x.OtherIncomeAnnual).GreaterThanOrEqualTo(0).WithMessage("Other income must be >= 0");
+    }
+
+    private static decimal Calculate80CTotal(CreateEmployeeTaxDeclarationDto dto)
+    {
+        return dto.Sec80cPpf + dto.Sec80cElss + dto.Sec80cLifeInsurance +
+               dto.Sec80cHomeLoanPrincipal + dto.Sec80cChildrenTuition +
+               dto.Sec80cNsc + dto.Sec80cSukanyaSamriddhi +
+               dto.Sec80cFixedDeposit + dto.Sec80cOthers;
     }
 
     private bool BeValidTaxRegime(string regime) =>

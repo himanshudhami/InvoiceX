@@ -6,18 +6,18 @@ import {
   useDeleteTaxDeclaration,
   useSubmitTaxDeclaration,
   useVerifyTaxDeclaration,
-  usePendingVerifications,
+  useRejectTaxDeclaration,
 } from '@/features/payroll/hooks'
-import { useEmployees } from '@/hooks/api/useEmployees'
-import { useCompanies } from '@/hooks/api/useCompanies'
 import { EmployeeTaxDeclaration } from '@/features/payroll/types/payroll'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
-import { Edit, Trash2, Plus, Eye, CheckCircle, Send, ArrowLeft } from 'lucide-react'
+import { Edit, Trash2, Plus, CheckCircle, Send, ArrowLeft, XCircle, RotateCcw, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { TaxDeclarationForm } from '@/components/forms/TaxDeclarationForm'
@@ -29,12 +29,14 @@ const EmployeeTaxDeclarations = () => {
   const [deletingDeclaration, setDeletingDeclaration] = useState<EmployeeTaxDeclaration | null>(null)
   const [submittingDeclaration, setSubmittingDeclaration] = useState<EmployeeTaxDeclaration | null>(null)
   const [verifyingDeclaration, setVerifyingDeclaration] = useState<EmployeeTaxDeclaration | null>(null)
+  const [rejectingDeclaration, setRejectingDeclaration] = useState<EmployeeTaxDeclaration | null>(null)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [revisingDeclaration, setRevisingDeclaration] = useState<EmployeeTaxDeclaration | null>(null)
 
-  const { data: employees = [] } = useEmployees()
-  const { data: companies = [] } = useCompanies()
   const deleteTaxDeclaration = useDeleteTaxDeclaration()
   const submitTaxDeclaration = useSubmitTaxDeclaration()
   const verifyTaxDeclaration = useVerifyTaxDeclaration()
+  const rejectTaxDeclaration = useRejectTaxDeclaration()
 
   const [urlState, setUrlState] = useQueryStates(
     {
@@ -110,15 +112,52 @@ const EmployeeTaxDeclarations = () => {
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const handleReject = (declaration: EmployeeTaxDeclaration) => {
+    setRejectingDeclaration(declaration)
+    setRejectionReason('')
+  }
+
+  const handleRejectConfirm = async () => {
+    if (rejectingDeclaration && rejectionReason.trim()) {
+      try {
+        await rejectTaxDeclaration.mutateAsync({
+          id: rejectingDeclaration.id,
+          data: { reason: rejectionReason.trim() },
+        })
+        setRejectingDeclaration(null)
+        setRejectionReason('')
+      } catch (error) {
+        console.error('Failed to reject tax declaration:', error)
+      }
+    }
+  }
+
+  const handleRevise = (declaration: EmployeeTaxDeclaration) => {
+    setRevisingDeclaration(declaration)
+  }
+
+  const getStatusBadge = (status: string, declaration?: EmployeeTaxDeclaration) => {
     const statusConfig: Record<string, { label: string; className: string }> = {
       draft: { label: 'Draft', className: 'bg-gray-100 text-gray-800' },
       submitted: { label: 'Submitted', className: 'bg-blue-100 text-blue-800' },
       verified: { label: 'Verified', className: 'bg-green-100 text-green-800' },
-      locked: { label: 'Locked', className: 'bg-red-100 text-red-800' },
+      rejected: { label: 'Rejected', className: 'bg-orange-100 text-orange-800' },
+      locked: { label: 'Locked', className: 'bg-purple-100 text-purple-800' },
     }
 
     const config = statusConfig[status] || statusConfig.draft
+
+    if (status === 'rejected' && declaration?.rejectionReason) {
+      return (
+        <div className="flex items-center gap-1">
+          <Badge className={config.className}>{config.label}</Badge>
+          <span title={declaration.rejectionReason} className="cursor-help">
+            <AlertCircle className="w-4 h-4 text-orange-500" />
+          </span>
+        </div>
+      )
+    }
+
     return <Badge className={config.className}>{config.label}</Badge>
   }
 
@@ -147,7 +186,7 @@ const EmployeeTaxDeclarations = () => {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => getStatusBadge(row.original.status),
+      cell: ({ row }) => getStatusBadge(row.original.status, row.original),
     },
     {
       accessorKey: 'submittedAt',
@@ -185,13 +224,33 @@ const EmployeeTaxDeclarations = () => {
               </>
             )}
             {declaration.status === 'submitted' && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleVerify(declaration)}
+                  title="Verify"
+                >
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleReject(declaration)}
+                  title="Reject"
+                >
+                  <XCircle className="w-4 h-4 text-orange-600" />
+                </Button>
+              </>
+            )}
+            {declaration.status === 'rejected' && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleVerify(declaration)}
-                title="Verify"
+                onClick={() => handleRevise(declaration)}
+                title="Revise & Resubmit"
               >
-                <CheckCircle className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4 text-blue-600" />
               </Button>
             )}
             {(declaration.status === 'draft' || declaration.status === 'submitted') && (
@@ -246,7 +305,7 @@ const EmployeeTaxDeclarations = () => {
         data={data?.items || []}
         isLoading={isLoading}
         searchPlaceholder="Search by employee name, financial year..."
-        onSearch={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
+        onSearch={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
           pageIndex: (data?.pageNumber || urlState.page) - 1,
           pageSize: data?.pageSize || urlState.pageSize,
@@ -356,6 +415,81 @@ const EmployeeTaxDeclarations = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Reject Modal */}
+      <Modal
+        isOpen={!!rejectingDeclaration}
+        onClose={() => {
+          setRejectingDeclaration(null)
+          setRejectionReason('')
+        }}
+        title="Reject Tax Declaration"
+      >
+        <div className="space-y-4">
+          <p>
+            You are rejecting the tax declaration for{' '}
+            <span className="font-semibold">{rejectingDeclaration?.employeeName}</span>.
+            Please provide a reason for rejection.
+          </p>
+          <div className="space-y-2">
+            <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+            <Textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
+              placeholder="Enter the reason for rejection (e.g., missing documents, incorrect values, etc.)"
+              rows={4}
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectingDeclaration(null)
+                setRejectionReason('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRejectConfirm}
+              disabled={rejectTaxDeclaration.isPending || !rejectionReason.trim()}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {rejectTaxDeclaration.isPending ? 'Rejecting...' : 'Reject'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Revise Drawer */}
+      <Drawer
+        isOpen={!!revisingDeclaration}
+        onClose={() => setRevisingDeclaration(null)}
+        title="Revise Tax Declaration"
+      >
+        {revisingDeclaration && (
+          <div className="space-y-4">
+            {revisingDeclaration.rejectionReason && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-orange-800">Rejection Reason</p>
+                    <p className="text-sm text-orange-700 mt-1">{revisingDeclaration.rejectionReason}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <TaxDeclarationForm
+              declaration={revisingDeclaration}
+              isRevision={true}
+              onSuccess={() => setRevisingDeclaration(null)}
+              onCancel={() => setRevisingDeclaration(null)}
+            />
+          </div>
+        )}
+      </Drawer>
     </div>
   )
 }

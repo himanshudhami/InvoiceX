@@ -531,6 +531,15 @@ export interface CreateEmployeeDto {
 
 export interface UpdateEmployeeDto extends CreateEmployeeDto {}
 
+export interface ResignEmployeeDto {
+  lastWorkingDay: string;
+  resignationReason?: string;
+}
+
+export interface RejoinEmployeeDto {
+  rejoiningDate?: string;
+}
+
 export interface EmployeeSalaryTransaction {
   id: string;
   employeeId: string;

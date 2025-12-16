@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { employeeService } from '@/services/api/employeeService';
-import { Employee, CreateEmployeeDto, UpdateEmployeeDto, EmployeesFilterParams, BulkEmployeesDto } from '@/services/api/types';
+import { Employee, CreateEmployeeDto, UpdateEmployeeDto, EmployeesFilterParams, BulkEmployeesDto, ResignEmployeeDto, RejoinEmployeeDto, PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 
 // Query keys
@@ -174,5 +174,53 @@ export const useCheckEmailUnique = (email: string, excludeId?: string) => {
     queryFn: () => employeeService.checkEmailUnique(email, excludeId),
     enabled: !!email && email.length > 0 && email.includes('@'),
     staleTime: 30 * 1000, // 30 seconds
+  });
+};
+
+/**
+ * Resign employee mutation
+ */
+export const useResignEmployee = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ResignEmployeeDto }) =>
+      employeeService.resign(id, data),
+    onSuccess: (_, { id }) => {
+      // Invalidate and refetch employee data
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.all });
+
+      toast.success('Employee resigned successfully');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to resign employee';
+      toast.error(message);
+    },
+  });
+};
+
+/**
+ * Rejoin employee mutation
+ */
+export const useRejoinEmployee = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: RejoinEmployeeDto }) =>
+      employeeService.rejoin(id, data),
+    onSuccess: (_, { id }) => {
+      // Invalidate and refetch employee data
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: EMPLOYEE_QUERY_KEYS.all });
+
+      toast.success('Employee rejoined successfully');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to rejoin employee';
+      toast.error(message);
+    },
   });
 };

@@ -23,5 +23,25 @@ namespace Core.Interfaces.Payroll
         Task<bool> ExistsForEmployeeAndYearAsync(Guid employeeId, string financialYear, Guid? excludeId = null);
         Task UpdateStatusAsync(Guid id, string status, string? verifiedBy = null);
         Task LockDeclarationsAsync(string financialYear);
+
+        /// <summary>
+        /// Update status with rejection details
+        /// </summary>
+        Task UpdateStatusWithRejectionAsync(Guid id, string status, string? rejectedBy, string? reason);
+
+        /// <summary>
+        /// Increment the revision count for a declaration
+        /// </summary>
+        Task IncrementRevisionCountAsync(Guid id);
+
+        /// <summary>
+        /// Clear rejection fields when declaration is revised
+        /// </summary>
+        Task ClearRejectionAsync(Guid id);
+
+        /// <summary>
+        /// Get rejected declarations pending revision
+        /// </summary>
+        Task<IEnumerable<EmployeeTaxDeclaration>> GetRejectedDeclarationsAsync(string? financialYear = null);
     }
 }

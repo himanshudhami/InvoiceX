@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   useCreateTaxDeclaration,
   useUpdateTaxDeclaration,
+  useReviseTaxDeclaration,
   usePayrollInfoByType,
 } from '@/features/payroll/hooks'
 import type {
@@ -9,18 +10,21 @@ import type {
   CreateEmployeeTaxDeclarationDto,
   UpdateEmployeeTaxDeclarationDto,
 } from '@/features/payroll/types/payroll'
+import { TAX_LIMITS } from '@/features/payroll/types/payroll'
 import { useEmployees } from '@/hooks/api/useEmployees'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { formatINR } from '@/lib/currency'
 
 interface TaxDeclarationFormProps {
   declaration?: EmployeeTaxDeclaration
+  isRevision?: boolean
   onSuccess: () => void
   onCancel: () => void
 }
 
 export const TaxDeclarationForm = ({
   declaration,
+  isRevision = false,
   onSuccess,
   onCancel,
 }: TaxDeclarationFormProps) => {
@@ -79,9 +83,10 @@ export const TaxDeclarationForm = ({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const createDeclaration = useCreateTaxDeclaration()
   const updateDeclaration = useUpdateTaxDeclaration()
+  const reviseDeclaration = useReviseTaxDeclaration()
 
   const isEditing = !!declaration
-  const isLoading = createDeclaration.isPending || updateDeclaration.isPending
+  const isLoading = createDeclaration.isPending || updateDeclaration.isPending || reviseDeclaration.isPending
 
   // Filter employees: only full-time employees (not contractors) and optionally by company
   const filteredEmployees = useMemo(() => {
@@ -111,15 +116,15 @@ export const TaxDeclarationForm = ({
   // Calculate totals
   const total80c = useMemo(() => {
     return (
-      formData.sec80cPpf +
-      formData.sec80cElss +
-      formData.sec80cLifeInsurance +
-      formData.sec80cHomeLoanPrincipal +
-      formData.sec80cChildrenTuition +
-      formData.sec80cNsc +
-      formData.sec80cSukanyaSamriddhi +
-      formData.sec80cFixedDeposit +
-      formData.sec80cOthers
+      (formData.sec80cPpf || 0) +
+      (formData.sec80cElss || 0) +
+      (formData.sec80cLifeInsurance || 0) +
+      (formData.sec80cHomeLoanPrincipal || 0) +
+      (formData.sec80cChildrenTuition || 0) +
+      (formData.sec80cNsc || 0) +
+      (formData.sec80cSukanyaSamriddhi || 0) +
+      (formData.sec80cFixedDeposit || 0) +
+      (formData.sec80cOthers || 0)
     )
   }, [
     formData.sec80cPpf,
@@ -134,7 +139,7 @@ export const TaxDeclarationForm = ({
   ])
 
   const allowed80c = Math.min(total80c, 150000)
-  const allowed80ccd = Math.min(formData.sec80ccdNps, 50000)
+  const allowed80ccd = Math.min(formData.sec80ccdNps || 0, 50000)
 
   useEffect(() => {
     if (declaration) {
@@ -174,13 +179,70 @@ export const TaxDeclarationForm = ({
     }
   }, [declaration])
 
+  // Calculate 80D limits based on senior citizen status
+  const max80dSelfFamily = formData.sec80dSelfSeniorCitizen
+    ? TAX_LIMITS.MAX_80D_SELF_FAMILY_SENIOR
+    : TAX_LIMITS.MAX_80D_SELF_FAMILY
+  const max80dParents = formData.sec80dParentsSeniorCitizen
+    ? TAX_LIMITS.MAX_80D_PARENTS_SENIOR
+    : TAX_LIMITS.MAX_80D_PARENTS
+
+  // PAN format validation regex
+  const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.employeeId) newErrors.employeeId = 'Employee is required'
     if (!formData.financialYear) newErrors.financialYear = 'Financial year is required'
-    if (formData.hraRentPaidAnnual > 100000 && !formData.hraLandlordPan) {
-      newErrors.hraLandlordPan = 'Landlord PAN is required if rent > ₹1,00,000/year'
+
+    // Only validate deduction limits for old regime
+    if (formData.taxRegime === 'old') {
+      // Section 80C total limit
+      if (total80c > TAX_LIMITS.MAX_80C) {
+        newErrors.sec80cTotal = `Total 80C deductions (${formatINR(total80c)}) exceeds limit of ${formatINR(TAX_LIMITS.MAX_80C)}`
+      }
+
+      // Section 80D - Self/Family limit
+      if ((formData.sec80dSelfFamily || 0) > max80dSelfFamily) {
+        newErrors.sec80dSelfFamily = `Cannot exceed ${formatINR(max80dSelfFamily)} ${formData.sec80dSelfSeniorCitizen ? '(senior citizen)' : ''}`
+      }
+
+      // Section 80D - Parents limit
+      if ((formData.sec80dParents || 0) > max80dParents) {
+        newErrors.sec80dParents = `Cannot exceed ${formatINR(max80dParents)} ${formData.sec80dParentsSeniorCitizen ? '(senior citizen)' : ''}`
+      }
+
+      // Section 80D - Preventive checkup limit
+      if ((formData.sec80dPreventiveCheckup || 0) > TAX_LIMITS.MAX_80D_PREVENTIVE) {
+        newErrors.sec80dPreventiveCheckup = `Cannot exceed ${formatINR(TAX_LIMITS.MAX_80D_PREVENTIVE)}`
+      }
+
+      // Section 24 - Home loan interest limit
+      if ((formData.sec24HomeLoanInterest || 0) > TAX_LIMITS.MAX_SECTION_24) {
+        newErrors.sec24HomeLoanInterest = `Cannot exceed ${formatINR(TAX_LIMITS.MAX_SECTION_24)}`
+      }
+
+      // Section 80CCD NPS limit
+      if ((formData.sec80ccdNps || 0) > TAX_LIMITS.MAX_80CCD_NPS) {
+        newErrors.sec80ccdNps = `Cannot exceed ${formatINR(TAX_LIMITS.MAX_80CCD_NPS)}`
+      }
+
+      // Section 80TTA limit
+      if ((formData.sec80ttaSavingsInterest || 0) > TAX_LIMITS.MAX_80TTA) {
+        newErrors.sec80ttaSavingsInterest = `Cannot exceed ${formatINR(TAX_LIMITS.MAX_80TTA)}`
+      }
+
+      // HRA Landlord PAN validation
+      if ((formData.hraRentPaidAnnual || 0) > TAX_LIMITS.HRA_PAN_THRESHOLD) {
+        if (!formData.hraLandlordPan) {
+          newErrors.hraLandlordPan = `Landlord PAN is mandatory when annual rent exceeds ${formatINR(TAX_LIMITS.HRA_PAN_THRESHOLD)}`
+        } else if (!PAN_REGEX.test(formData.hraLandlordPan)) {
+          newErrors.hraLandlordPan = 'Invalid PAN format (e.g., ABCDE1234F)'
+        }
+      } else if (formData.hraLandlordPan && !PAN_REGEX.test(formData.hraLandlordPan)) {
+        newErrors.hraLandlordPan = 'Invalid PAN format (e.g., ABCDE1234F)'
+      }
     }
 
     setErrors(newErrors)
@@ -193,7 +255,13 @@ export const TaxDeclarationForm = ({
     if (!validateForm()) return
 
     try {
-      if (isEditing && declaration) {
+      if (isRevision && declaration) {
+        // Revise and resubmit rejected declaration
+        await reviseDeclaration.mutateAsync({
+          id: declaration.id,
+          data: formData as UpdateEmployeeTaxDeclarationDto,
+        })
+      } else if (isEditing && declaration) {
         await updateDeclaration.mutateAsync({
           id: declaration.id,
           data: formData as UpdateEmployeeTaxDeclarationDto,
@@ -409,15 +477,25 @@ export const TaxDeclarationForm = ({
               />
             </div>
           </div>
-          <div className="mt-3 p-2 bg-gray-50 rounded">
+          <div className={`mt-3 p-2 rounded ${total80c > TAX_LIMITS.MAX_80C ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
             <div className="flex justify-between text-sm">
               <span>Total 80C:</span>
-              <span className="font-medium">{formatINR(total80c)}</span>
+              <span className={`font-medium ${total80c > TAX_LIMITS.MAX_80C ? 'text-red-600' : ''}`}>
+                {formatINR(total80c)}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Allowed (capped at ₹1,50,000):</span>
+              <span>Allowed (capped at {formatINR(TAX_LIMITS.MAX_80C)}):</span>
               <span className="font-semibold">{formatINR(allowed80c)}</span>
             </div>
+            {total80c > TAX_LIMITS.MAX_80C && (
+              <p className="text-red-600 text-xs mt-1">
+                Excess of {formatINR(total80c - TAX_LIMITS.MAX_80C)} will not be considered for tax deduction
+              </p>
+            )}
+            {errors.sec80cTotal && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.sec80cTotal}</p>
+            )}
           </div>
         </div>
       )}
@@ -451,11 +529,15 @@ export const TaxDeclarationForm = ({
           <h3 className="font-semibold mb-3">Section 80D - Health Insurance</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Self/Family</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Self/Family <span className="text-gray-500 text-xs">(Max {formatINR(max80dSelfFamily)})</span>
+              </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className={`w-full rounded-md border px-3 py-2 ${
+                  errors.sec80dSelfFamily ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formData.sec80dSelfFamily}
                 onChange={(e) => handleInputChange('sec80dSelfFamily', parseFloat(e.target.value) || 0)}
               />
@@ -467,16 +549,23 @@ export const TaxDeclarationForm = ({
                   onChange={(e) => handleInputChange('sec80dSelfSeniorCitizen', e.target.checked)}
                 />
                 <label htmlFor="sec80dSelfSeniorCitizen" className="text-xs text-gray-600 ml-1">
-                  Senior Citizen (limit ₹50,000)
+                  Senior Citizen (limit {formatINR(TAX_LIMITS.MAX_80D_SELF_FAMILY_SENIOR)})
                 </label>
               </div>
+              {errors.sec80dSelfFamily && (
+                <p className="text-red-500 text-xs mt-1">{errors.sec80dSelfFamily}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Parents</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Parents <span className="text-gray-500 text-xs">(Max {formatINR(max80dParents)})</span>
+              </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className={`w-full rounded-md border px-3 py-2 ${
+                  errors.sec80dParents ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formData.sec80dParents}
                 onChange={(e) => handleInputChange('sec80dParents', parseFloat(e.target.value) || 0)}
               />
@@ -488,20 +577,29 @@ export const TaxDeclarationForm = ({
                   onChange={(e) => handleInputChange('sec80dParentsSeniorCitizen', e.target.checked)}
                 />
                 <label htmlFor="sec80dParentsSeniorCitizen" className="text-xs text-gray-600 ml-1">
-                  Senior Citizen (limit ₹50,000)
+                  Senior Citizen (limit {formatINR(TAX_LIMITS.MAX_80D_PARENTS_SENIOR)})
                 </label>
               </div>
+              {errors.sec80dParents && (
+                <p className="text-red-500 text-xs mt-1">{errors.sec80dParents}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Preventive Checkup</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Preventive Checkup <span className="text-gray-500 text-xs">(Max {formatINR(TAX_LIMITS.MAX_80D_PREVENTIVE)})</span>
+              </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className={`w-full rounded-md border px-3 py-2 ${
+                  errors.sec80dPreventiveCheckup ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formData.sec80dPreventiveCheckup}
                 onChange={(e) => handleInputChange('sec80dPreventiveCheckup', parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-gray-500 mt-1">Max ₹5,000</p>
+              {errors.sec80dPreventiveCheckup && (
+                <p className="text-red-500 text-xs mt-1">{errors.sec80dPreventiveCheckup}</p>
+              )}
             </div>
           </div>
         </div>
@@ -535,7 +633,7 @@ export const TaxDeclarationForm = ({
                 Metro City (50% of Basic) / Non-Metro (40% of Basic)
               </label>
             </div>
-            {formData.hraRentPaidAnnual > 100000 && (
+            {(formData.hraRentPaidAnnual || 0) > 100000 && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -592,16 +690,20 @@ export const TaxDeclarationForm = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Section 24 - Home Loan Interest
+                Section 24 - Home Loan Interest <span className="text-gray-500 text-xs">(Max {formatINR(TAX_LIMITS.MAX_SECTION_24)})</span>
               </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className={`w-full rounded-md border px-3 py-2 ${
+                  errors.sec24HomeLoanInterest ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formData.sec24HomeLoanInterest}
                 onChange={(e) => handleInputChange('sec24HomeLoanInterest', parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-gray-500 mt-1">Max ₹2,00,000</p>
+              {errors.sec24HomeLoanInterest && (
+                <p className="text-red-500 text-xs mt-1">{errors.sec24HomeLoanInterest}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -618,16 +720,20 @@ export const TaxDeclarationForm = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Section 80TTA - Savings Interest
+                Section 80TTA - Savings Interest <span className="text-gray-500 text-xs">(Max {formatINR(TAX_LIMITS.MAX_80TTA)})</span>
               </label>
               <input
                 type="number"
                 step="0.01"
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className={`w-full rounded-md border px-3 py-2 ${
+                  errors.sec80ttaSavingsInterest ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formData.sec80ttaSavingsInterest}
                 onChange={(e) => handleInputChange('sec80ttaSavingsInterest', parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-gray-500 mt-1">Max ₹10,000</p>
+              {errors.sec80ttaSavingsInterest && (
+                <p className="text-red-500 text-xs mt-1">{errors.sec80ttaSavingsInterest}</p>
+              )}
             </div>
           </div>
         </div>
@@ -714,7 +820,7 @@ export const TaxDeclarationForm = ({
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           disabled={isLoading}
         >
-          {isLoading ? 'Saving...' : isEditing ? 'Update' : 'Create'} Declaration
+          {isLoading ? 'Saving...' : isRevision ? 'Revise & Resubmit' : isEditing ? 'Update' : 'Create'} Declaration
         </button>
       </div>
     </form>

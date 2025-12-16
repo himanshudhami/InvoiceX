@@ -62,13 +62,19 @@ namespace Infrastructure.Data.Payroll
                 new { payrollType });
         }
 
-        public async Task<IEnumerable<EmployeePayrollInfo>> GetActiveEmployeesForPayrollAsync(Guid companyId, string? payrollType = null)
+        public async Task<IEnumerable<EmployeePayrollInfo>> GetActiveEmployeesForPayrollAsync(Guid companyId, int payrollMonth, int payrollYear, string? payrollType = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
+
+            // Calculate the last day of the payroll month
+            var payrollMonthEnd = new DateTime(payrollYear, payrollMonth, DateTime.DaysInMonth(payrollYear, payrollMonth));
+            var payrollMonthStart = new DateTime(payrollYear, payrollMonth, 1);
+
             var sql = @"SELECT * FROM employee_payroll_info
                         WHERE company_id = @companyId
                           AND is_active = true
-                          AND (date_of_leaving IS NULL OR date_of_leaving > CURRENT_DATE)";
+                          AND (date_of_joining IS NULL OR date_of_joining <= @payrollMonthEnd)
+                          AND (date_of_leaving IS NULL OR date_of_leaving >= @payrollMonthStart)";
 
             if (!string.IsNullOrEmpty(payrollType))
             {
@@ -77,7 +83,7 @@ namespace Infrastructure.Data.Payroll
 
             sql += " ORDER BY created_at";
 
-            return await connection.QueryAsync<EmployeePayrollInfo>(sql, new { companyId, payrollType });
+            return await connection.QueryAsync<EmployeePayrollInfo>(sql, new { companyId, payrollType, payrollMonthEnd, payrollMonthStart });
         }
 
         public async Task<(IEnumerable<EmployeePayrollInfo> Items, int TotalCount)> GetPagedAsync(
@@ -193,6 +199,31 @@ namespace Infrastructure.Data.Payroll
                 : "SELECT COUNT(*) FROM employee_payroll_info WHERE esi_number = @esiNumber";
             var count = await connection.ExecuteScalarAsync<int>(sql, new { esiNumber, excludeEmployeeId });
             return count > 0;
+        }
+
+        public async Task ResignEmployeeAsync(Guid employeeId, DateTime lastWorkingDay)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(@"
+                UPDATE employee_payroll_info
+                SET date_of_leaving = @lastWorkingDay,
+                    is_active = false,
+                    updated_at = NOW()
+                WHERE employee_id = @employeeId",
+                new { employeeId, lastWorkingDay });
+        }
+
+        public async Task RejoinEmployeeAsync(Guid employeeId, DateTime? rejoiningDate = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(@"
+                UPDATE employee_payroll_info
+                SET date_of_leaving = NULL,
+                    is_active = true,
+                    date_of_joining = COALESCE(@rejoiningDate, date_of_joining),
+                    updated_at = NOW()
+                WHERE employee_id = @employeeId",
+                new { employeeId, rejoiningDate });
         }
     }
 }

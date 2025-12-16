@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { payrollService } from '@/services/api/payrollService'
 import type {
-  EmployeeTaxDeclaration,
   CreateEmployeeTaxDeclarationDto,
   UpdateEmployeeTaxDeclarationDto,
+  RejectDeclarationDto,
 } from '@/features/payroll/types/payroll'
 import { payrollKeys } from './payrollKeys'
 import type { PaginationParams } from '@/services/api/types'
@@ -153,6 +153,51 @@ export const useDeleteTaxDeclaration = () => {
     onError: (error: any) => {
       toast.error(error?.message ?? 'Failed to delete tax declaration')
     },
+  })
+}
+
+export const useRejectTaxDeclaration = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data, rejectedBy }: { id: string; data: RejectDeclarationDto; rejectedBy?: string }) =>
+      payrollService.rejectTaxDeclaration(id, data, rejectedBy),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.taxDeclaration(id) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.taxDeclarations() })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.pendingVerifications() })
+      toast.success('Tax declaration rejected')
+    },
+    onError: (error: any) => {
+      toast.error(error?.message ?? 'Failed to reject tax declaration')
+    },
+  })
+}
+
+export const useReviseTaxDeclaration = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data, submittedBy }: { id: string; data: UpdateEmployeeTaxDeclarationDto; submittedBy?: string }) =>
+      payrollService.reviseTaxDeclaration(id, data, submittedBy),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: payrollKeys.taxDeclaration(id) })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.taxDeclarations() })
+      queryClient.invalidateQueries({ queryKey: payrollKeys.pendingVerifications() })
+      toast.success('Tax declaration revised and resubmitted')
+    },
+    onError: (error: any) => {
+      toast.error(error?.message ?? 'Failed to revise tax declaration')
+    },
+  })
+}
+
+export const useRejectedDeclarations = (financialYear?: string) => {
+  return useQuery({
+    queryKey: [...payrollKeys.taxDeclarations(), 'rejected', financialYear],
+    queryFn: () => payrollService.getRejectedDeclarations(financialYear),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   })
 }
 

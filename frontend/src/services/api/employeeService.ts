@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Employee, CreateEmployeeDto, UpdateEmployeeDto, PagedResponse, EmployeesFilterParams, BulkEmployeesDto, BulkUploadResult } from './types';
+import { Employee, CreateEmployeeDto, UpdateEmployeeDto, PagedResponse, EmployeesFilterParams, BulkEmployeesDto, BulkUploadResult, ResignEmployeeDto, RejoinEmployeeDto } from './types';
 
 /**
  * Employee API service following SRP - handles only employee-related API calls
@@ -57,6 +57,14 @@ export class EmployeeService {
 
   async bulkCreate(data: BulkEmployeesDto): Promise<BulkUploadResult> {
     return apiClient.post<BulkUploadResult, BulkEmployeesDto>(`${this.endpoint}/bulk`, data);
+  }
+
+  async resign(id: string, data: ResignEmployeeDto): Promise<void> {
+    return apiClient.post<void, ResignEmployeeDto>(`${this.endpoint}/${id}/resign`, data);
+  }
+
+  async rejoin(id: string, data?: RejoinEmployeeDto): Promise<void> {
+    return apiClient.post<void, RejoinEmployeeDto | undefined>(`${this.endpoint}/${id}/rejoin`, data);
   }
 }
 

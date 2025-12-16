@@ -384,16 +384,31 @@ public class PayrollCalculationService
         // Get tax declaration
         var declaration = await _taxDeclarationRepository.GetByEmployeeAndYearAsync(payrollInfo.EmployeeId, financialYear);
 
+        // CRITICAL FIX: Only use declarations that are submitted, verified, or locked
+        // Draft declarations should NOT be used for TDS calculation
         EmployeeTaxDeclarationDto? declarationDto = null;
-        if (declaration != null)
+        if (declaration != null && IsDeclarationUsableForPayroll(declaration.Status))
         {
             declarationDto = MapToDeclarationDto(declaration);
+
+            // Log warning if tax regime mismatch between declaration and payroll info
+            if (!string.IsNullOrEmpty(declaration.TaxRegime) &&
+                !string.IsNullOrEmpty(payrollInfo.TaxRegime) &&
+                declaration.TaxRegime.ToLowerInvariant() != payrollInfo.TaxRegime.ToLowerInvariant())
+            {
+                // TODO: Add proper logging - regime mismatch detected
+                // Declaration regime: {declaration.TaxRegime}, Payroll info regime: {payrollInfo.TaxRegime}
+                // Using payroll info regime as authoritative for TDS calculation
+            }
         }
+
+        // Default to NEW regime if not set (user preference)
+        var effectiveRegime = string.IsNullOrEmpty(payrollInfo.TaxRegime) ? "new" : payrollInfo.TaxRegime;
 
         return await _tdsService.CalculateAsync(
             payrollInfo.EmployeeId,
             financialYear,
-            payrollInfo.TaxRegime,
+            effectiveRegime,
             projectedAnnualIncome,
             annualBasic,
             annualHra,
@@ -404,6 +419,19 @@ public class PayrollCalculationService
             remainingMonths,
             declarationDto,
             payrollInfo.DateOfBirth);
+    }
+
+    /// <summary>
+    /// Check if a declaration status allows it to be used for payroll TDS calculation
+    /// Only submitted, verified, or locked declarations should be used
+    /// </summary>
+    private static bool IsDeclarationUsableForPayroll(string? status)
+    {
+        if (string.IsNullOrEmpty(status))
+            return false;
+
+        var normalizedStatus = status.ToLowerInvariant();
+        return normalizedStatus is "submitted" or "verified" or "locked";
     }
 
     /// <summary>

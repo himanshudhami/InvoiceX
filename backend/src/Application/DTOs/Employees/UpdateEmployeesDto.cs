@@ -51,10 +51,10 @@ namespace Application.DTOs.Employees
         public DateTime? HireDate { get; set; }
 
         /// <summary>
-        /// Employee status (active, inactive, terminated, permanent)
+        /// Employee status (active, inactive, terminated, resigned, permanent)
         /// </summary>
         [Required]
-        [RegularExpression("^(active|inactive|terminated|permanent)$", ErrorMessage = "Status must be active, inactive, terminated, or permanent")]
+        [RegularExpression("^(active|inactive|terminated|resigned|permanent)$", ErrorMessage = "Status must be active, inactive, terminated, resigned, or permanent")]
         public string Status { get; set; } = "active";
 
         /// <summary>

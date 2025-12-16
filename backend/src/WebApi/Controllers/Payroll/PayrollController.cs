@@ -205,9 +205,9 @@ public class PayrollController : ControllerBase
         if (companyId == Guid.Empty)
             return BadRequest("Company ID is required");
 
-        // Get all active employees for this company
+        // Get all active employees for this company (filtered by joining/leaving dates)
         var employees = await _payrollInfoRepository.GetActiveEmployeesForPayrollAsync(
-            companyId, includeContractors ? null : "employee");
+            companyId, payrollMonth, payrollYear, includeContractors ? null : "employee");
 
         var employeeCount = 0;
         var totalMonthlyGross = 0m;
@@ -309,9 +309,9 @@ public class PayrollController : ControllerBase
             await _payrollRunRepository.UpdateStatusAsync(payrollRun.Id, "processing", dto.ProcessedBy);
         }
 
-        // Get all active employees for this company (must have payroll info)
+        // Get all active employees for this company (must have payroll info, filtered by joining/leaving dates)
         var employees = await _payrollInfoRepository.GetActiveEmployeesForPayrollAsync(
-            dto.CompanyId, dto.IncludeContractors ? null : "employee");
+            dto.CompanyId, dto.PayrollMonth, dto.PayrollYear, dto.IncludeContractors ? null : "employee");
 
         var totalGross = 0m;
         var totalDeductions = 0m;

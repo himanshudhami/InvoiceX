@@ -285,5 +285,55 @@ namespace Infrastructure.Data.Payroll
                 WHERE financial_year = @financialYear AND status = 'verified'";
             await connection.ExecuteAsync(sql, new { financialYear });
         }
+
+        public async Task UpdateStatusWithRejectionAsync(Guid id, string status, string? rejectedBy, string? reason)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"UPDATE employee_tax_declarations SET
+                status = @status,
+                rejected_by = @rejectedBy,
+                rejected_at = CASE WHEN @status = 'rejected' THEN NOW() ELSE rejected_at END,
+                rejection_reason = @reason,
+                updated_at = NOW()
+                WHERE id = @id";
+            await connection.ExecuteAsync(sql, new { id, status, rejectedBy, reason });
+        }
+
+        public async Task IncrementRevisionCountAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"UPDATE employee_tax_declarations SET
+                revision_count = COALESCE(revision_count, 0) + 1,
+                updated_at = NOW()
+                WHERE id = @id";
+            await connection.ExecuteAsync(sql, new { id });
+        }
+
+        public async Task ClearRejectionAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"UPDATE employee_tax_declarations SET
+                rejected_by = NULL,
+                rejected_at = NULL,
+                rejection_reason = NULL,
+                updated_at = NOW()
+                WHERE id = @id";
+            await connection.ExecuteAsync(sql, new { id });
+        }
+
+        public async Task<IEnumerable<EmployeeTaxDeclaration>> GetRejectedDeclarationsAsync(string? financialYear = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = "SELECT * FROM employee_tax_declarations WHERE status = 'rejected'";
+
+            if (!string.IsNullOrEmpty(financialYear))
+            {
+                sql += " AND financial_year = @financialYear";
+            }
+
+            sql += " ORDER BY rejected_at DESC";
+
+            return await connection.QueryAsync<EmployeeTaxDeclaration>(sql, new { financialYear });
+        }
     }
 }
