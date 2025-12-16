@@ -1,0 +1,217 @@
+using Application.Interfaces;
+using Application.DTOs.Companies;
+using Core.Entities;
+using Core.Common;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using WebApi.DTOs;
+using WebApi.DTOs.Common;
+
+namespace WebApi.Controllers
+{
+    /// <summary>
+    /// Companies management endpoints
+    /// </summary>
+    [ApiController]
+    [Route("api/[controller]")]
+    [Produces("application/json")]
+    public class CompaniesController : ControllerBase
+    {
+        private readonly ICompaniesService _service;
+
+        /// <summary>
+        /// Initializes a new instance of the CompaniesController
+        /// </summary>
+        public CompaniesController(ICompaniesService service)
+        {
+            _service = service ?? throw new ArgumentNullException(nameof(service));
+        }
+
+        /// <summary>
+        /// Get Companies by ID
+        /// </summary>
+        /// <param name="id">The Companies ID</param>
+        /// <returns>The Companies entity</returns>
+        /// <response code="200">Returns the Companies entity</response>
+        /// <response code="404">Companies not found</response>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(Companies), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var result = await _service.GetByIdAsync(id);
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+            
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get all Companies entities
+        /// </summary>
+        /// <returns>List of Companies entities</returns>
+        /// <response code="200">Returns the list of Companies entities</response>
+        [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Companies>), 200)]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _service.GetAllAsync();
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Internal => StatusCode(500, result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+            
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get paginated Companies entities with filtering and sorting
+        /// </summary>
+        /// <param name="request">Pagination and filter parameters</param>
+        /// <returns>Paginated list of Companies entities</returns>
+        /// <response code="200">Returns the paginated list of Companies entities</response>
+        [HttpGet("paged")]
+        [ProducesResponseType(typeof(PagedResponse<Companies>), 200)]
+        public async Task<IActionResult> GetPaged([FromQuery] CompaniesFilterRequest request)
+        {
+            var result = await _service.GetPagedAsync(
+                request.PageNumber,
+                request.PageSize,
+                request.SearchTerm,
+                request.SortBy,
+                request.SortDescending,
+                request.GetFilters());
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    ErrorType.Internal => StatusCode(500, result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+            
+            var (items, totalCount) = result.Value;
+            var response = new PagedResponse<Companies>(
+                items,
+                totalCount,
+                request.PageNumber,
+                request.PageSize);
+            
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Create a new Companies
+        /// </summary>
+        /// <param name="dto">The Companies to create</param>
+        /// <returns>The created Companies</returns>
+        /// <response code="201">Companies created successfully</response>
+        /// <response code="400">Invalid input</response>
+        [HttpPost]
+        [ProducesResponseType(typeof(Companies), 201)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> Create([FromBody] CreateCompaniesDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _service.CreateAsync(dto);
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    ErrorType.Conflict => Conflict(result.Error.Message),
+                    ErrorType.Internal => StatusCode(500, result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+        }
+
+        /// <summary>
+        /// Update an existing Companies
+        /// </summary>
+        /// <param name="id">The Companies ID</param>
+        /// <param name="dto">The updated Companies data</param>
+        /// <returns>No content</returns>
+        /// <response code="204">Companies updated successfully</response>
+        /// <response code="400">Invalid input</response>
+        /// <response code="404">Companies not found</response>
+        [HttpPut("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCompaniesDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _service.UpdateAsync(id, dto);
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    ErrorType.Conflict => Conflict(result.Error.Message),
+                    ErrorType.Internal => StatusCode(500, result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Delete a Companies
+        /// </summary>
+        /// <param name="id">The Companies ID to delete</param>
+        /// <returns>No content</returns>
+        /// <response code="204">Companies deleted successfully</response>
+        /// <response code="404">Companies not found</response>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var result = await _service.DeleteAsync(id);
+            
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    ErrorType.Conflict => Conflict(result.Error.Message),
+                    ErrorType.Internal => StatusCode(500, result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return NoContent();
+        }
+    }
+}

@@ -1,0 +1,363 @@
+using Application.DTOs.Payroll;
+using Application.Services.Payroll;
+using Core.Entities.Payroll;
+using Core.Interfaces;
+using Core.Interfaces.Payroll;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using WebApi.DTOs;
+using WebApi.DTOs.Common;
+
+namespace WebApi.Controllers.Payroll;
+
+/// <summary>
+/// Contractor payments management endpoints
+/// </summary>
+[ApiController]
+[Route("api/[controller]")]
+[Produces("application/json")]
+public class ContractorPaymentsController : ControllerBase
+{
+    private readonly IContractorPaymentRepository _repository;
+    private readonly PayrollCalculationService _calculationService;
+    private readonly IEmployeesRepository _employeesRepository;
+    private readonly ICompaniesRepository _companiesRepository;
+    private readonly IMapper _mapper;
+
+    public ContractorPaymentsController(
+        IContractorPaymentRepository repository,
+        PayrollCalculationService calculationService,
+        IEmployeesRepository employeesRepository,
+        ICompaniesRepository companiesRepository,
+        IMapper mapper)
+    {
+        _repository = repository;
+        _calculationService = calculationService;
+        _employeesRepository = employeesRepository;
+        _companiesRepository = companiesRepository;
+        _mapper = mapper;
+    }
+
+    /// <summary>
+    /// Get all contractor payments with pagination
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<ContractorPaymentDto>), 200)]
+    public async Task<IActionResult> GetAll([FromQuery] ContractorPaymentFilterRequest request)
+    {
+        var (items, totalCount) = await _repository.GetPagedAsync(
+            request.PageNumber,
+            request.PageSize,
+            request.SearchTerm,
+            request.SortBy,
+            request.SortDescending,
+            request.GetFilters());
+
+        var dtos = _mapper.Map<IEnumerable<ContractorPaymentDto>>(items).ToList();
+
+        // Populate employee (contractor) names
+        var employeeIds = dtos.Select(d => d.EmployeeId).Distinct().ToList();
+        var employees = new Dictionary<Guid, string>();
+        foreach (var employeeId in employeeIds)
+        {
+            var employee = await _employeesRepository.GetByIdAsync(employeeId);
+            if (employee != null)
+            {
+                employees[employeeId] = employee.EmployeeName;
+            }
+        }
+
+        // Populate company names
+        var companyIds = dtos.Select(d => d.CompanyId).Distinct().ToList();
+        var companies = new Dictionary<Guid, string>();
+        foreach (var companyId in companyIds)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company != null)
+            {
+                companies[companyId] = company.Name;
+            }
+        }
+
+        foreach (var dto in dtos)
+        {
+            dto.EmployeeName = employees.GetValueOrDefault(dto.EmployeeId);
+            dto.CompanyName = companies.GetValueOrDefault(dto.CompanyId);
+        }
+
+        var response = new PagedResponse<ContractorPaymentDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get all contractor payments with pagination (explicit paged route for frontend compatibility)
+    /// </summary>
+    [HttpGet("paged")]
+    [ProducesResponseType(typeof(PagedResponse<ContractorPaymentDto>), 200)]
+    public async Task<IActionResult> GetAllPaged([FromQuery] ContractorPaymentFilterRequest request)
+    {
+        var (items, totalCount) = await _repository.GetPagedAsync(
+            request.PageNumber,
+            request.PageSize,
+            request.SearchTerm,
+            request.SortBy,
+            request.SortDescending,
+            request.GetFilters());
+
+        var dtos = _mapper.Map<IEnumerable<ContractorPaymentDto>>(items).ToList();
+
+        // Populate employee (contractor) names
+        var employeeIds = dtos.Select(d => d.EmployeeId).Distinct().ToList();
+        var employees = new Dictionary<Guid, string>();
+        foreach (var employeeId in employeeIds)
+        {
+            var employee = await _employeesRepository.GetByIdAsync(employeeId);
+            if (employee != null)
+            {
+                employees[employeeId] = employee.EmployeeName;
+            }
+        }
+
+        // Populate company names
+        var companyIds = dtos.Select(d => d.CompanyId).Distinct().ToList();
+        var companies = new Dictionary<Guid, string>();
+        foreach (var companyId in companyIds)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company != null)
+            {
+                companies[companyId] = company.Name;
+            }
+        }
+
+        foreach (var dto in dtos)
+        {
+            dto.EmployeeName = employees.GetValueOrDefault(dto.EmployeeId);
+            dto.CompanyName = companies.GetValueOrDefault(dto.CompanyId);
+        }
+
+        var response = new PagedResponse<ContractorPaymentDto>(dtos, totalCount, request.PageNumber, request.PageSize);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get contractor payment by ID
+    /// </summary>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ContractorPaymentDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var payment = await _repository.GetByIdAsync(id);
+        if (payment == null)
+            return NotFound($"Contractor payment with ID {id} not found");
+
+        return Ok(_mapper.Map<ContractorPaymentDto>(payment));
+    }
+
+    /// <summary>
+    /// Create a new contractor payment
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(ContractorPaymentDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(409)]
+    public async Task<IActionResult> Create([FromBody] CreateContractorPaymentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // Check for duplicate
+        var exists = await _repository.ExistsForEmployeeAndMonthAsync(
+            dto.EmployeeId, dto.PaymentMonth, dto.PaymentYear);
+        if (exists)
+            return Conflict($"Payment already exists for this contractor for {dto.PaymentMonth}/{dto.PaymentYear}");
+
+        // Use calculation service to create payment with calculated values
+        var payment = _calculationService.CalculateContractorPayment(
+            dto.EmployeeId,
+            dto.CompanyId,
+            dto.PaymentMonth,
+            dto.PaymentYear,
+            dto.GrossAmount,
+            dto.TdsRate,
+            dto.GstApplicable,
+            dto.GstRate,
+            dto.OtherDeductions,
+            dto.InvoiceNumber,
+            dto.ContractReference,
+            dto.Description);
+
+        payment.Remarks = dto.Remarks;
+        payment.CreatedBy = dto.CreatedBy;
+
+        var created = await _repository.AddAsync(payment);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, _mapper.Map<ContractorPaymentDto>(created));
+    }
+
+    /// <summary>
+    /// Update a contractor payment
+    /// </summary>
+    [HttpPut("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateContractorPaymentDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var existing = await _repository.GetByIdAsync(id);
+        if (existing == null)
+            return NotFound($"Contractor payment with ID {id} not found");
+
+        if (existing.Status == "paid")
+            return BadRequest("Cannot update a paid payment");
+
+        // Update fields
+        if (dto.GrossAmount.HasValue)
+            existing.GrossAmount = dto.GrossAmount.Value;
+        if (dto.TdsRate.HasValue)
+            existing.TdsRate = dto.TdsRate.Value;
+        if (dto.OtherDeductions.HasValue)
+            existing.OtherDeductions = dto.OtherDeductions.Value;
+        if (dto.GstApplicable.HasValue)
+            existing.GstApplicable = dto.GstApplicable.Value;
+        if (dto.GstRate.HasValue)
+            existing.GstRate = dto.GstRate.Value;
+
+        // Recalculate amounts
+        existing.TdsAmount = Math.Round(existing.GrossAmount * existing.TdsRate / 100, 0, MidpointRounding.AwayFromZero);
+        existing.GstAmount = existing.GstApplicable
+            ? Math.Round(existing.GrossAmount * existing.GstRate / 100, 2, MidpointRounding.AwayFromZero)
+            : 0;
+        existing.TotalInvoiceAmount = existing.GrossAmount + existing.GstAmount;
+        // Net payable uses TotalInvoiceAmount to include GST - contractor receives invoice total minus TDS
+        existing.NetPayable = (existing.TotalInvoiceAmount ?? existing.GrossAmount) - existing.TdsAmount - existing.OtherDeductions;
+
+        // Update other fields
+        if (!string.IsNullOrEmpty(dto.InvoiceNumber))
+            existing.InvoiceNumber = dto.InvoiceNumber;
+        if (!string.IsNullOrEmpty(dto.ContractReference))
+            existing.ContractReference = dto.ContractReference;
+        if (!string.IsNullOrEmpty(dto.Description))
+            existing.Description = dto.Description;
+        if (!string.IsNullOrEmpty(dto.Remarks))
+            existing.Remarks = dto.Remarks;
+        if (!string.IsNullOrEmpty(dto.Status))
+            existing.Status = dto.Status;
+        if (dto.PaymentDate.HasValue)
+            existing.PaymentDate = dto.PaymentDate;
+        if (!string.IsNullOrEmpty(dto.PaymentMethod))
+            existing.PaymentMethod = dto.PaymentMethod;
+        if (!string.IsNullOrEmpty(dto.PaymentReference))
+            existing.PaymentReference = dto.PaymentReference;
+
+        existing.UpdatedBy = dto.UpdatedBy;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.UpdateAsync(existing);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Delete a contractor payment
+    /// </summary>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var payment = await _repository.GetByIdAsync(id);
+        if (payment == null)
+            return NotFound($"Contractor payment with ID {id} not found");
+
+        if (payment.Status == "paid")
+            return BadRequest("Cannot delete a paid payment");
+
+        await _repository.DeleteAsync(id);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Approve a contractor payment
+    /// </summary>
+    [HttpPost("{id}/approve")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Approve(Guid id)
+    {
+        var payment = await _repository.GetByIdAsync(id);
+        if (payment == null)
+            return NotFound($"Contractor payment with ID {id} not found");
+
+        if (payment.Status != "pending")
+            return BadRequest("Only pending payments can be approved");
+
+        await _repository.UpdateStatusAsync(id, "approved");
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Mark a contractor payment as paid
+    /// </summary>
+    [HttpPost("{id}/pay")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> MarkAsPaid(Guid id, [FromBody] UpdateContractorPaymentDto dto)
+    {
+        var payment = await _repository.GetByIdAsync(id);
+        if (payment == null)
+            return NotFound($"Contractor payment with ID {id} not found");
+
+        if (payment.Status != "approved")
+            return BadRequest("Only approved payments can be marked as paid");
+
+        payment.PaymentDate = dto.PaymentDate ?? DateTime.UtcNow;
+        payment.PaymentMethod = dto.PaymentMethod;
+        payment.PaymentReference = dto.PaymentReference;
+        payment.Status = "paid";
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.UpdateAsync(payment);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get monthly summary for contractor payments
+    /// </summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(Dictionary<string, decimal>), 200)]
+    public async Task<IActionResult> GetMonthlySummary(
+        [FromQuery] int paymentMonth,
+        [FromQuery] int paymentYear,
+        [FromQuery] Guid? companyId = null)
+    {
+        var summary = await _repository.GetMonthlySummaryAsync(paymentMonth, paymentYear, companyId);
+        return Ok(summary);
+    }
+
+    /// <summary>
+    /// Get YTD summary for a contractor
+    /// </summary>
+    [HttpGet("ytd/{employeeId}")]
+    [ProducesResponseType(typeof(ContractorPaymentSummaryDto), 200)]
+    public async Task<IActionResult> GetYtdSummary(Guid employeeId, [FromQuery] string financialYear)
+    {
+        var summary = await _repository.GetYtdSummaryAsync(employeeId, financialYear);
+
+        return Ok(new ContractorPaymentSummaryDto
+        {
+            EmployeeId = employeeId,
+            FinancialYear = financialYear,
+            TotalGross = summary.TryGetValue("YtdGross", out var g) ? g : 0,
+            TotalTds = summary.TryGetValue("YtdTds", out var t) ? t : 0,
+            TotalGst = summary.TryGetValue("YtdGst", out var gst) ? gst : 0,
+            TotalNet = summary.TryGetValue("YtdNet", out var n) ? n : 0,
+            PaymentCount = (int)(summary.TryGetValue("PaymentCount", out var c) ? c : 0)
+        });
+    }
+}

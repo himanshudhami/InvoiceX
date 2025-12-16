@@ -1,0 +1,33 @@
+-- 001_init_schema_down.sql
+-- Rolls back the schema created by 001_init_schema.sql
+
+DROP TABLE IF EXISTS sow_items CASCADE;
+DROP TABLE IF EXISTS msa_items CASCADE;
+DROP TABLE IF EXISTS invoice_items CASCADE;
+DROP TABLE IF EXISTS quote_items CASCADE;
+DROP TABLE IF EXISTS employee_salary_transactions CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS quotes CASCADE;
+DROP TABLE IF EXISTS sows CASCADE;
+DROP TABLE IF EXISTS msas CASCADE;
+DROP TABLE IF EXISTS tax_rates CASCADE;
+DROP TABLE IF EXISTS invoice_templates CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS companies CASCADE;
+DROP TABLE IF EXISTS documents CASCADE;
+DROP TABLE IF EXISTS test_table CASCADE;
+DROP TABLE IF EXISTS schemaversions CASCADE;
+
+DROP SEQUENCE IF EXISTS schemaversions_schemaversionsid_seq;
+DROP SEQUENCE IF EXISTS test_table_id_seq;
+
+DROP EXTENSION IF EXISTS "pgcrypto";
+
+
+
+
+
+
