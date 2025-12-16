@@ -44,6 +44,16 @@ public class AssetAssignmentService
         return Result<IEnumerable<AssetAssignments>>.Success(assignments);
     }
 
+    public async Task<Result<IEnumerable<AssetAssignments>>> GetAssignmentsByEmployeeAsync(Guid employeeId)
+    {
+        var validation = ServiceExtensions.ValidateGuid(employeeId, "EmployeeId");
+        if (validation.IsFailure)
+            return validation.Error!;
+
+        var assignments = await _repository.GetAssignmentsByEmployeeAsync(employeeId);
+        return Result<IEnumerable<AssetAssignments>>.Success(assignments);
+    }
+
     public async Task<Result<AssetAssignments>> AddAssignmentAsync(Guid assetId, CreateAssetAssignmentDto dto)
     {
         var idValidation = ServiceExtensions.ValidateGuid(assetId, "AssetId");

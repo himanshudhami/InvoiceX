@@ -52,6 +52,10 @@ export class AssetService {
     return apiClient.get<AssetAssignment[]>(`${this.endpoint}/${id}/assignments`);
   }
 
+  async getAssignmentsByEmployee(employeeId: string): Promise<AssetAssignment[]> {
+    return apiClient.get<AssetAssignment[]>(`${this.endpoint}/assignments/employee/${employeeId}`);
+  }
+
   async assign(id: string, data: CreateAssetAssignmentDto): Promise<AssetAssignment> {
     return apiClient.post<AssetAssignment, CreateAssetAssignmentDto>(`${this.endpoint}/${id}/assign`, data);
   }

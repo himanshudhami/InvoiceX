@@ -130,6 +130,14 @@ public class SubscriptionsRepository : ISubscriptionsRepository
         return await connection.QueryAsync<SubscriptionAssignments>("SELECT * FROM subscription_assignments WHERE subscription_id=@subscriptionId ORDER BY assigned_on DESC", new { subscriptionId });
     }
 
+    public async Task<IEnumerable<SubscriptionAssignments>> GetAssignmentsByEmployeeAsync(Guid employeeId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        return await connection.QueryAsync<SubscriptionAssignments>(
+            "SELECT * FROM subscription_assignments WHERE employee_id = @employeeId ORDER BY assigned_on DESC",
+            new { employeeId });
+    }
+
     public async Task<SubscriptionAssignments> AddAssignmentAsync(SubscriptionAssignments assignment)
     {
         const string sql = @"INSERT INTO subscription_assignments

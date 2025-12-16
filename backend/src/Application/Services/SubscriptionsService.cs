@@ -119,6 +119,16 @@ public class SubscriptionsService : ISubscriptionsService
         return Result<IEnumerable<SubscriptionAssignments>>.Success(items);
     }
 
+    public async Task<Result<IEnumerable<SubscriptionAssignments>>> GetAssignmentsByEmployeeAsync(Guid employeeId)
+    {
+        var validation = ServiceExtensions.ValidateGuid(employeeId, "EmployeeId");
+        if (validation.IsFailure)
+            return validation.Error!;
+
+        var items = await _repository.GetAssignmentsByEmployeeAsync(employeeId);
+        return Result<IEnumerable<SubscriptionAssignments>>.Success(items);
+    }
+
     public async Task<Result<SubscriptionAssignments>> AddAssignmentAsync(Guid subscriptionId, CreateSubscriptionAssignmentDto dto)
     {
         var idValidation = ServiceExtensions.ValidateGuid(subscriptionId, "SubscriptionId");

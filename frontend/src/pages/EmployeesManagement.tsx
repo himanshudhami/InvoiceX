@@ -9,10 +9,12 @@ import { Drawer } from '@/components/ui/Drawer'
 import { EmployeeForm } from '@/components/forms/EmployeeForm'
 import { EmployeeBulkUploadModal } from '@/components/forms/EmployeeBulkUploadModal'
 import { ResignEmployeeModal } from '@/components/modals/ResignEmployeeModal'
+import { EmployeeSidePanel } from '@/components/employee/EmployeeSidePanel'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { Edit, Trash2, User, Phone, Mail, Calendar, MapPin, Badge, Upload, Eye, UserMinus, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
+import { cn } from '@/lib/utils'
 
 // Reusable filter select component to avoid code duplication
 const FilterSelect = ({
@@ -59,7 +61,6 @@ const EmployeesManagement = () => {
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null)
-  const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null)
   const [resigningEmployee, setResigningEmployee] = useState<Employee | null>(null)
   const [sortBy] = useState('employeeName')
   const [sortDescending] = useState(false)
@@ -74,6 +75,7 @@ const EmployeesManagement = () => {
       company: parseAsString.withDefault(''),
       department: parseAsString.withDefault('all'),
       contractType: parseAsString.withDefault('all'),
+      selectedEmployee: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
@@ -298,7 +300,7 @@ const EmployeesManagement = () => {
         return (
           <div className="flex items-center justify-end space-x-2">
             <button
-              onClick={() => setViewingEmployee(employee)}
+              onClick={() => setUrlState({ selectedEmployee: employee.id })}
               className="text-indigo-600 hover:text-indigo-800 p-1 rounded hover:bg-indigo-50 transition-colors"
               title="View employee"
             >
@@ -360,7 +362,10 @@ const EmployeesManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={cn(
+      "space-y-6 transition-all duration-300",
+      urlState.selectedEmployee && "mr-[520px]"
+    )}>
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -547,65 +552,25 @@ const EmployeesManagement = () => {
         </div>
       </Modal>
 
-      {/* View Employee Modal */}
-      <Modal
-        isOpen={!!viewingEmployee}
-        onClose={() => setViewingEmployee(null)}
-        title="Employee Details"
-        size="lg"
-      >
-        {viewingEmployee && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DetailField label="Name" value={viewingEmployee.employeeName} />
-              <DetailField label="Employee ID" value={viewingEmployee.employeeId || '—'} />
-              <DetailField label="Email" value={viewingEmployee.email || '—'} />
-              <DetailField label="Phone" value={viewingEmployee.phone || '—'} />
-              <DetailField label="Department" value={viewingEmployee.department || '—'} />
-              <DetailField label="Designation" value={viewingEmployee.designation || '—'} />
-              <DetailField
-                label="Hire Date"
-                value={
-                  viewingEmployee.hireDate
-                    ? format(new Date(viewingEmployee.hireDate), 'MMM dd, yyyy')
-                    : '—'
-                }
-              />
-              <DetailField label="Status" value={viewingEmployee.status || '—'} />
-              <DetailField label="Company" value={viewingEmployee.company || '—'} />
-              <DetailField label="Contract Type" value={viewingEmployee.contractType || '—'} />
-              <DetailField label="City" value={viewingEmployee.city || '—'} />
-              <DetailField label="State" value={viewingEmployee.state || '—'} />
-              <DetailField label="Country" value={viewingEmployee.country || '—'} />
-              <DetailField label="Bank" value={viewingEmployee.bankName || '—'} />
-              <DetailField label="Account Number" value={viewingEmployee.bankAccountNumber || '—'} />
-              <DetailField label="IFSC" value={viewingEmployee.ifscCode || '—'} />
-              <DetailField label="PAN" value={viewingEmployee.panNumber || '—'} />
-              <DetailField label="Address Line 1" value={viewingEmployee.addressLine1 || '—'} />
-              <DetailField label="Address Line 2" value={viewingEmployee.addressLine2 || '—'} />
-              <DetailField label="ZIP Code" value={viewingEmployee.zipCode || '—'} />
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setViewingEmployee(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setEditingEmployee(viewingEmployee)
-                  setViewingEmployee(null)
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* Employee Side Panel */}
+      <EmployeeSidePanel
+        employeeId={urlState.selectedEmployee || null}
+        onClose={() => setUrlState({ selectedEmployee: '' })}
+        onEdit={(id) => {
+          const emp = (data as PagedResponse<Employee> | undefined)?.items?.find(e => e.id === id)
+          if (emp) {
+            setEditingEmployee(emp)
+            setUrlState({ selectedEmployee: '' })
+          }
+        }}
+        onResign={(id) => {
+          const emp = (data as PagedResponse<Employee> | undefined)?.items?.find(e => e.id === id)
+          if (emp) {
+            setResigningEmployee(emp)
+            setUrlState({ selectedEmployee: '' })
+          }
+        }}
+      />
 
       <EmployeeBulkUploadModal
         isOpen={isBulkUploadOpen}
@@ -630,10 +595,3 @@ const EmployeesManagement = () => {
 }
 
 export default EmployeesManagement
-
-const DetailField = ({ label, value }: { label: string, value: string }) => (
-  <div className="space-y-1">
-    <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
-    <div className="text-sm text-gray-900">{value}</div>
-  </div>
-)

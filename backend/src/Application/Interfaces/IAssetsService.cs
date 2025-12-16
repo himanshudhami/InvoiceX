@@ -19,6 +19,7 @@ public interface IAssetsService
 
     Task<Result<IEnumerable<AssetAssignments>>> GetAssignmentsAsync(Guid assetId);
     Task<Result<IEnumerable<AssetAssignments>>> GetAllAssignmentsAsync();
+    Task<Result<IEnumerable<AssetAssignments>>> GetAssignmentsByEmployeeAsync(Guid employeeId);
     Task<Result<AssetAssignments>> AddAssignmentAsync(Guid assetId, CreateAssetAssignmentDto dto);
     Task<Result> ReturnAssignmentAsync(Guid assignmentId, ReturnAssetAssignmentDto dto);
 

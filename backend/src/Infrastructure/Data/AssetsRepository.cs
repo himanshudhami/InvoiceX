@@ -127,6 +127,14 @@ public class AssetsRepository : IAssetsRepository
         return await connection.QueryAsync<AssetAssignments>("SELECT * FROM asset_assignments ORDER BY assigned_on DESC");
     }
 
+    public async Task<IEnumerable<AssetAssignments>> GetAssignmentsByEmployeeAsync(Guid employeeId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        return await connection.QueryAsync<AssetAssignments>(
+            "SELECT * FROM asset_assignments WHERE employee_id = @employeeId ORDER BY assigned_on DESC",
+            new { employeeId });
+    }
+
     public async Task<AssetAssignments> AddAssignmentAsync(AssetAssignments assignment)
     {
         const string sql = @"INSERT INTO asset_assignments

@@ -132,6 +132,9 @@ public class AssetsService : IAssetsService
     public async Task<Result<IEnumerable<AssetAssignments>>> GetAllAssignmentsAsync()
         => await _assignmentService.GetAllAssignmentsAsync();
 
+    public async Task<Result<IEnumerable<AssetAssignments>>> GetAssignmentsByEmployeeAsync(Guid employeeId)
+        => await _assignmentService.GetAssignmentsByEmployeeAsync(employeeId);
+
     public async Task<Result<AssetAssignments>> AddAssignmentAsync(Guid assetId, CreateAssetAssignmentDto dto)
         => await _assignmentService.AddAssignmentAsync(assetId, dto);
 

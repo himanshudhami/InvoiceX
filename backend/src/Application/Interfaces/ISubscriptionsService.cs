@@ -14,6 +14,7 @@ public interface ISubscriptionsService
     Task<Result> DeleteAsync(Guid id);
 
     Task<Result<IEnumerable<SubscriptionAssignments>>> GetAssignmentsAsync(Guid subscriptionId);
+    Task<Result<IEnumerable<SubscriptionAssignments>>> GetAssignmentsByEmployeeAsync(Guid employeeId);
     Task<Result<SubscriptionAssignments>> AddAssignmentAsync(Guid subscriptionId, CreateSubscriptionAssignmentDto dto);
     Task<Result> RevokeAssignmentAsync(Guid assignmentId, RevokeSubscriptionAssignmentDto dto);
     

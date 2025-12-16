@@ -83,6 +83,15 @@ public class AssetsController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpGet("assignments/employee/{employeeId}")]
+    [ProducesResponseType(typeof(IEnumerable<AssetAssignments>), 200)]
+    public async Task<IActionResult> GetAssignmentsByEmployee(Guid employeeId)
+    {
+        var result = await _service.GetAssignmentsByEmployeeAsync(employeeId);
+        if (result.IsFailure) return FromError(result.Error!);
+        return Ok(result.Value);
+    }
+
     [HttpPost("{id}/assign")]
     [ProducesResponseType(typeof(AssetAssignments), 201)]
     public async Task<IActionResult> Assign(Guid id, [FromBody] CreateAssetAssignmentDto dto)

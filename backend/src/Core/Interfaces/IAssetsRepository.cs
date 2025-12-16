@@ -20,6 +20,7 @@ public interface IAssetsRepository
 
     Task<IEnumerable<AssetAssignments>> GetAssignmentsAsync(Guid assetId);
     Task<IEnumerable<AssetAssignments>> GetAllAssignmentsAsync();
+    Task<IEnumerable<AssetAssignments>> GetAssignmentsByEmployeeAsync(Guid employeeId);
     Task<AssetAssignments?> GetAssignmentByIdAsync(Guid assignmentId);
     Task<AssetAssignments> AddAssignmentAsync(AssetAssignments assignment);
     Task ReturnAssignmentAsync(Guid assignmentId, DateTime? returnedOn, string? conditionIn);

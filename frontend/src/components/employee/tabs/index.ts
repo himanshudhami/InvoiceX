@@ -1,0 +1,5 @@
+export { OverviewTab } from './OverviewTab'
+export { PayrollTab } from './PayrollTab'
+export { TaxDeclarationsTab } from './TaxDeclarationsTab'
+export { AssetsTab } from './AssetsTab'
+export { SubscriptionsTab } from './SubscriptionsTab'

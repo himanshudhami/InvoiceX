@@ -39,6 +39,10 @@ export class SubscriptionService {
     return apiClient.get<SubscriptionAssignment[]>(`${this.endpoint}/${id}/assignments`);
   }
 
+  async getAssignmentsByEmployee(employeeId: string): Promise<SubscriptionAssignment[]> {
+    return apiClient.get<SubscriptionAssignment[]>(`${this.endpoint}/assignments/employee/${employeeId}`);
+  }
+
   async assign(id: string, data: CreateSubscriptionAssignmentDto): Promise<SubscriptionAssignment> {
     return apiClient.post<SubscriptionAssignment, CreateSubscriptionAssignmentDto>(`${this.endpoint}/${id}/assign`, data);
   }

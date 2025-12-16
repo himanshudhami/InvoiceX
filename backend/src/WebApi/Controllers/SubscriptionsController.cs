@@ -76,6 +76,15 @@ public class SubscriptionsController : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpGet("assignments/employee/{employeeId}")]
+    [ProducesResponseType(typeof(IEnumerable<SubscriptionAssignments>), 200)]
+    public async Task<IActionResult> GetAssignmentsByEmployee(Guid employeeId)
+    {
+        var result = await _service.GetAssignmentsByEmployeeAsync(employeeId);
+        if (result.IsFailure) return FromError(result.Error!);
+        return Ok(result.Value);
+    }
+
     [HttpPost("{id}/assign")]
     [ProducesResponseType(typeof(SubscriptionAssignments), 201)]
     public async Task<IActionResult> Assign(Guid id, [FromBody] CreateSubscriptionAssignmentDto dto)
