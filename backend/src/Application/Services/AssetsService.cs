@@ -212,4 +212,14 @@ public class AssetsService : IAssetsService
         var assetsByLoan = allAssets.Where(a => a.LinkedLoanId == loanId).ToList();
         return Result<IEnumerable<AssetsEntity>>.Success(assetsByLoan);
     }
+
+    public async Task<Result<IEnumerable<AssetsEntity>>> GetAvailableAssetsAsync(Guid companyId, string? searchTerm = null)
+    {
+        var validation = ServiceExtensions.ValidateGuid(companyId);
+        if (validation.IsFailure)
+            return validation.Error!;
+
+        var assets = await _repository.GetAvailableAssetsAsync(companyId, searchTerm);
+        return Result<IEnumerable<AssetsEntity>>.Success(assets);
+    }
 }

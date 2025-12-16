@@ -243,6 +243,21 @@ public class AssetsController : ControllerBase
         return Ok(result.Value);
     }
 
+    /// <summary>
+    /// Get available (unassigned) assets for a company
+    /// </summary>
+    /// <param name="companyId">Company ID</param>
+    /// <param name="searchTerm">Optional search term for name, tag, or serial</param>
+    /// <returns>List of available assets</returns>
+    [HttpGet("available")]
+    [ProducesResponseType(typeof(IEnumerable<Assets>), 200)]
+    public async Task<IActionResult> GetAvailableAssets([FromQuery] Guid companyId, [FromQuery] string? searchTerm = null)
+    {
+        var result = await _service.GetAvailableAssetsAsync(companyId, searchTerm);
+        if (result.IsFailure) return FromError(result.Error!);
+        return Ok(result.Value);
+    }
+
     private IActionResult FromError(Error error) =>
         error.Type switch
         {

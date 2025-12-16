@@ -38,6 +38,9 @@ public interface IAssetsService
     // Loan-related methods
     Task<Result<AssetsEntity>> LinkAssetToLoanAsync(Guid assetId, Guid loanId);
     Task<Result<IEnumerable<AssetsEntity>>> GetAssetsByLoanAsync(Guid loanId);
+
+    // Available assets (unassigned)
+    Task<Result<IEnumerable<AssetsEntity>>> GetAvailableAssetsAsync(Guid companyId, string? searchTerm = null);
 }
 
 

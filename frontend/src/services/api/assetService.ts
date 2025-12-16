@@ -115,6 +115,13 @@ export class AssetService {
   async getAssetsByLoan(loanId: string): Promise<Asset[]> {
     return apiClient.get<Asset[]>(`${this.endpoint}/by-loan/${loanId}`);
   }
+
+  async getAvailableAssets(companyId: string, searchTerm?: string): Promise<Asset[]> {
+    return apiClient.get<Asset[]>(`${this.endpoint}/available`, {
+      companyId,
+      ...(searchTerm && { searchTerm }),
+    });
+  }
 }
 
 export const assetService = new AssetService();

@@ -1,0 +1,5 @@
+export { OverviewTab } from './OverviewTab'
+export { AssignmentsTab } from './AssignmentsTab'
+export { MaintenanceTab } from './MaintenanceTab'
+export { DocumentsTab } from './DocumentsTab'
+export { FinanceTab } from './FinanceTab'

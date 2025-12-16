@@ -295,6 +295,28 @@ JOIN assets a ON m.asset_id = a.id
             new { companyId, assetTag });
         return exists;
     }
+
+    public async Task<IEnumerable<Assets>> GetAvailableAssetsAsync(Guid companyId, string? searchTerm = null)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        var parameters = new DynamicParameters();
+        parameters.Add("companyId", companyId);
+
+        var sql = new StringBuilder(@"
+            SELECT * FROM assets
+            WHERE company_id = @companyId
+            AND LOWER(status) = 'available'");
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            sql.Append(" AND (LOWER(name) LIKE @search OR LOWER(asset_tag) LIKE @search OR LOWER(serial_number) LIKE @search)");
+            parameters.Add("search", $"%{searchTerm.ToLower()}%");
+        }
+
+        sql.Append(" ORDER BY name ASC LIMIT 50");
+
+        return await connection.QueryAsync<Assets>(sql.ToString(), parameters);
+    }
 }
 
 

@@ -46,6 +46,9 @@ public interface IAssetsRepository
     
     // Bulk operations
     Task<bool> AssetTagExistsAsync(Guid companyId, string assetTag);
+
+    // Available assets (unassigned)
+    Task<IEnumerable<Assets>> GetAvailableAssetsAsync(Guid companyId, string? searchTerm = null);
 }
 
 
