@@ -1,0 +1,6 @@
+export { LoginPage } from './Login'
+export { DashboardPage } from './Dashboard'
+export { ProfilePage } from './Profile'
+export { PayslipsPage } from './Payslips'
+export { AssetsPage } from './Assets'
+export { LeaveIndexPage, ApplyLeavePage, LeaveApplicationDetailPage } from './leave'

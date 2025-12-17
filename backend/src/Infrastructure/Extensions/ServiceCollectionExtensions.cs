@@ -99,6 +99,22 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Payroll.IEmployeeTaxDeclarationHistoryRepository>(sp =>
                 new Infrastructure.Data.Payroll.EmployeeTaxDeclarationHistoryRepository(connectionString));
 
+            // Authentication repositories
+            services.AddScoped<Core.Interfaces.IUserRepository>(sp =>
+                new Infrastructure.Data.UserRepository(connectionString));
+            services.AddScoped<Core.Interfaces.IRefreshTokenRepository>(sp =>
+                new Infrastructure.Data.RefreshTokenRepository(connectionString));
+
+            // Leave management repositories
+            services.AddScoped<Core.Interfaces.Leave.ILeaveTypeRepository>(sp =>
+                new Infrastructure.Data.Leave.LeaveTypeRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Leave.IEmployeeLeaveBalanceRepository>(sp =>
+                new Infrastructure.Data.Leave.EmployeeLeaveBalanceRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Leave.ILeaveApplicationRepository>(sp =>
+                new Infrastructure.Data.Leave.LeaveApplicationRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Leave.IHolidayRepository>(sp =>
+                new Infrastructure.Data.Leave.HolidayRepository(connectionString));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();

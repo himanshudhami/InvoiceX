@@ -101,6 +101,18 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             });
             services.AddSingleton(sp => mapperConfiguration.CreateMapper());
 
+            // Authentication service
+            services.AddScoped<Application.Interfaces.IAuthService,
+                              Application.Services.AuthService>();
+
+            // Employee Portal service
+            services.AddScoped<Application.Interfaces.IEmployeePortalService,
+                              Application.Services.EmployeePortalService>();
+
+            // Leave management service
+            services.AddScoped<Application.Interfaces.Leave.ILeaveService,
+                              Application.Services.Leave.LeaveService>();
+
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();
             // services.AddScoped<INotificationService, NotificationService>();
