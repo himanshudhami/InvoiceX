@@ -58,6 +58,9 @@ try
         options.AddPolicy("AdminOnly", policy =>
             policy.RequireRole("Admin", "HR", "Accountant"));
 
+        options.AddPolicy("AdminHrOnly", policy =>
+            policy.RequireRole("Admin", "HR"));
+
         options.AddPolicy("EmployeeOnly", policy =>
             policy.RequireRole("Employee"));
 

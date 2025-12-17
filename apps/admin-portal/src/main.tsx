@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
+import { AuthProvider } from './contexts/AuthContext'
 import './globals.css'
 import * as serviceWorker from './serviceWorker.ts'
 import { registerNotoSansFont, registerNunitoFont } from './utils/pdfFonts'
@@ -12,7 +14,11 @@ registerNunitoFont()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
   </React.StrictMode>,
 )
 

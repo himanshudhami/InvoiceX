@@ -48,3 +48,19 @@ Run tests with: `dotnet test`
 ## Generated with
 
 [.NET Core App Generator](https://github.com/yourusername/netcore-generator)
+ Login Credentials After Running Migrations
+
+  Admin Portal (localhost:3000)
+
+  | Email             | Password  | Role  |
+  |-------------------|-----------|-------|
+  | admin@company.com | Admin@123 | Admin |
+  | hr@company.com    | Admin@123 | HR    |
+
+  Employee Portal (localhost:3001 or 5174)
+
+  | Email                                              | Password    | Role     |
+  |----------------------------------------------------|-------------|----------|
+  | Any employee email (e.g., chetan.dhami@xcdify.com) | Welcome@123 | Employee |
+
+  Run the migrations:

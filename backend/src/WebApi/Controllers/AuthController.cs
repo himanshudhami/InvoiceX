@@ -230,6 +230,7 @@ namespace WebApi.Controllers
         /// <param name="pageSize">Page size (default: 10)</param>
         /// <param name="searchTerm">Search term for email/name</param>
         /// <param name="role">Filter by role</param>
+        /// <param name="companyId">Filter by company (optional, defaults to current user's company)</param>
         /// <returns>Paged list of users</returns>
         [HttpGet("users")]
         [Authorize(Policy = "AdminOnly")]
@@ -239,15 +240,17 @@ namespace WebApi.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
-            [FromQuery] string? role = null)
+            [FromQuery] string? role = null,
+            [FromQuery] Guid? companyId = null)
         {
-            var companyId = GetCurrentCompanyId();
-            if (companyId == Guid.Empty)
+            // Use provided companyId or fall back to current user's company
+            var effectiveCompanyId = companyId ?? GetCurrentCompanyId();
+            if (effectiveCompanyId == Guid.Empty)
             {
                 return Unauthorized();
             }
 
-            var result = await _authService.GetUsersAsync(companyId, pageNumber, pageSize, searchTerm, role);
+            var result = await _authService.GetUsersAsync(effectiveCompanyId, pageNumber, pageSize, searchTerm, role);
 
             if (result.IsFailure)
             {

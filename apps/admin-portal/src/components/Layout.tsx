@@ -23,6 +23,8 @@ import {
   ClipboardCheck,
   CalendarClock,
   Calendar,
+  Shield,
+  UserCog,
 } from 'lucide-react'
 
 interface Props {
@@ -97,10 +99,13 @@ const Layout: FC<Props> = ({ children }) => {
       ],
     },
     {
-      type: 'single' as const,
-      name: 'Settings',
-      href: '/settings',
-      icon: Settings,
+      type: 'group' as const,
+      name: 'Administration',
+      icon: Shield,
+      items: [
+        { name: 'Users', href: '/users', icon: UserCog },
+        { name: 'Settings', href: '/settings', icon: Settings },
+      ],
     },
   ]
 

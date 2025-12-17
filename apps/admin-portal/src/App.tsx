@@ -1,15 +1,17 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 import { appQueryClient } from './lib/queryClient'
 
 // Lazy load all page components for better initial load performance
+const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const InvoiceCreate = lazy(() => import('./pages/InvoiceCreate'))
 const InvoiceEdit = lazy(() => import('./pages/InvoiceEdit'))
@@ -64,6 +66,9 @@ const LeaveBalancesManagement = lazy(() => import('./pages/LeaveBalancesManageme
 const LeaveApplicationsManagement = lazy(() => import('./pages/LeaveApplicationsManagement'))
 const HolidaysManagement = lazy(() => import('./pages/HolidaysManagement'))
 
+// Administration
+const Users = lazy(() => import('./pages/Users'))
+
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -71,100 +76,179 @@ const PageLoader = () => (
   </div>
 )
 
+// Full screen loader for auth check
+const FullScreenLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+)
+
+// Protected route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <FullScreenLoader />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Public route wrapper (redirects to dashboard if already authenticated)
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <FullScreenLoader />
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
+// Protected layout wrapper that includes the main layout
+function ProtectedLayout() {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <FullScreenLoader />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return (
+    <Layout>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
+    </Layout>
+  )
+}
+
+function AppRoutes() {
+  return (
+    <NuqsAdapter>
+      <div className="app">
+        <Suspense fallback={<FullScreenLoader />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+
+            {/* Protected Routes with Layout */}
+            <Route element={<ProtectedLayout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Invoice Routes */}
+              <Route path="/invoices" element={<InvoiceList />} />
+              <Route path="/invoices/new" element={<InvoiceCreate />} />
+              <Route path="/invoices/:id" element={<InvoiceView />} />
+              <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
+
+              {/* Quote Routes */}
+              <Route path="/quotes" element={<QuoteList />} />
+              <Route path="/quotes/new" element={<QuoteCreate />} />
+              <Route path="/quotes/:id" element={<QuoteView />} />
+              <Route path="/quotes/:id/edit" element={<QuoteEdit />} />
+
+              {/* Customer Routes */}
+              <Route path="/customers" element={<CustomerList />} />
+              <Route path="/customers/new" element={<CustomerCreate />} />
+              <Route path="/customers/:id" element={<CustomerView />} />
+              <Route path="/customers/:id/edit" element={<CustomerEdit />} />
+
+              {/* Product Routes */}
+              <Route path="/products" element={<ProductList />} />
+              <Route path="/products/new" element={<ProductCreate />} />
+              <Route path="/products/:id" element={<ProductView />} />
+              <Route path="/products/:id/edit" element={<ProductEdit />} />
+
+              {/* Settings */}
+              <Route path="/settings" element={<Settings />} />
+
+              {/* API Test - Development only */}
+              <Route path="/api-test" element={<ApiTest />} />
+
+              {/* Management Routes */}
+              <Route path="/companies" element={<CompaniesManagement />} />
+              <Route path="/customers-mgmt" element={<CustomersManagement />} />
+              <Route path="/products-mgmt" element={<ProductsManagement />} />
+              <Route path="/invoices-mgmt" element={<InvoicesManagement />} />
+              <Route path="/tax-rates" element={<TaxRatesManagement />} />
+              <Route path="/employees" element={<EmployeesManagement />} />
+              <Route path="/assets" element={<AssetsManagement />} />
+              <Route path="/asset-assignments" element={<AssetAssignments />} />
+              <Route path="/subscriptions" element={<SubscriptionsManagement />} />
+              <Route path="/loans" element={<LoanManagement />} />
+              <Route path="/emi-payments" element={<EmiPaymentManagement />} />
+              <Route path="/payments" element={<PaymentsManagement />} />
+              <Route path="/expense-dashboard" element={<ExpenseDashboard />} />
+              <Route path="/financial-report" element={<CompanyFinancialReport />} />
+
+              {/* Payroll Routes */}
+              <Route path="/payroll" element={<PayrollDashboard />} />
+              <Route path="/payroll/runs" element={<PayrollRuns />} />
+              <Route path="/payroll/runs/:id" element={<PayrollRunDetail />} />
+              <Route path="/payroll/process" element={<PayrollProcess />} />
+              <Route path="/payroll/salary-structures" element={<EmployeeSalaryStructures />} />
+              <Route path="/payroll/tax-declarations" element={<EmployeeTaxDeclarations />} />
+              <Route path="/payroll/contractors" element={<ContractorPaymentsPage />} />
+              <Route path="/payroll/settings" element={<PayrollSettings />} />
+              <Route path="/payroll/settings/pt-slabs" element={<ProfessionalTaxSlabsManagement />} />
+              <Route path="/payroll/payslip/:transactionId" element={<PayslipView />} />
+
+              {/* Bank Routes */}
+              <Route path="/bank/accounts" element={<BankAccountsManagement />} />
+              <Route path="/bank/import" element={<BankStatementImport />} />
+              <Route path="/bank/transactions" element={<BankTransactionsPage />} />
+
+              {/* Tax Compliance Routes */}
+              <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />
+
+              {/* Leave Management Routes */}
+              <Route path="/leave/types" element={<LeaveTypesManagement />} />
+              <Route path="/leave/balances" element={<LeaveBalancesManagement />} />
+              <Route path="/leave/applications" element={<LeaveApplicationsManagement />} />
+              <Route path="/leave/holidays" element={<HolidaysManagement />} />
+
+              {/* Administration Routes */}
+              <Route path="/users" element={<Users />} />
+            </Route>
+
+            {/* Catch-all redirect */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Suspense>
+        <Toaster position="top-right" />
+      </div>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </NuqsAdapter>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={appQueryClient}>
       <ThemeProvider>
-        <Router>
-          <NuqsAdapter>
-            <div className="app">
-              <Layout>
-                <ErrorBoundary>
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-
-                      {/* Invoice Routes */}
-                      <Route path="/invoices" element={<InvoiceList />} />
-                      <Route path="/invoices/new" element={<InvoiceCreate />} />
-                      <Route path="/invoices/:id" element={<InvoiceView />} />
-                      <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
-
-                      {/* Quote Routes */}
-                      <Route path="/quotes" element={<QuoteList />} />
-                      <Route path="/quotes/new" element={<QuoteCreate />} />
-                      <Route path="/quotes/:id" element={<QuoteView />} />
-                      <Route path="/quotes/:id/edit" element={<QuoteEdit />} />
-
-                      {/* Customer Routes */}
-                      <Route path="/customers" element={<CustomerList />} />
-                      <Route path="/customers/new" element={<CustomerCreate />} />
-                      <Route path="/customers/:id" element={<CustomerView />} />
-                      <Route path="/customers/:id/edit" element={<CustomerEdit />} />
-
-                      {/* Product Routes */}
-                      <Route path="/products" element={<ProductList />} />
-                      <Route path="/products/new" element={<ProductCreate />} />
-                      <Route path="/products/:id" element={<ProductView />} />
-                      <Route path="/products/:id/edit" element={<ProductEdit />} />
-
-                      {/* Settings */}
-                      <Route path="/settings" element={<Settings />} />
-
-                      {/* API Test - Development only */}
-                      <Route path="/api-test" element={<ApiTest />} />
-
-                      {/* Management Routes */}
-                      <Route path="/companies" element={<CompaniesManagement />} />
-                      <Route path="/customers-mgmt" element={<CustomersManagement />} />
-                      <Route path="/products-mgmt" element={<ProductsManagement />} />
-                      <Route path="/invoices-mgmt" element={<InvoicesManagement />} />
-                      <Route path="/tax-rates" element={<TaxRatesManagement />} />
-                      <Route path="/employees" element={<EmployeesManagement />} />
-                      <Route path="/assets" element={<AssetsManagement />} />
-                      <Route path="/asset-assignments" element={<AssetAssignments />} />
-                      <Route path="/subscriptions" element={<SubscriptionsManagement />} />
-                      <Route path="/loans" element={<LoanManagement />} />
-                      <Route path="/emi-payments" element={<EmiPaymentManagement />} />
-                      <Route path="/payments" element={<PaymentsManagement />} />
-                      <Route path="/expense-dashboard" element={<ExpenseDashboard />} />
-                      <Route path="/financial-report" element={<CompanyFinancialReport />} />
-
-                      {/* Payroll Routes */}
-                      <Route path="/payroll" element={<PayrollDashboard />} />
-                      <Route path="/payroll/runs" element={<PayrollRuns />} />
-                      <Route path="/payroll/runs/:id" element={<PayrollRunDetail />} />
-                      <Route path="/payroll/process" element={<PayrollProcess />} />
-                      <Route path="/payroll/salary-structures" element={<EmployeeSalaryStructures />} />
-                      <Route path="/payroll/tax-declarations" element={<EmployeeTaxDeclarations />} />
-                      <Route path="/payroll/contractors" element={<ContractorPaymentsPage />} />
-                      <Route path="/payroll/settings" element={<PayrollSettings />} />
-                      <Route path="/payroll/settings/pt-slabs" element={<ProfessionalTaxSlabsManagement />} />
-                      <Route path="/payroll/payslip/:transactionId" element={<PayslipView />} />
-
-                      {/* Bank Routes */}
-                      <Route path="/bank/accounts" element={<BankAccountsManagement />} />
-                      <Route path="/bank/import" element={<BankStatementImport />} />
-                      <Route path="/bank/transactions" element={<BankTransactionsPage />} />
-
-                      {/* Tax Compliance Routes */}
-                      <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />
-
-                      {/* Leave Management Routes */}
-                      <Route path="/leave/types" element={<LeaveTypesManagement />} />
-                      <Route path="/leave/balances" element={<LeaveBalancesManagement />} />
-                      <Route path="/leave/applications" element={<LeaveApplicationsManagement />} />
-                      <Route path="/leave/holidays" element={<HolidaysManagement />} />
-                    </Routes>
-                  </Suspense>
-                </ErrorBoundary>
-              </Layout>
-              <Toaster position="top-right" />
-            </div>
-            <ReactQueryDevtools initialIsOpen={false} />
-          </NuqsAdapter>
-        </Router>
+        <AppRoutes />
       </ThemeProvider>
     </QueryClientProvider>
   )
