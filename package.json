@@ -1,0 +1,23 @@
+{
+  "name": "invoice-generator",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:admin": "turbo run dev --filter=admin-portal",
+    "dev:employee": "turbo run dev --filter=employee-portal",
+    "build": "turbo run build",
+    "build:admin": "turbo run build --filter=admin-portal",
+    "build:employee": "turbo run build --filter=employee-portal",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  },
+  "packageManager": "bun@1.1.0"
+}

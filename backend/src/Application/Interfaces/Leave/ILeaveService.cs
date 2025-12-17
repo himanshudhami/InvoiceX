@@ -18,6 +18,7 @@ namespace Application.Interfaces.Leave
 
         // ==================== Leave Balances ====================
 
+        Task<Result<IEnumerable<LeaveBalanceDto>>> GetCompanyBalancesAsync(Guid companyId, string financialYear);
         Task<Result<IEnumerable<LeaveBalanceDto>>> GetEmployeeBalancesAsync(Guid employeeId, string? financialYear = null);
         Task<Result> InitializeEmployeeBalancesAsync(Guid employeeId, Guid companyId, string financialYear);
         Task<Result> AdjustBalanceAsync(Guid employeeId, AdjustLeaveBalanceDto dto);

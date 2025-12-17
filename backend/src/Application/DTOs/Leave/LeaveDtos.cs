@@ -73,6 +73,9 @@ namespace Application.DTOs.Leave
     public class LeaveBalanceDto
     {
         public Guid Id { get; set; }
+        public Guid EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
         public Guid LeaveTypeId { get; set; }
         public string LeaveTypeName { get; set; } = string.Empty;
         public string LeaveTypeCode { get; set; } = string.Empty;

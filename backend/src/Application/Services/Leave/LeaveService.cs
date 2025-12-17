@@ -119,6 +119,24 @@ namespace Application.Services.Leave
 
         // ==================== Leave Balances ====================
 
+        public async Task<Result<IEnumerable<LeaveBalanceDto>>> GetCompanyBalancesAsync(Guid companyId, string financialYear)
+        {
+            var balances = await _balanceRepository.GetByCompanyAndYearAsync(companyId, financialYear);
+            var result = new List<LeaveBalanceDto>();
+
+            foreach (var balance in balances)
+            {
+                var leaveType = await _leaveTypeRepository.GetByIdAsync(balance.LeaveTypeId);
+                if (leaveType != null)
+                {
+                    var employee = await _employeesRepository.GetByIdAsync(balance.EmployeeId);
+                    result.Add(MapToLeaveBalanceDto(balance, leaveType, employee));
+                }
+            }
+
+            return Result<IEnumerable<LeaveBalanceDto>>.Success(result);
+        }
+
         public async Task<Result<IEnumerable<LeaveBalanceDto>>> GetEmployeeBalancesAsync(Guid employeeId, string? financialYear = null)
         {
             financialYear ??= GetCurrentFinancialYear();
@@ -599,11 +617,14 @@ namespace Application.Services.Leave
             };
         }
 
-        private static LeaveBalanceDto MapToLeaveBalanceDto(EmployeeLeaveBalance balance, LeaveType leaveType)
+        private static LeaveBalanceDto MapToLeaveBalanceDto(EmployeeLeaveBalance balance, LeaveType leaveType, Core.Entities.Employees? employee = null)
         {
             return new LeaveBalanceDto
             {
                 Id = balance.Id,
+                EmployeeId = balance.EmployeeId,
+                EmployeeName = employee?.EmployeeName,
+                EmployeeCode = employee?.EmployeeId,
                 LeaveTypeId = leaveType.Id,
                 LeaveTypeName = leaveType.Name,
                 LeaveTypeCode = leaveType.Code,

@@ -72,7 +72,6 @@ namespace Infrastructure.Data.Payroll
 
             var sql = @"SELECT * FROM employee_payroll_info
                         WHERE company_id = @companyId
-                          AND is_active = true
                           AND (date_of_joining IS NULL OR date_of_joining <= @payrollMonthEnd)
                           AND (date_of_leaving IS NULL OR date_of_leaving >= @payrollMonthStart)";
 
