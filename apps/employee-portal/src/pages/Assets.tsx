@@ -17,12 +17,14 @@ const categoryIcons: Record<string, React.ReactNode> = {
   storage: <HardDrive size={20} />,
 }
 
-function getCategoryIcon(category: string): React.ReactNode {
+function getCategoryIcon(category: string | undefined | null): React.ReactNode {
+  if (!category) return <Laptop size={20} />
   const key = category.toLowerCase()
   return categoryIcons[key] || <Laptop size={20} />
 }
 
-function getConditionVariant(condition: string): 'success' | 'warning' | 'error' | 'default' {
+function getConditionVariant(condition: string | undefined | null): 'success' | 'warning' | 'error' | 'default' {
+  if (!condition) return 'default'
   const c = condition.toLowerCase()
   if (c === 'excellent' || c === 'good') return 'success'
   if (c === 'fair') return 'warning'
@@ -53,8 +55,8 @@ export function AssetsPage() {
           />
         ) : (
           <div className="space-y-3">
-            {assets.map((asset) => (
-              <AssetCard key={asset.id} asset={asset} />
+            {assets.map((asset, index) => (
+              <AssetCard key={asset.id || `asset-${index}`} asset={asset} />
             ))}
           </div>
         )}
