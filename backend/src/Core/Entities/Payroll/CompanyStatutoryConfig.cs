@@ -50,6 +50,36 @@ namespace Core.Entities.Payroll
         /// </summary>
         public bool PfIncludeSpecialAllowance { get; set; } = false;
 
+        /// <summary>
+        /// PF calculation mode:
+        /// - ceiling_based: 12% of PF wage capped at ceiling (default)
+        /// - actual_wage: 12% of actual PF wage (no ceiling)
+        /// - restricted_pf: For employees earning >15k who opt for lower PF
+        /// </summary>
+        public string PfCalculationMode { get; set; } = "ceiling_based";
+
+        /// <summary>
+        /// PF trust type:
+        /// - epfo: Government EPFO (default)
+        /// - private_trust: Private PF trust
+        /// </summary>
+        public string PfTrustType { get; set; } = "epfo";
+
+        /// <summary>
+        /// Name of the private PF trust (if pf_trust_type = 'private_trust')
+        /// </summary>
+        public string? PfTrustName { get; set; }
+
+        /// <summary>
+        /// Registration number of the private PF trust
+        /// </summary>
+        public string? PfTrustRegistrationNumber { get; set; }
+
+        /// <summary>
+        /// Maximum wage for restricted PF option (used when pf_calculation_mode = 'restricted_pf')
+        /// </summary>
+        public decimal RestrictedPfMaxWage { get; set; } = 15000.00m;
+
         // ==================== ESI Configuration ====================
 
         /// <summary>

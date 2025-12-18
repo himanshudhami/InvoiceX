@@ -13,7 +13,9 @@ namespace Infrastructure.Data.Payroll
         {
             "id", "company_id", "pf_enabled", "pf_registration_number", "pf_employee_rate",
             "pf_employer_rate", "pf_admin_charges_rate", "pf_edli_rate", "pf_wage_ceiling",
-            "pf_include_special_allowance", "esi_enabled", "esi_registration_number",
+            "pf_include_special_allowance", "pf_calculation_mode", "pf_trust_type",
+            "pf_trust_name", "pf_trust_registration_number", "restricted_pf_max_wage",
+            "esi_enabled", "esi_registration_number",
             "esi_employee_rate", "esi_employer_rate", "esi_gross_ceiling", "pt_enabled",
             "pt_state", "pt_registration_number", "tan_number", "default_tax_regime",
             "gratuity_enabled", "gratuity_rate", "effective_from", "effective_to",
@@ -108,13 +110,17 @@ namespace Infrastructure.Data.Payroll
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO company_statutory_configs
                 (company_id, pf_enabled, pf_registration_number, pf_employee_rate, pf_employer_rate,
-                 pf_wage_ceiling, esi_enabled, esi_registration_number, esi_employee_rate, esi_employer_rate,
+                 pf_wage_ceiling, pf_include_special_allowance, pf_calculation_mode, pf_trust_type,
+                 pf_trust_name, pf_trust_registration_number, restricted_pf_max_wage,
+                 esi_enabled, esi_registration_number, esi_employee_rate, esi_employer_rate,
                  esi_gross_ceiling, pt_enabled, pt_state, pt_registration_number,
                  gratuity_enabled, gratuity_rate, effective_from,
                  is_active, created_at, updated_at)
                 VALUES
                 (@CompanyId, @PfEnabled, @PfRegistrationNumber, @PfEmployeeRate, @PfEmployerRate,
-                 @PfWageCeiling, @EsiEnabled, @EsiRegistrationNumber, @EsiEmployeeRate, @EsiEmployerRate,
+                 @PfWageCeiling, @PfIncludeSpecialAllowance, @PfCalculationMode, @PfTrustType,
+                 @PfTrustName, @PfTrustRegistrationNumber, @RestrictedPfMaxWage,
+                 @EsiEnabled, @EsiRegistrationNumber, @EsiEmployeeRate, @EsiEmployerRate,
                  @EsiGrossCeiling, @PtEnabled, @PtState, @PtRegistrationNumber,
                  @GratuityEnabled, @GratuityRate, @EffectiveFrom,
                  @IsActive, NOW(), NOW())
@@ -133,6 +139,12 @@ namespace Infrastructure.Data.Payroll
                 pf_employee_rate = @PfEmployeeRate,
                 pf_employer_rate = @PfEmployerRate,
                 pf_wage_ceiling = @PfWageCeiling,
+                pf_include_special_allowance = @PfIncludeSpecialAllowance,
+                pf_calculation_mode = @PfCalculationMode,
+                pf_trust_type = @PfTrustType,
+                pf_trust_name = @PfTrustName,
+                pf_trust_registration_number = @PfTrustRegistrationNumber,
+                restricted_pf_max_wage = @RestrictedPfMaxWage,
                 esi_enabled = @EsiEnabled,
                 esi_registration_number = @EsiRegistrationNumber,
                 esi_employee_rate = @EsiEmployeeRate,

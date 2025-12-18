@@ -14,6 +14,7 @@ namespace Infrastructure.Data.Payroll
             "id", "employee_id", "company_id", "uan", "pf_account_number", "esi_number",
             "bank_account_number", "bank_name", "bank_ifsc", "tax_regime", "pan_number",
             "payroll_type", "is_pf_applicable", "is_esi_applicable", "is_pt_applicable",
+            "opted_for_restricted_pf",
             "date_of_joining", "date_of_leaving", "is_active", "created_at", "updated_at",
             "residential_status", "date_of_birth", "tax_regime_effective_from", "work_state"
         };
@@ -120,13 +121,15 @@ namespace Infrastructure.Data.Payroll
             var sql = @"INSERT INTO employee_payroll_info
                 (employee_id, company_id, uan, pf_account_number, esi_number, bank_account_number,
                  bank_name, bank_ifsc, tax_regime, pan_number, payroll_type, is_pf_applicable,
-                 is_esi_applicable, is_pt_applicable, date_of_joining, date_of_leaving, is_active,
+                 is_esi_applicable, is_pt_applicable, opted_for_restricted_pf,
+                 date_of_joining, date_of_leaving, is_active,
                  residential_status, date_of_birth, tax_regime_effective_from, work_state,
                  created_at, updated_at)
                 VALUES
                 (@EmployeeId, @CompanyId, @Uan, @PfAccountNumber, @EsiNumber, @BankAccountNumber,
                  @BankName, @BankIfsc, @TaxRegime, @PanNumber, @PayrollType, @IsPfApplicable,
-                 @IsEsiApplicable, @IsPtApplicable, @DateOfJoining, @DateOfLeaving, @IsActive,
+                 @IsEsiApplicable, @IsPtApplicable, @OptedForRestrictedPf,
+                 @DateOfJoining, @DateOfLeaving, @IsActive,
                  @ResidentialStatus, @DateOfBirth, @TaxRegimeEffectiveFrom, @WorkState,
                  NOW(), NOW())
                 RETURNING *";
@@ -152,6 +155,7 @@ namespace Infrastructure.Data.Payroll
                 is_pf_applicable = @IsPfApplicable,
                 is_esi_applicable = @IsEsiApplicable,
                 is_pt_applicable = @IsPtApplicable,
+                opted_for_restricted_pf = @OptedForRestrictedPf,
                 date_of_joining = @DateOfJoining,
                 date_of_leaving = @DateOfLeaving,
                 is_active = @IsActive,

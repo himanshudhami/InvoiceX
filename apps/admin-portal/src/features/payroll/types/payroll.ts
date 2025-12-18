@@ -575,6 +575,7 @@ export interface EmployeePayrollInfo {
   isPfApplicable: boolean;
   isEsiApplicable: boolean;
   isPtApplicable: boolean;
+  optedForRestrictedPf: boolean;
   dateOfJoining?: string;
   dateOfLeaving?: string;
   isActive: boolean;
@@ -609,6 +610,7 @@ export interface CreateEmployeePayrollInfoDto {
   isPfApplicable?: boolean;
   isEsiApplicable?: boolean;
   isPtApplicable?: boolean;
+  optedForRestrictedPf?: boolean;
   dateOfJoining?: string;
   // Compliance Fields
   residentialStatus?: 'resident' | 'non_resident' | 'rnor';
@@ -630,6 +632,7 @@ export interface UpdateEmployeePayrollInfoDto {
   isPfApplicable?: boolean;
   isEsiApplicable?: boolean;
   isPtApplicable?: boolean;
+  optedForRestrictedPf?: boolean;
   dateOfJoining?: string;
   dateOfLeaving?: string;
   isActive?: boolean;
@@ -640,28 +643,45 @@ export interface UpdateEmployeePayrollInfoDto {
   workState?: string;
 }
 
+// ==================== PF Calculation Types ====================
+export type PfCalculationMode = 'ceiling_based' | 'actual_wage' | 'restricted_pf';
+export type PfTrustType = 'epfo' | 'private_trust';
+
 // ==================== Statutory Config ====================
 export interface CompanyStatutoryConfig {
   id: string;
   companyId: string;
+  // PF Configuration
   pfEnabled: boolean;
   pfEstablishmentCode?: string;
   pfEmployeeRate: number;
   pfEmployerRate: number;
   pfWageCeiling: number;
+  pfIncludeSpecialAllowance: boolean;
+  // PF Calculation Mode (new fields)
+  pfCalculationMode: PfCalculationMode;
+  pfTrustType: PfTrustType;
+  pfTrustName?: string;
+  pfTrustRegistrationNumber?: string;
+  restrictedPfMaxWage: number;
+  // ESI Configuration
   esiEnabled: boolean;
   esiCode?: string;
   esiEmployeeRate: number;
   esiEmployerRate: number;
   esiWageCeiling: number;
+  // PT Configuration
   ptEnabled: boolean;
   ptState?: string;
   ptRegistrationNumber?: string;
+  // LWF Configuration
   lwfEnabled: boolean;
   lwfEmployeeAmount: number;
   lwfEmployerAmount: number;
+  // Gratuity Configuration
   gratuityEnabled: boolean;
   gratuityRate: number;
+  // Status
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -670,43 +690,67 @@ export interface CompanyStatutoryConfig {
 
 export interface CreateCompanyStatutoryConfigDto {
   companyId: string;
+  // PF Configuration
   pfEnabled?: boolean;
   pfEstablishmentCode?: string;
   pfEmployeeRate?: number;
   pfEmployerRate?: number;
   pfWageCeiling?: number;
+  pfIncludeSpecialAllowance?: boolean;
+  // PF Calculation Mode
+  pfCalculationMode?: PfCalculationMode;
+  pfTrustType?: PfTrustType;
+  pfTrustName?: string;
+  pfTrustRegistrationNumber?: string;
+  restrictedPfMaxWage?: number;
+  // ESI Configuration
   esiEnabled?: boolean;
   esiCode?: string;
   esiEmployeeRate?: number;
   esiEmployerRate?: number;
   esiWageCeiling?: number;
+  // PT Configuration
   ptEnabled?: boolean;
   ptState?: string;
   ptRegistrationNumber?: string;
+  // LWF Configuration
   lwfEnabled?: boolean;
   lwfEmployeeAmount?: number;
   lwfEmployerAmount?: number;
+  // Gratuity Configuration
   gratuityEnabled?: boolean;
   gratuityRate?: number;
 }
 
 export interface UpdateCompanyStatutoryConfigDto {
+  // PF Configuration
   pfEnabled?: boolean;
   pfEstablishmentCode?: string;
   pfEmployeeRate?: number;
   pfEmployerRate?: number;
   pfWageCeiling?: number;
+  pfIncludeSpecialAllowance?: boolean;
+  // PF Calculation Mode
+  pfCalculationMode?: PfCalculationMode;
+  pfTrustType?: PfTrustType;
+  pfTrustName?: string;
+  pfTrustRegistrationNumber?: string;
+  restrictedPfMaxWage?: number;
+  // ESI Configuration
   esiEnabled?: boolean;
   esiCode?: string;
   esiEmployeeRate?: number;
   esiEmployerRate?: number;
   esiWageCeiling?: number;
+  // PT Configuration
   ptEnabled?: boolean;
   ptState?: string;
   ptRegistrationNumber?: string;
+  // LWF Configuration
   lwfEnabled?: boolean;
   lwfEmployeeAmount?: number;
   lwfEmployerAmount?: number;
+  // Gratuity Configuration
   gratuityEnabled?: boolean;
   gratuityRate?: number;
   isActive?: boolean;

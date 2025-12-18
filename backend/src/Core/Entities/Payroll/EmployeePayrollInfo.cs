@@ -48,6 +48,12 @@ namespace Core.Entities.Payroll
         /// </summary>
         public bool IsPtApplicable { get; set; } = true;
 
+        /// <summary>
+        /// For restricted_pf mode: if true, employee PF is calculated on statutory minimum
+        /// instead of full wage (only applicable for employees earning above PF ceiling)
+        /// </summary>
+        public bool OptedForRestrictedPf { get; set; } = false;
+
         // ==================== Tax Information ====================
 
         /// <summary>

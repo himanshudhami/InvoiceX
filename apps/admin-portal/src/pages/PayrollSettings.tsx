@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { ArrowLeft } from 'lucide-react'
 
+import type { PfCalculationMode, PfTrustType } from '@/features/payroll/types/payroll'
+
 // Default form values
 const defaultFormData = {
   pfEnabled: true,
@@ -14,6 +16,11 @@ const defaultFormData = {
   pfEmployeeRate: 12.0,
   pfEmployerRate: 12.0,
   pfWageCeiling: 15000,
+  pfCalculationMode: 'ceiling_based' as PfCalculationMode,
+  pfTrustType: 'epfo' as PfTrustType,
+  pfTrustName: '',
+  pfTrustRegistrationNumber: '',
+  restrictedPfMaxWage: 15000,
   esiEnabled: false,
   esiCode: '',
   esiEmployeeRate: 0.75,
@@ -47,6 +54,11 @@ const PayrollSettings = () => {
         pfEmployeeRate: config.pfEmployeeRate,
         pfEmployerRate: config.pfEmployerRate,
         pfWageCeiling: config.pfWageCeiling,
+        pfCalculationMode: config.pfCalculationMode || 'ceiling_based',
+        pfTrustType: config.pfTrustType || 'epfo',
+        pfTrustName: config.pfTrustName || '',
+        pfTrustRegistrationNumber: config.pfTrustRegistrationNumber || '',
+        restrictedPfMaxWage: config.restrictedPfMaxWage || 15000,
         esiEnabled: config.esiEnabled,
         esiCode: config.esiCode || '',
         esiEmployeeRate: config.esiEmployeeRate,
@@ -201,6 +213,127 @@ const PayrollSettings = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       PF is calculated on basic salary up to this amount (currently ₹15,000)
                     </p>
+                  </div>
+
+                  {/* PF Calculation Mode */}
+                  <div className="pt-4 border-t">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      PF Calculation Mode
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="pfCalculationMode"
+                          value="ceiling_based"
+                          checked={formData.pfCalculationMode === 'ceiling_based'}
+                          onChange={(e) => setFormData({ ...formData, pfCalculationMode: e.target.value as PfCalculationMode })}
+                          className="mt-1"
+                        />
+                        <div>
+                          <span className="font-medium">Ceiling Based</span>
+                          <p className="text-xs text-gray-500">
+                            12% of PF wage capped at ceiling (₹{formData.pfWageCeiling.toLocaleString()}) = Max ₹{Math.round(formData.pfWageCeiling * 0.12).toLocaleString()}/month
+                          </p>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="pfCalculationMode"
+                          value="actual_wage"
+                          checked={formData.pfCalculationMode === 'actual_wage'}
+                          onChange={(e) => setFormData({ ...formData, pfCalculationMode: e.target.value as PfCalculationMode })}
+                          className="mt-1"
+                        />
+                        <div>
+                          <span className="font-medium">Actual Wage (No Ceiling)</span>
+                          <p className="text-xs text-gray-500">
+                            12% of actual basic salary without any ceiling - higher contribution for employees
+                          </p>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="pfCalculationMode"
+                          value="restricted_pf"
+                          checked={formData.pfCalculationMode === 'restricted_pf'}
+                          onChange={(e) => setFormData({ ...formData, pfCalculationMode: e.target.value as PfCalculationMode })}
+                          className="mt-1"
+                        />
+                        <div>
+                          <span className="font-medium">Restricted PF (Employee Choice)</span>
+                          <p className="text-xs text-gray-500">
+                            Employees earning above ceiling can opt to contribute on statutory minimum
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {formData.pfCalculationMode === 'restricted_pf' && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Restricted PF Max Wage
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full rounded-md border border-gray-300 px-3 py-2"
+                          value={formData.restrictedPfMaxWage}
+                          onChange={(e) => setFormData({ ...formData, restrictedPfMaxWage: parseFloat(e.target.value) })}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Employees who opt for restricted PF will have PF calculated on this maximum
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PF Trust Type */}
+                  <div className="pt-4 border-t">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      PF Trust Type
+                    </label>
+                    <select
+                      className="w-full rounded-md border border-gray-300 px-3 py-2"
+                      value={formData.pfTrustType}
+                      onChange={(e) => setFormData({ ...formData, pfTrustType: e.target.value as PfTrustType })}
+                    >
+                      <option value="epfo">EPFO (Government Provident Fund)</option>
+                      <option value="private_trust">Private PF Trust</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Most companies use EPFO. Large companies (500+ employees) may have a private PF trust.
+                    </p>
+
+                    {formData.pfTrustType === 'private_trust' && (
+                      <div className="mt-3 space-y-3 p-3 bg-gray-50 rounded-md">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Trust Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                            value={formData.pfTrustName}
+                            onChange={(e) => setFormData({ ...formData, pfTrustName: e.target.value })}
+                            placeholder="Enter private trust name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Trust Registration Number
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2"
+                            value={formData.pfTrustRegistrationNumber}
+                            onChange={(e) => setFormData({ ...formData, pfTrustRegistrationNumber: e.target.value })}
+                            placeholder="Enter trust registration number"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

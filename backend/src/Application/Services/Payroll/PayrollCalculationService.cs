@@ -162,13 +162,9 @@ public class PayrollCalculationService
         // Calculate PF with audit lines
         if (payrollInfo.IsPfApplicable && companyConfig.PfEnabled)
         {
-            // Calculate PF wage base - include special allowance if configured
-            var pfWage = salaryStructure.BasicSalary + salaryStructure.DearnessAllowance;
-            if (companyConfig.PfIncludeSpecialAllowance)
-            {
-                pfWage += salaryStructure.SpecialAllowance;
-            }
-            var pfWageBase = Math.Min(pfWage, companyConfig.PfWageCeiling);
+            // Get PF calculation mode from company config (default: ceiling_based)
+            var pfCalculationMode = companyConfig.PfCalculationMode ?? "ceiling_based";
+            var restrictedPfMaxWage = companyConfig.RestrictedPfMaxWage > 0 ? companyConfig.RestrictedPfMaxWage : 15000m;
 
             var pfResult = _pfService.CalculateProrated(
                 salaryStructure.BasicSalary,
@@ -180,25 +176,41 @@ public class PayrollCalculationService
                 companyConfig.PfEmployerRate,
                 true,
                 workingDays,
-                presentDays);
+                presentDays,
+                pfCalculationMode,
+                restrictedPfMaxWage,
+                payrollInfo.OptedForRestrictedPf);
 
             transaction.PfEmployee = pfResult.EmployeeContribution;
             transaction.PfEmployer = pfResult.EmployerContribution;
             transaction.PfAdminCharges = pfResult.AdminCharges;
             transaction.PfEdli = pfResult.EdliCharges;
 
+            // Use PfWageBase from result for audit (already includes mode-specific calculation)
+            var auditPfWageBase = pfResult.PfWageBase * prorationFactor;
+
             if (transaction.PfEmployee > 0)
-                lines.Add(CreateLine("deduction", ++lineSeq, "PF_EMPLOYEE_12", "PF Employee Contribution", pfWageBase * prorationFactor, companyConfig.PfEmployeeRate, transaction.PfEmployee,
-                    JsonSerializer.Serialize(new { wage_ceiling = companyConfig.PfWageCeiling, rate = companyConfig.PfEmployeeRate, include_special_allowance = companyConfig.PfIncludeSpecialAllowance })));
+                lines.Add(CreateLine("deduction", ++lineSeq, "PF_EMPLOYEE_12", "PF Employee Contribution", auditPfWageBase, companyConfig.PfEmployeeRate, transaction.PfEmployee,
+                    JsonSerializer.Serialize(new {
+                        calculation_mode = pfCalculationMode,
+                        wage_ceiling = companyConfig.PfWageCeiling,
+                        actual_pf_wage = pfResult.ActualPfWage,
+                        pf_wage_base = pfResult.PfWageBase,
+                        ceiling_applied = pfResult.CeilingApplied,
+                        rate = companyConfig.PfEmployeeRate,
+                        include_special_allowance = companyConfig.PfIncludeSpecialAllowance,
+                        opted_for_restricted_pf = payrollInfo.OptedForRestrictedPf
+                    })));
 
             if (transaction.PfEmployer > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EMPLOYER_12", "PF Employer Contribution", pfWageBase * prorationFactor, companyConfig.PfEmployerRate, transaction.PfEmployer));
+                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EMPLOYER_12", "PF Employer Contribution", auditPfWageBase, companyConfig.PfEmployerRate, transaction.PfEmployer,
+                    JsonSerializer.Serialize(new { calculation_mode = pfCalculationMode })));
 
             if (transaction.PfAdminCharges > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_ADMIN_CHARGES", "PF Admin Charges", pfWageBase * prorationFactor, 0.5m, transaction.PfAdminCharges));
+                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_ADMIN_CHARGES", "PF Admin Charges", auditPfWageBase, 0.5m, transaction.PfAdminCharges));
 
             if (transaction.PfEdli > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EDLI", "PF EDLI", pfWageBase * prorationFactor, 0.5m, transaction.PfEdli));
+                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EDLI", "PF EDLI", auditPfWageBase, 0.5m, transaction.PfEdli));
         }
 
         // Calculate ESI with audit lines

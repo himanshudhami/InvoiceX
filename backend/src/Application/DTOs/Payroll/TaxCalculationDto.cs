@@ -111,9 +111,23 @@ public class TaxSlabBreakdownDto
 public class PfCalculationDto
 {
     public decimal BasicSalary { get; set; }
+
+    /// <summary>
+    /// Actual PF wage before any ceiling is applied (Basic + DA + optional Special Allowance)
+    /// </summary>
+    public decimal ActualPfWage { get; set; }
+
+    /// <summary>
+    /// PF wage base used for calculation (may be capped in ceiling_based mode)
+    /// </summary>
     public decimal PfWageBase { get; set; }
     public decimal PfWageCeiling { get; set; }
     public bool CeilingApplied { get; set; }
+
+    /// <summary>
+    /// PF calculation mode: ceiling_based, actual_wage, or restricted_pf
+    /// </summary>
+    public string CalculationMode { get; set; } = "ceiling_based";
 
     // Employee Contribution
     public decimal EmployeeRate { get; set; }

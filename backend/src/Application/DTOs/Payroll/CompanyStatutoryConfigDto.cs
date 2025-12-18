@@ -11,6 +11,11 @@ public class CompanyStatutoryConfigDto
     public decimal PfEmployeeRate { get; set; }
     public decimal PfEmployerRate { get; set; }
     public decimal PfWageCeiling { get; set; }
+    public string PfCalculationMode { get; set; } = "ceiling_based";
+    public string PfTrustType { get; set; } = "epfo";
+    public string? PfTrustName { get; set; }
+    public string? PfTrustRegistrationNumber { get; set; }
+    public decimal RestrictedPfMaxWage { get; set; } = 15000.00m;
 
     // ESI Configuration
     public bool EsiEnabled { get; set; }
@@ -51,6 +56,11 @@ public class CreateCompanyStatutoryConfigDto
     public decimal PfEmployeeRate { get; set; } = 12.00m;
     public decimal PfEmployerRate { get; set; } = 12.00m;
     public decimal PfWageCeiling { get; set; } = 15000.00m;
+    public string PfCalculationMode { get; set; } = "ceiling_based";
+    public string PfTrustType { get; set; } = "epfo";
+    public string? PfTrustName { get; set; }
+    public string? PfTrustRegistrationNumber { get; set; }
+    public decimal RestrictedPfMaxWage { get; set; } = 15000.00m;
 
     // ESI Configuration
     public bool EsiEnabled { get; set; } = false;
@@ -82,6 +92,11 @@ public class UpdateCompanyStatutoryConfigDto
     public decimal? PfEmployeeRate { get; set; }
     public decimal? PfEmployerRate { get; set; }
     public decimal? PfWageCeiling { get; set; }
+    public string? PfCalculationMode { get; set; }
+    public string? PfTrustType { get; set; }
+    public string? PfTrustName { get; set; }
+    public string? PfTrustRegistrationNumber { get; set; }
+    public decimal? RestrictedPfMaxWage { get; set; }
 
     // ESI Configuration
     public bool? EsiEnabled { get; set; }

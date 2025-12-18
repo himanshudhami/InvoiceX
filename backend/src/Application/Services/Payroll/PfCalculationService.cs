@@ -5,12 +5,17 @@ namespace Application.Services.Payroll;
 /// <summary>
 /// Service for Provident Fund (PF) calculations
 /// Indian PF rules:
-/// - Employee contribution: 12% of Basic + DA (capped at ₹15,000)
+/// - Employee contribution: 12% of Basic + DA (capped at ₹15,000 in ceiling mode)
 /// - Employer contribution: 12% of Basic + DA (split into EPF and EPS)
 ///   - 8.33% to EPS (Pension Fund, capped at ₹15,000 wage base)
 ///   - Remaining to EPF
 /// - Admin charges: 0.5% of PF wage (minimum ₹500 per month applies at establishment level, not per employee)
 /// - EDLI charges: 0.5% of PF wage (capped at ₹15,000 wage base)
+///
+/// Calculation Modes:
+/// - ceiling_based: 12% of PF wage capped at ceiling (default, statutory minimum)
+/// - actual_wage: 12% of actual PF wage (no ceiling, full contribution)
+/// - restricted_pf: For employees earning above ceiling who opt for lower PF
 /// </summary>
 public class PfCalculationService
 {
@@ -25,6 +30,9 @@ public class PfCalculationService
     /// <param name="employeeRate">Employee contribution rate (typically 12%)</param>
     /// <param name="employerRate">Employer contribution rate (typically 12%)</param>
     /// <param name="isPfApplicable">Whether PF is applicable for this employee</param>
+    /// <param name="calculationMode">PF calculation mode: ceiling_based, actual_wage, or restricted_pf</param>
+    /// <param name="restrictedPfMaxWage">Maximum wage for restricted PF mode (default ₹15,000)</param>
+    /// <param name="employeeOptedForRestrictedPf">Whether employee opted for restricted PF (for restricted_pf mode)</param>
     public PfCalculationDto Calculate(
         decimal basicSalary,
         decimal dearnessAllowance,
@@ -33,14 +41,18 @@ public class PfCalculationService
         decimal pfWageCeiling,
         decimal employeeRate,
         decimal employerRate,
-        bool isPfApplicable)
+        bool isPfApplicable,
+        string calculationMode = "ceiling_based",
+        decimal restrictedPfMaxWage = 15000m,
+        bool employeeOptedForRestrictedPf = false)
     {
         var result = new PfCalculationDto
         {
             BasicSalary = basicSalary,
             PfWageCeiling = pfWageCeiling,
             EmployeeRate = employeeRate,
-            EmployerRate = employerRate
+            EmployerRate = employerRate,
+            CalculationMode = calculationMode
         };
 
         if (!isPfApplicable)
@@ -55,10 +67,11 @@ public class PfCalculationService
             pfWage += specialAllowance;
         }
 
-        // Apply ceiling if configured
-        var pfWageBase = pfWageCeiling > 0 ? Math.Min(pfWage, pfWageCeiling) : pfWage;
+        // Calculate PF wage base based on calculation mode
+        var pfWageBase = CalculatePfWageBase(pfWage, pfWageCeiling, calculationMode, restrictedPfMaxWage, employeeOptedForRestrictedPf);
         result.PfWageBase = pfWageBase;
-        result.CeilingApplied = pfWageCeiling > 0 && pfWage > pfWageCeiling;
+        result.ActualPfWage = pfWage;
+        result.CeilingApplied = pfWageBase < pfWage;
 
         // Employee contribution
         result.EmployeeContribution = Math.Round(pfWageBase * employeeRate / 100, 0, MidpointRounding.AwayFromZero);
@@ -101,7 +114,10 @@ public class PfCalculationService
         decimal employerRate,
         bool isPfApplicable,
         int workingDays,
-        int presentDays)
+        int presentDays,
+        string calculationMode = "ceiling_based",
+        decimal restrictedPfMaxWage = 15000m,
+        bool employeeOptedForRestrictedPf = false)
     {
         if (workingDays <= 0 || presentDays <= 0)
         {
@@ -110,7 +126,8 @@ public class PfCalculationService
                 BasicSalary = basicSalary,
                 PfWageCeiling = pfWageCeiling,
                 EmployeeRate = employeeRate,
-                EmployerRate = employerRate
+                EmployerRate = employerRate,
+                CalculationMode = calculationMode
             };
         }
 
@@ -119,7 +136,18 @@ public class PfCalculationService
         var proratedDa = Math.Round(dearnessAllowance * presentDays / workingDays, 2, MidpointRounding.AwayFromZero);
         var proratedSpecial = Math.Round(specialAllowance * presentDays / workingDays, 2, MidpointRounding.AwayFromZero);
 
-        return Calculate(proratedBasic, proratedDa, proratedSpecial, includeSpecialAllowance, pfWageCeiling, employeeRate, employerRate, isPfApplicable);
+        return Calculate(
+            proratedBasic,
+            proratedDa,
+            proratedSpecial,
+            includeSpecialAllowance,
+            pfWageCeiling,
+            employeeRate,
+            employerRate,
+            isPfApplicable,
+            calculationMode,
+            restrictedPfMaxWage,
+            employeeOptedForRestrictedPf);
     }
 
     /// <summary>
@@ -132,14 +160,60 @@ public class PfCalculationService
         bool includeSpecialAllowance,
         decimal pfWageCeiling,
         decimal employeeRate,
-        decimal employerRate)
+        decimal employerRate,
+        string calculationMode = "ceiling_based",
+        decimal restrictedPfMaxWage = 15000m,
+        bool employeeOptedForRestrictedPf = false)
     {
-        var monthly = Calculate(monthlyBasic, monthlyDa, monthlySpecialAllowance, includeSpecialAllowance, pfWageCeiling, employeeRate, employerRate, true);
+        var monthly = Calculate(
+            monthlyBasic,
+            monthlyDa,
+            monthlySpecialAllowance,
+            includeSpecialAllowance,
+            pfWageCeiling,
+            employeeRate,
+            employerRate,
+            true,
+            calculationMode,
+            restrictedPfMaxWage,
+            employeeOptedForRestrictedPf);
 
         return (
             monthly.EmployeeContribution * 12,
             monthly.EmployerContribution * 12,
             monthly.TotalEmployerCost * 12
         );
+    }
+
+    /// <summary>
+    /// Calculate PF wage base based on calculation mode
+    /// </summary>
+    /// <param name="pfWage">Total PF wage (Basic + DA + optional Special Allowance)</param>
+    /// <param name="pfWageCeiling">PF wage ceiling (typically ₹15,000)</param>
+    /// <param name="calculationMode">PF calculation mode</param>
+    /// <param name="restrictedPfMaxWage">Maximum wage for restricted PF mode</param>
+    /// <param name="employeeOptedForRestrictedPf">Whether employee opted for restricted PF</param>
+    /// <returns>PF wage base to use for contribution calculation</returns>
+    private static decimal CalculatePfWageBase(
+        decimal pfWage,
+        decimal pfWageCeiling,
+        string calculationMode,
+        decimal restrictedPfMaxWage,
+        bool employeeOptedForRestrictedPf)
+    {
+        return calculationMode switch
+        {
+            // Actual wage mode: No ceiling applied - 12% of full PF wage
+            "actual_wage" => pfWage,
+
+            // Restricted PF mode: Only for employees who opt for lower PF contribution
+            // If employee hasn't opted, use full PF wage
+            "restricted_pf" when employeeOptedForRestrictedPf =>
+                Math.Min(pfWage, restrictedPfMaxWage),
+            "restricted_pf" => pfWage,
+
+            // Ceiling-based mode (default): Apply wage ceiling
+            _ => pfWageCeiling > 0 ? Math.Min(pfWage, pfWageCeiling) : pfWage
+        };
     }
 }
