@@ -227,9 +227,8 @@ namespace Application.DTOs.Leave
         public DateTime ToDate { get; set; }
         public decimal TotalDays { get; set; }
         public int WorkingDays { get; set; }
-        public int Holidays { get; set; }
-        public int Weekends { get; set; }
-        public List<DateTime> HolidayDates { get; set; } = new();
+        public int WeekendDays { get; set; }
+        public List<HolidayDto> Holidays { get; set; } = new();
     }
 
     // ==================== Holiday DTOs ====================
@@ -240,6 +239,7 @@ namespace Application.DTOs.Leave
     public class HolidayDto
     {
         public Guid Id { get; set; }
+        public Guid CompanyId { get; set; }
         public string Name { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public int Year { get; set; }

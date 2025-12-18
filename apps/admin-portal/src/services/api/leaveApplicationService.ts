@@ -50,12 +50,12 @@ export class LeaveApplicationService {
     return apiClient.put<void, UpdateLeaveApplicationDto>(`${this.endpoint}/${id}`, data);
   }
 
-  async approve(id: string, data: ApproveLeaveDto): Promise<void> {
-    return apiClient.post<void, ApproveLeaveDto>(`${this.endpoint}/${id}/approve`, data);
+  async approve(id: string, data: ApproveLeaveDto, approvedBy: string): Promise<void> {
+    return apiClient.post<void, ApproveLeaveDto>(`${this.endpoint}/${id}/approve?approvedBy=${approvedBy}`, data);
   }
 
-  async reject(id: string, data: RejectLeaveDto): Promise<void> {
-    return apiClient.post<void, RejectLeaveDto>(`${this.endpoint}/${id}/reject`, data);
+  async reject(id: string, data: RejectLeaveDto, rejectedBy: string): Promise<void> {
+    return apiClient.post<void, RejectLeaveDto>(`${this.endpoint}/${id}/reject?rejectedBy=${rejectedBy}`, data);
   }
 
   async cancel(id: string): Promise<void> {

@@ -7,6 +7,7 @@ import { useEmployees } from '@/hooks/api/useEmployees'
 import { EmployeeLeaveBalance, AdjustLeaveBalanceDto } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import { RefreshCw, ArrowRightCircle, Plus, Minus } from 'lucide-react'
 
 const currentFinancialYear = () => {
@@ -215,16 +216,14 @@ const LeaveBalancesManagement = () => {
       <div className="flex flex-wrap items-center gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-          <select
+          <CompanySelect
+            companies={companies}
             value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option value="">All Companies</option>
-            {companies.map(company => (
-              <option key={company.id} value={company.id}>{company.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedCompanyId}
+            showAllOption
+            allOptionLabel="All Companies"
+            className="w-[250px]"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Financial Year</label>

@@ -24,7 +24,11 @@ export class LeaveTypeService {
   }
 
   async create(data: CreateLeaveTypeDto): Promise<LeaveType> {
-    return apiClient.post<LeaveType, CreateLeaveTypeDto>(this.endpoint, data);
+    // Backend expects companyId as a query parameter
+    const queryParams = new URLSearchParams();
+    if (data.companyId) queryParams.append('companyId', data.companyId);
+    const query = queryParams.toString();
+    return apiClient.post<LeaveType, CreateLeaveTypeDto>(`${this.endpoint}${query ? `?${query}` : ''}`, data);
   }
 
   async update(id: string, data: UpdateLeaveTypeDto): Promise<void> {

@@ -78,6 +78,7 @@ namespace Application.Interfaces.Leave
 
         // ==================== Holidays ====================
 
+        Task<Result<IEnumerable<HolidayDto>>> GetHolidaysAsync(int year);
         Task<Result<IEnumerable<HolidayDto>>> GetHolidaysAsync(Guid companyId, int year);
         Task<Result<HolidayDto>> GetHolidayByIdAsync(Guid id);
         Task<Result<HolidayDto>> CreateHolidayAsync(Guid companyId, CreateHolidayDto dto);

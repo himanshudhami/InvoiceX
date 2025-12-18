@@ -104,6 +104,7 @@ namespace Core.Interfaces.Leave
     public interface IHolidayRepository
     {
         Task<Holiday?> GetByIdAsync(Guid id);
+        Task<IEnumerable<Holiday>> GetByYearAsync(int year);
         Task<IEnumerable<Holiday>> GetByCompanyAndYearAsync(Guid companyId, int year);
         Task<IEnumerable<Holiday>> GetByCompanyAndDateRangeAsync(Guid companyId, DateTime fromDate, DateTime toDate);
         Task<Holiday?> GetByCompanyAndDateAsync(Guid companyId, DateTime date);

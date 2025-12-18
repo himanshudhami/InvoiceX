@@ -6,6 +6,7 @@ import { LeaveType, CreateLeaveTypeDto, UpdateLeaveTypeDto } from '@/services/ap
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import { Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 
 const LeaveTypesManagement = () => {
@@ -210,16 +211,14 @@ const LeaveTypesManagement = () => {
 
       <div className="flex items-center gap-4">
         <label className="text-sm font-medium text-gray-700">Filter by Company:</label>
-        <select
+        <CompanySelect
+          companies={companies}
           value={selectedCompanyId}
-          onChange={(e) => setSelectedCompanyId(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-        >
-          <option value="">All Companies</option>
-          {companies.map(company => (
-            <option key={company.id} value={company.id}>{company.name}</option>
-          ))}
-        </select>
+          onChange={setSelectedCompanyId}
+          showAllOption
+          allOptionLabel="All Companies"
+          className="w-[250px]"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -330,7 +329,7 @@ interface LeaveTypeFormProps {
 
 const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutation, updateMutation }: LeaveTypeFormProps) => {
   const [formData, setFormData] = useState<CreateLeaveTypeDto>({
-    companyId: leaveType?.companyId || companies[0]?.id || '',
+    companyId: leaveType?.companyId || '',
     name: leaveType?.name || '',
     code: leaveType?.code || '',
     description: leaveType?.description || '',
@@ -345,9 +344,18 @@ const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutati
     maxConsecutiveDays: leaveType?.maxConsecutiveDays || 30,
     isActive: leaveType?.isActive ?? true,
   })
+  const [companyError, setCompanyError] = useState<string>('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate companyId
+    if (!formData.companyId) {
+      setCompanyError('Please select a company')
+      return
+    }
+    setCompanyError('')
+
     try {
       if (leaveType && updateMutation) {
         await updateMutation.mutateAsync({ id: leaveType.id, data: formData })
@@ -366,16 +374,16 @@ const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutati
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
-        <select
+        <CompanySelect
+          companies={companies}
           value={formData.companyId}
-          onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        >
-          {companies.map(company => (
-            <option key={company.id} value={company.id}>{company.name}</option>
-          ))}
-        </select>
+          onChange={(value) => {
+            setFormData({ ...formData, companyId: value })
+            if (value) setCompanyError('')
+          }}
+          placeholder="Select company..."
+          error={companyError}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -22,6 +22,14 @@ namespace Infrastructure.Data.Leave
                 new { id });
         }
 
+        public async Task<IEnumerable<Holiday>> GetByYearAsync(int year)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<Holiday>(
+                "SELECT * FROM holidays WHERE year = @year ORDER BY date",
+                new { year });
+        }
+
         public async Task<IEnumerable<Holiday>> GetByCompanyAndYearAsync(Guid companyId, int year)
         {
             using var connection = new NpgsqlConnection(_connectionString);

@@ -29,16 +29,19 @@ namespace WebApi.Controllers
         /// Get all holidays for a year
         /// </summary>
         /// <param name="year">The year (defaults to current year)</param>
-        /// <param name="companyId">Optional company ID</param>
+        /// <param name="companyId">Optional company ID. If not provided, returns holidays for all companies.</param>
         /// <returns>List of holidays</returns>
         /// <response code="200">Returns the list of holidays</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<HolidayDto>), 200)]
         public async Task<IActionResult> GetAll([FromQuery] int? year = null, [FromQuery] Guid? companyId = null)
         {
-            var effectiveCompanyId = companyId ?? DefaultCompanyId;
             var effectiveYear = year ?? DateTime.UtcNow.Year;
-            var result = await _leaveService.GetHolidaysAsync(effectiveCompanyId, effectiveYear);
+
+            // If companyId is provided, filter by company; otherwise return all holidays for the year
+            var result = companyId.HasValue
+                ? await _leaveService.GetHolidaysAsync(companyId.Value, effectiveYear)
+                : await _leaveService.GetHolidaysAsync(effectiveYear);
 
             if (result.IsFailure)
             {

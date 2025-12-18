@@ -38,7 +38,11 @@ export class HolidayService {
   }
 
   async create(data: CreateHolidayDto): Promise<Holiday> {
-    return apiClient.post<Holiday, CreateHolidayDto>(this.endpoint, data);
+    // Backend expects companyId as a query parameter, not in the body
+    const queryParams = new URLSearchParams();
+    if (data.companyId) queryParams.append('companyId', data.companyId);
+    const query = queryParams.toString();
+    return apiClient.post<Holiday, CreateHolidayDto>(`${this.endpoint}${query ? `?${query}` : ''}`, data);
   }
 
   async bulkCreate(data: BulkHolidaysDto): Promise<BulkUploadResult> {
@@ -54,10 +58,15 @@ export class HolidayService {
   }
 
   async copyToNextYear(companyId: string, sourceYear: number): Promise<{ copied: number }> {
-    return apiClient.post<{ copied: number }, { companyId: string; sourceYear: number }>(
-      `${this.endpoint}/copy-year`,
-      { companyId, sourceYear }
-    );
+    // Backend expects query params: fromYear, toYear, companyId
+    const toYear = sourceYear + 1;
+    const queryParams = new URLSearchParams();
+    queryParams.append('fromYear', sourceYear.toString());
+    queryParams.append('toYear', toYear.toString());
+    queryParams.append('companyId', companyId);
+    // Returns array of created holidays - map to copied count
+    const holidays = await apiClient.post<any[]>(`${this.endpoint}/copy?${queryParams.toString()}`);
+    return { copied: Array.isArray(holidays) ? holidays.length : 0 };
   }
 }
 

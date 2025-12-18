@@ -1684,13 +1684,11 @@ export interface UpdateLeaveApplicationDto {
 }
 
 export interface ApproveLeaveDto {
-  approvedBy: string;
   comments?: string;
 }
 
 export interface RejectLeaveDto {
-  rejectedBy: string;
-  rejectionReason: string;
+  reason: string;
 }
 
 export interface Holiday {

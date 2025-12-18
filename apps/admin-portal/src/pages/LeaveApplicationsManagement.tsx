@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { usePendingLeaveApprovals, useLeaveApplications, useApproveLeaveApplication, useRejectLeaveApplication, useCancelLeaveApplication } from '@/hooks/api/useLeaveApplications'
 import { useCompanies } from '@/hooks/api/useCompanies'
+import { useAuth } from '@/contexts/AuthContext'
 import { LeaveApplication, ApproveLeaveDto, RejectLeaveDto } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import { Check, X, Clock, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 
 const LeaveApplicationsManagement = () => {
+  const { user } = useAuth()
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<string>('pending')
   const [approvingApplication, setApprovingApplication] = useState<LeaveApplication | null>(null)
@@ -38,11 +41,16 @@ const LeaveApplicationsManagement = () => {
   }
 
   const handleApproveConfirm = async () => {
-    if (approvingApplication) {
+    if (approvingApplication && user) {
+      if (!user.employeeId) {
+        alert('Your admin account does not have an associated employee record. Please contact support to link your account to an employee record.')
+        return
+      }
       try {
         await approveApplication.mutateAsync({
           id: approvingApplication.id,
-          data: { approvedBy: 'admin' } as ApproveLeaveDto, // In real app, use current user ID
+          data: {} as ApproveLeaveDto,
+          approvedBy: user.employeeId,
         })
         setApprovingApplication(null)
         refetchPending()
@@ -54,14 +62,18 @@ const LeaveApplicationsManagement = () => {
   }
 
   const handleRejectConfirm = async () => {
-    if (rejectingApplication && rejectionReason) {
+    if (rejectingApplication && rejectionReason && user) {
+      if (!user.employeeId) {
+        alert('Your admin account does not have an associated employee record. Please contact support to link your account to an employee record.')
+        return
+      }
       try {
         await rejectApplication.mutateAsync({
           id: rejectingApplication.id,
           data: {
-            rejectedBy: 'admin',
-            rejectionReason,
+            reason: rejectionReason,
           } as RejectLeaveDto,
+          rejectedBy: user.employeeId,
         })
         setRejectingApplication(null)
         refetchPending()
@@ -224,16 +236,14 @@ const LeaveApplicationsManagement = () => {
       <div className="flex flex-wrap items-center gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-          <select
+          <CompanySelect
+            companies={companies}
             value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option value="">All Companies</option>
-            {companies.map(company => (
-              <option key={company.id} value={company.id}>{company.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedCompanyId}
+            showAllOption
+            allOptionLabel="All Companies"
+            className="w-[250px]"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>

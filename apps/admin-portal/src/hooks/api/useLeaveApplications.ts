@@ -115,8 +115,8 @@ export const useApproveLeaveApplication = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: ApproveLeaveDto }) =>
-      leaveApplicationService.approve(id, data),
+    mutationFn: ({ id, data, approvedBy }: { id: string; data: ApproveLeaveDto; approvedBy: string }) =>
+      leaveApplicationService.approve(id, data, approvedBy),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: LEAVE_APPLICATION_QUERY_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: LEAVE_APPLICATION_QUERY_KEYS.lists() });
@@ -135,8 +135,8 @@ export const useRejectLeaveApplication = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: RejectLeaveDto }) =>
-      leaveApplicationService.reject(id, data),
+    mutationFn: ({ id, data, rejectedBy }: { id: string; data: RejectLeaveDto; rejectedBy: string }) =>
+      leaveApplicationService.reject(id, data, rejectedBy),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: LEAVE_APPLICATION_QUERY_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: LEAVE_APPLICATION_QUERY_KEYS.lists() });

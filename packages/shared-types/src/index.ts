@@ -182,8 +182,7 @@ export interface LeaveDashboard {
   balances: LeaveBalance[]
   upcomingLeaves: LeaveApplicationSummary[]
   upcomingHolidays: Holiday[]
-  pendingApplications: number
-  approvedUpcoming: number
+  pendingApplications: LeaveApplicationSummary[]
 }
 
 // ==================== Holiday Types ====================

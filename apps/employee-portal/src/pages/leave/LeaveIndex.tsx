@@ -43,7 +43,7 @@ export function LeaveIndexPage() {
             <Clock className="text-yellow-600" size={20} />
           </div>
           <div>
-            <p className="text-lg font-semibold text-gray-900">{dashboard?.pendingApplications || 0}</p>
+            <p className="text-lg font-semibold text-gray-900">{dashboard?.pendingApplications?.length || 0}</p>
             <p className="text-xs text-gray-500">Pending</p>
           </div>
         </Card>
@@ -52,7 +52,7 @@ export function LeaveIndexPage() {
             <Calendar className="text-green-600" size={20} />
           </div>
           <div>
-            <p className="text-lg font-semibold text-gray-900">{dashboard?.approvedUpcoming || 0}</p>
+            <p className="text-lg font-semibold text-gray-900">{dashboard?.upcomingLeaves?.length || 0}</p>
             <p className="text-xs text-gray-500">Upcoming</p>
           </div>
         </Card>

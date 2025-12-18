@@ -6,6 +6,7 @@ import { Holiday, CreateHolidayDto, UpdateHolidayDto } from '@/services/api/type
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import { Edit, Trash2, Copy, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -184,16 +185,14 @@ const HolidaysManagement = () => {
       <div className="flex flex-wrap items-center gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-          <select
+          <CompanySelect
+            companies={companies}
             value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option value="">All Companies</option>
-            {companies.map(company => (
-              <option key={company.id} value={company.id}>{company.name}</option>
-            ))}
-          </select>
+            onChange={setSelectedCompanyId}
+            showAllOption
+            allOptionLabel="All Companies"
+            className="w-[250px]"
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
@@ -326,7 +325,7 @@ interface HolidayFormProps {
 
 const HolidayForm = ({ holiday, companies, year, onSuccess, onCancel, createMutation, updateMutation }: HolidayFormProps) => {
   const [formData, setFormData] = useState<CreateHolidayDto>({
-    companyId: holiday?.companyId || companies[0]?.id || '',
+    companyId: holiday?.companyId || '',
     name: holiday?.name || '',
     date: holiday?.date || '',
     year: holiday?.year || year,
@@ -334,9 +333,18 @@ const HolidayForm = ({ holiday, companies, year, onSuccess, onCancel, createMuta
     isFloating: holiday?.isFloating || false,
     description: holiday?.description || '',
   })
+  const [companyError, setCompanyError] = useState<string>('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate companyId
+    if (!formData.companyId) {
+      setCompanyError('Please select a company')
+      return
+    }
+    setCompanyError('')
+
     try {
       if (holiday && updateMutation) {
         await updateMutation.mutateAsync({ id: holiday.id, data: formData })
@@ -355,16 +363,16 @@ const HolidayForm = ({ holiday, companies, year, onSuccess, onCancel, createMuta
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
-        <select
+        <CompanySelect
+          companies={companies}
           value={formData.companyId}
-          onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          required
-        >
-          {companies.map(company => (
-            <option key={company.id} value={company.id}>{company.name}</option>
-          ))}
-        </select>
+          onChange={(value) => {
+            setFormData({ ...formData, companyId: value })
+            if (value) setCompanyError('')
+          }}
+          placeholder="Select company..."
+          error={companyError}
+        />
       </div>
 
       <div>

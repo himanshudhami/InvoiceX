@@ -404,11 +404,10 @@ namespace Application.Services.Leave
         {
             var totalCalendarDays = (toDate - fromDate).Days + 1;
             var holidays = await _holidayRepository.GetByCompanyAndDateRangeAsync(companyId, fromDate, toDate);
-            var holidayDates = holidays.Select(h => h.Date).ToList();
+            var holidayDates = holidays.Select(h => h.Date.Date).ToHashSet();
 
             var workingDays = 0;
             var weekends = 0;
-            var holidayCount = 0;
 
             for (var date = fromDate; date <= toDate; date = date.AddDays(1))
             {
@@ -421,7 +420,7 @@ namespace Application.Services.Leave
                 }
                 else if (isHoliday)
                 {
-                    holidayCount++;
+                    // Holiday count is derived from the holidays list
                 }
                 else
                 {
@@ -435,13 +434,18 @@ namespace Application.Services.Leave
                 ToDate = toDate,
                 TotalDays = workingDays,
                 WorkingDays = workingDays,
-                Holidays = holidayCount,
-                Weekends = weekends,
-                HolidayDates = holidayDates
+                WeekendDays = weekends,
+                Holidays = holidays.Select(MapToHolidayDto).ToList()
             });
         }
 
         // ==================== Holidays ====================
+
+        public async Task<Result<IEnumerable<HolidayDto>>> GetHolidaysAsync(int year)
+        {
+            var holidays = await _holidayRepository.GetByYearAsync(year);
+            return Result<IEnumerable<HolidayDto>>.Success(holidays.Select(MapToHolidayDto));
+        }
 
         public async Task<Result<IEnumerable<HolidayDto>>> GetHolidaysAsync(Guid companyId, int year)
         {
@@ -713,6 +717,7 @@ namespace Application.Services.Leave
             return new HolidayDto
             {
                 Id = entity.Id,
+                CompanyId = entity.CompanyId,
                 Name = entity.Name,
                 Date = entity.Date,
                 Year = entity.Year,
