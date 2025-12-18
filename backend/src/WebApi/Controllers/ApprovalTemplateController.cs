@@ -12,7 +12,7 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/approval-templates")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Policy = "AdminHrOnly")]
     public class ApprovalTemplateController : ControllerBase
     {
         private readonly IApprovalTemplateService _templateService;

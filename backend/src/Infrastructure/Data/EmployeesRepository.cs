@@ -138,34 +138,48 @@ namespace Infrastructure.Data
             await connection.ExecuteAsync("DELETE FROM employees WHERE id = @id", new { id });
         }
 
-        public async Task<bool> EmployeeIdExistsAsync(string employeeId, Guid? excludeId = null)
+        public async Task<bool> EmployeeIdExistsAsync(string employeeId, Guid? excludeId = null, Guid? companyId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = "SELECT COUNT(*) FROM employees WHERE employee_id = @employeeId";
-            object parameters = new { employeeId };
+            var parameters = new DynamicParameters();
+            parameters.Add("employeeId", employeeId);
 
             if (excludeId.HasValue)
             {
                 sql += " AND id != @excludeId";
-                parameters = new { employeeId, excludeId = excludeId.Value };
+                parameters.Add("excludeId", excludeId.Value);
+            }
+
+            if (companyId.HasValue)
+            {
+                sql += " AND company_id = @companyId";
+                parameters.Add("companyId", companyId.Value);
             }
 
             var count = await connection.QuerySingleAsync<int>(sql, parameters);
             return count > 0;
         }
 
-        public async Task<bool> EmailExistsAsync(string email, Guid? excludeId = null)
+        public async Task<bool> EmailExistsAsync(string email, Guid? excludeId = null, Guid? companyId = null)
         {
             if (string.IsNullOrWhiteSpace(email)) return false;
 
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = "SELECT COUNT(*) FROM employees WHERE email = @email";
-            object parameters = new { email };
+            var parameters = new DynamicParameters();
+            parameters.Add("email", email);
 
             if (excludeId.HasValue)
             {
                 sql += " AND id != @excludeId";
-                parameters = new { email, excludeId = excludeId.Value };
+                parameters.Add("excludeId", excludeId.Value);
+            }
+
+            if (companyId.HasValue)
+            {
+                sql += " AND company_id = @companyId";
+                parameters.Add("companyId", companyId.Value);
             }
 
             var count = await connection.QuerySingleAsync<int>(sql, parameters);

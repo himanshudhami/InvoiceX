@@ -61,12 +61,12 @@ namespace Application.Interfaces
         /// <summary>
         /// Check if Employee ID is unique
         /// </summary>
-        Task<Result<bool>> IsEmployeeIdUniqueAsync(string employeeId, Guid? excludeId = null);
+        Task<Result<bool>> IsEmployeeIdUniqueAsync(string employeeId, Guid? excludeId = null, Guid? companyId = null);
 
         /// <summary>
         /// Check if Email is unique
         /// </summary>
-        Task<Result<bool>> IsEmailUniqueAsync(string email, Guid? excludeId = null);
+        Task<Result<bool>> IsEmailUniqueAsync(string email, Guid? excludeId = null, Guid? companyId = null);
 
         /// <summary>
         /// Bulk create employees

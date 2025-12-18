@@ -13,7 +13,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Policy = "AdminHrOnly")]
 public class SupportTicketsController : ControllerBase
 {
     private readonly ISupportTicketsService _service;

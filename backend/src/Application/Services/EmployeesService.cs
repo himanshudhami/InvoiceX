@@ -97,18 +97,18 @@ namespace Application.Services
         {
             try
             {
-                // Validate Employee ID uniqueness if provided
+                // Validate Employee ID uniqueness if provided (scoped to company)
                 if (!string.IsNullOrWhiteSpace(dto.EmployeeId))
                 {
-                    var employeeIdExists = await _repository.EmployeeIdExistsAsync(dto.EmployeeId);
+                    var employeeIdExists = await _repository.EmployeeIdExistsAsync(dto.EmployeeId, null, dto.CompanyId);
                     if (employeeIdExists)
                         return Error.Conflict($"Employee ID {dto.EmployeeId} already exists");
                 }
 
-                // Validate email uniqueness if provided
+                // Validate email uniqueness if provided (scoped to company)
                 if (!string.IsNullOrWhiteSpace(dto.Email))
                 {
-                    var emailExists = await _repository.EmailExistsAsync(dto.Email);
+                    var emailExists = await _repository.EmailExistsAsync(dto.Email, null, dto.CompanyId);
                     if (emailExists)
                         return Error.Conflict($"Email {dto.Email} already exists");
                 }
@@ -136,18 +136,18 @@ namespace Application.Services
                 if (existingEntity == null)
                     return Error.NotFound($"Employee with ID {id} not found");
 
-                // Validate Employee ID uniqueness if provided and changed
+                // Validate Employee ID uniqueness if provided and changed (scoped to company)
                 if (!string.IsNullOrWhiteSpace(dto.EmployeeId) && dto.EmployeeId != existingEntity.EmployeeId)
                 {
-                    var employeeIdExists = await _repository.EmployeeIdExistsAsync(dto.EmployeeId, id);
+                    var employeeIdExists = await _repository.EmployeeIdExistsAsync(dto.EmployeeId, id, existingEntity.CompanyId);
                     if (employeeIdExists)
                         return Error.Conflict($"Employee ID {dto.EmployeeId} already exists");
                 }
 
-                // Validate email uniqueness if provided and changed
+                // Validate email uniqueness if provided and changed (scoped to company)
                 if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != existingEntity.Email)
                 {
-                    var emailExists = await _repository.EmailExistsAsync(dto.Email, id);
+                    var emailExists = await _repository.EmailExistsAsync(dto.Email, id, existingEntity.CompanyId);
                     if (emailExists)
                         return Error.Conflict($"Email {dto.Email} already exists");
                 }
@@ -202,14 +202,14 @@ namespace Application.Services
         }
 
         /// <inheritdoc />
-        public async Task<Result<bool>> IsEmployeeIdUniqueAsync(string employeeId, Guid? excludeId = null)
+        public async Task<Result<bool>> IsEmployeeIdUniqueAsync(string employeeId, Guid? excludeId = null, Guid? companyId = null)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(employeeId))
                     return Result<bool>.Success(true); // Empty employee ID is considered unique
 
-                var exists = await _repository.EmployeeIdExistsAsync(employeeId, excludeId);
+                var exists = await _repository.EmployeeIdExistsAsync(employeeId, excludeId, companyId);
                 return Result<bool>.Success(!exists);
             }
             catch (Exception ex)
@@ -219,14 +219,14 @@ namespace Application.Services
         }
 
         /// <inheritdoc />
-        public async Task<Result<bool>> IsEmailUniqueAsync(string email, Guid? excludeId = null)
+        public async Task<Result<bool>> IsEmailUniqueAsync(string email, Guid? excludeId = null, Guid? companyId = null)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(email))
                     return Result<bool>.Success(true); // Empty email is considered unique
 
-                var exists = await _repository.EmailExistsAsync(email, excludeId);
+                var exists = await _repository.EmailExistsAsync(email, excludeId, companyId);
                 return Result<bool>.Success(!exists);
             }
             catch (Exception ex)
@@ -259,18 +259,18 @@ namespace Application.Services
                         if (string.IsNullOrWhiteSpace(employeeDto.EmployeeName))
                             throw new ArgumentException("Employee name is required", nameof(employeeDto.EmployeeName));
 
-                        // Employee ID uniqueness if provided
+                        // Employee ID uniqueness if provided (scoped to company)
                         if (!string.IsNullOrWhiteSpace(employeeDto.EmployeeId))
                         {
-                            var exists = await _repository.EmployeeIdExistsAsync(employeeDto.EmployeeId);
+                            var exists = await _repository.EmployeeIdExistsAsync(employeeDto.EmployeeId, null, employeeDto.CompanyId);
                             if (exists)
                                 throw new ArgumentException($"Employee ID {employeeDto.EmployeeId} already exists", nameof(employeeDto.EmployeeId));
                         }
 
-                        // Email uniqueness if provided
+                        // Email uniqueness if provided (scoped to company)
                         if (!string.IsNullOrWhiteSpace(employeeDto.Email))
                         {
-                            var exists = await _repository.EmailExistsAsync(employeeDto.Email);
+                            var exists = await _repository.EmailExistsAsync(employeeDto.Email, null, employeeDto.CompanyId);
                             if (exists)
                                 throw new ArgumentException($"Email {employeeDto.Email} already exists", nameof(employeeDto.Email));
                         }

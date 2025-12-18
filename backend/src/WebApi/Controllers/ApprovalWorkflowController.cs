@@ -12,7 +12,7 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/approvals")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Policy = "ManagerOrAbove")]
     public class ApprovalWorkflowController : ControllerBase
     {
         private readonly IApprovalWorkflowService _workflowService;

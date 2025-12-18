@@ -19,8 +19,8 @@ namespace Core.Interfaces
         Task<Employees> AddAsync(Employees entity);
         Task UpdateAsync(Employees entity);
         Task DeleteAsync(Guid id);
-        Task<bool> EmployeeIdExistsAsync(string employeeId, Guid? excludeId = null);
-        Task<bool> EmailExistsAsync(string email, Guid? excludeId = null);
+        Task<bool> EmployeeIdExistsAsync(string employeeId, Guid? excludeId = null, Guid? companyId = null);
+        Task<bool> EmailExistsAsync(string email, Guid? excludeId = null, Guid? companyId = null);
         Task<IEnumerable<Employees>> GetByManagerIdAsync(Guid managerId);
     }
 }

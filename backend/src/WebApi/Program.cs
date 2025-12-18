@@ -87,19 +87,43 @@ try
         options.AddPolicy("AllowReactApp",
             policy =>
             {
-                policy.WithOrigins(
-                        "http://localhost:5173",
-                        "http://localhost:3000",
-                        "http://localhost:3001",
-                        "http://localhost:5174",
-                        "http://127.0.0.1:5173",
-                        "http://127.0.0.1:3000",
-                        "http://127.0.0.1:3001"
-                      )
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials()
-                      .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
+                var environment = builder.Environment;
+                var configuration = builder.Configuration;
+
+                if (environment.IsDevelopment())
+                {
+                    // Development: Allow localhost origins
+                    policy.WithOrigins(
+                            "http://localhost:5173",
+                            "http://localhost:3000",
+                            "http://localhost:3001",
+                            "http://localhost:5174",
+                            "http://127.0.0.1:5173",
+                            "http://127.0.0.1:3000",
+                            "http://127.0.0.1:3001"
+                          )
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials()
+                          .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
+                }
+                else
+                {
+                    // Production: Only allow configured origins
+                    var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+                    if (allowedOrigins == null || allowedOrigins.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            "CORS allowed origins must be configured in production. " +
+                            "Set 'Cors:AllowedOrigins' in appsettings.json or environment variables.");
+                    }
+
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials()
+                          .SetPreflightMaxAge(TimeSpan.FromSeconds(3600));
+                }
             });
     });
     builder.Services.AddSwaggerGen(c =>

@@ -12,7 +12,7 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Policy = "AdminHrOnly")]
     public class HierarchyController : ControllerBase
     {
         private readonly IEmployeeHierarchyService _hierarchyService;

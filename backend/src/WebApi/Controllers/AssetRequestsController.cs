@@ -12,7 +12,7 @@ namespace WebApi.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
-    [Authorize]
+    [Authorize(Policy = "AdminHrOnly")]
     public class AssetRequestsController : ControllerBase
     {
         private readonly IAssetRequestService _service;
