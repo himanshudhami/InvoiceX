@@ -12,3 +12,4 @@ DROP INDEX IF EXISTS idx_assets_purchase_type;
 
 
 
+

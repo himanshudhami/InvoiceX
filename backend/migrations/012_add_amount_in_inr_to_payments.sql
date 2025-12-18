@@ -13,3 +13,4 @@ CREATE INDEX IF NOT EXISTS idx_payments_amount_in_inr ON payments(amount_in_inr)
 
 
 
+

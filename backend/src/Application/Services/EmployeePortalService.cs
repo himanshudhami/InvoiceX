@@ -412,6 +412,24 @@ namespace Application.Services
         private static PayslipDetailDto MapToPayslipDetail(EmployeeSalaryTransactions payslip, Employees? employee)
         {
             var totalDeductions = payslip.PfEmployee + payslip.Pt + payslip.IncomeTax + payslip.OtherDeductions;
+
+            // Build earnings array
+            var earnings = new List<PayslipComponentDto>();
+            if (payslip.BasicSalary > 0) earnings.Add(new PayslipComponentDto { Name = "Basic Salary", Amount = payslip.BasicSalary });
+            if (payslip.Hra > 0) earnings.Add(new PayslipComponentDto { Name = "HRA", Amount = payslip.Hra });
+            if (payslip.Conveyance > 0) earnings.Add(new PayslipComponentDto { Name = "Conveyance", Amount = payslip.Conveyance });
+            if (payslip.MedicalAllowance > 0) earnings.Add(new PayslipComponentDto { Name = "Medical Allowance", Amount = payslip.MedicalAllowance });
+            if (payslip.SpecialAllowance > 0) earnings.Add(new PayslipComponentDto { Name = "Special Allowance", Amount = payslip.SpecialAllowance });
+            if (payslip.Lta > 0) earnings.Add(new PayslipComponentDto { Name = "LTA", Amount = payslip.Lta });
+            if (payslip.OtherAllowances > 0) earnings.Add(new PayslipComponentDto { Name = "Other Allowances", Amount = payslip.OtherAllowances });
+
+            // Build deductions array
+            var deductions = new List<PayslipComponentDto>();
+            if (payslip.PfEmployee > 0) deductions.Add(new PayslipComponentDto { Name = "PF (Employee)", Amount = payslip.PfEmployee });
+            if (payslip.Pt > 0) deductions.Add(new PayslipComponentDto { Name = "Professional Tax", Amount = payslip.Pt });
+            if (payslip.IncomeTax > 0) deductions.Add(new PayslipComponentDto { Name = "Income Tax (TDS)", Amount = payslip.IncomeTax });
+            if (payslip.OtherDeductions > 0) deductions.Add(new PayslipComponentDto { Name = "Other Deductions", Amount = payslip.OtherDeductions });
+
             return new PayslipDetailDto
             {
                 Id = payslip.Id,
@@ -445,7 +463,10 @@ namespace Application.Services
                 Department = employee?.Department,
                 Company = employee?.Company,
                 MaskedBankAccountNumber = MaskBankAccount(employee?.BankAccountNumber),
-                BankName = employee?.BankName
+                MaskedPanNumber = MaskPan(employee?.PanNumber),
+                BankName = employee?.BankName,
+                Earnings = earnings,
+                Deductions = deductions
             };
         }
 

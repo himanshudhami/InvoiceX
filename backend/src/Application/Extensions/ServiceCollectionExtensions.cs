@@ -113,6 +113,14 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.Leave.ILeaveService,
                               Application.Services.Leave.LeaveService>();
 
+            // Portal feature services
+            services.AddScoped<Application.Interfaces.IAnnouncementsService,
+                              Application.Services.AnnouncementsService>();
+            services.AddScoped<Application.Interfaces.ISupportTicketsService,
+                              Application.Services.SupportTicketsService>();
+            services.AddScoped<Application.Interfaces.IEmployeeDocumentsService,
+                              Application.Services.EmployeeDocumentsService>();
+
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();
             // services.AddScoped<INotificationService, NotificationService>();

@@ -36,3 +36,4 @@ COMMENT ON COLUMN employees.company_id IS 'Foreign key to companies table. Migra
 
 
 
+

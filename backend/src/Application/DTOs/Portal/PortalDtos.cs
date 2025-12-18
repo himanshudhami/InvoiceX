@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Application.DTOs.Portal
 {
     // ==================== Profile DTOs ====================
@@ -40,13 +42,26 @@ namespace Application.DTOs.Portal
     public class PayslipSummaryDto
     {
         public Guid Id { get; set; }
+
+        [JsonPropertyName("month")]
         public int SalaryMonth { get; set; }
+
+        [JsonPropertyName("year")]
         public int SalaryYear { get; set; }
+
         public string MonthName { get; set; } = string.Empty;
+
+        [JsonPropertyName("grossEarnings")]
         public decimal GrossSalary { get; set; }
+
         public decimal TotalDeductions { get; set; }
+
+        [JsonPropertyName("netPay")]
         public decimal NetSalary { get; set; }
+
+        [JsonPropertyName("paidOn")]
         public DateTime? PaymentDate { get; set; }
+
         public string Status { get; set; } = string.Empty;
         public string Currency { get; set; } = "INR";
     }
@@ -57,11 +72,16 @@ namespace Application.DTOs.Portal
     public class PayslipDetailDto
     {
         public Guid Id { get; set; }
+
+        [JsonPropertyName("month")]
         public int SalaryMonth { get; set; }
+
+        [JsonPropertyName("year")]
         public int SalaryYear { get; set; }
+
         public string MonthName { get; set; } = string.Empty;
 
-        // Earnings
+        // Earnings (individual components)
         public decimal BasicSalary { get; set; }
         public decimal Hra { get; set; }
         public decimal Conveyance { get; set; }
@@ -69,9 +89,11 @@ namespace Application.DTOs.Portal
         public decimal SpecialAllowance { get; set; }
         public decimal Lta { get; set; }
         public decimal OtherAllowances { get; set; }
+
+        [JsonPropertyName("grossEarnings")]
         public decimal GrossSalary { get; set; }
 
-        // Deductions
+        // Deductions (individual components)
         public decimal PfEmployee { get; set; }
         public decimal PfEmployer { get; set; }
         public decimal Pt { get; set; }
@@ -80,9 +102,11 @@ namespace Application.DTOs.Portal
         public decimal TotalDeductions { get; set; }
 
         // Net
+        [JsonPropertyName("netPay")]
         public decimal NetSalary { get; set; }
 
         // Payment
+        [JsonPropertyName("paidOn")]
         public DateTime? PaymentDate { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
         public string? PaymentReference { get; set; }
@@ -92,12 +116,34 @@ namespace Application.DTOs.Portal
 
         // Employee context
         public string EmployeeName { get; set; } = string.Empty;
+
+        [JsonPropertyName("employeeCode")]
         public string? EmployeeId { get; set; }
+
         public string? Designation { get; set; }
         public string? Department { get; set; }
         public string? Company { get; set; }
+
+        [JsonPropertyName("bankAccount")]
         public string? MaskedBankAccountNumber { get; set; }
+
+        [JsonPropertyName("panNumber")]
+        public string? MaskedPanNumber { get; set; }
+
         public string? BankName { get; set; }
+
+        // Structured earnings/deductions arrays for frontend compatibility
+        public List<PayslipComponentDto> Earnings { get; set; } = new();
+        public List<PayslipComponentDto> Deductions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Individual payslip component (earning or deduction)
+    /// </summary>
+    public class PayslipComponentDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
     }
 
     // ==================== Asset DTOs ====================

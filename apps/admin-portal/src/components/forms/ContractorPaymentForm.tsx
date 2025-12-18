@@ -12,6 +12,8 @@ import { useEmployees } from '@/hooks/api/useEmployees'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { usePayrollInfoByType } from '@/features/payroll/hooks'
 import { formatINR } from '@/lib/currency'
+import { CompanySelect } from '@/components/ui/CompanySelect'
+import { EmployeeSelect } from '@/components/ui/EmployeeSelect'
 
 interface ContractorPaymentFormProps {
   payment?: ContractorPayment
@@ -139,48 +141,28 @@ export const ContractorPaymentForm = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Company <span className="text-red-500">*</span>
           </label>
-          <select
-            className={`w-full rounded-md border px-3 py-2 ${
-              errors.companyId ? 'border-red-500' : 'border-gray-300'
-            }`}
+          <CompanySelect
+            companies={companies}
             value={formData.companyId}
-            onChange={(e) => handleInputChange('companyId', e.target.value)}
+            onChange={(value) => handleInputChange('companyId', value)}
+            placeholder="Select company..."
             disabled={isEditing}
-          >
-            <option value="">Select company</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
-          {errors.companyId && (
-            <p className="text-red-500 text-xs mt-1">{errors.companyId}</p>
-          )}
+            error={errors.companyId}
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Contractor <span className="text-red-500">*</span>
           </label>
-          <select
-            className={`w-full rounded-md border px-3 py-2 ${
-              errors.employeeId ? 'border-red-500' : 'border-gray-300'
-            }`}
+          <EmployeeSelect
+            employees={contractorEmployees}
             value={formData.employeeId}
-            onChange={(e) => handleInputChange('employeeId', e.target.value)}
+            onChange={(value) => handleInputChange('employeeId', value)}
+            placeholder="Search contractor..."
             disabled={isEditing}
-          >
-            <option value="">Select contractor</option>
-            {contractorEmployees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.employeeName}
-              </option>
-            ))}
-          </select>
-          {errors.employeeId && (
-            <p className="text-red-500 text-xs mt-1">{errors.employeeId}</p>
-          )}
+            error={errors.employeeId}
+          />
         </div>
       </div>
 

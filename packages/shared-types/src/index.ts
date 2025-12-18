@@ -314,6 +314,27 @@ export interface PortalDashboard {
   assignedAssets: number
 }
 
+// ==================== Announcement Types ====================
+
+export interface AnnouncementSummary {
+  id: string
+  title: string
+  content: string
+  category: string
+  priority: string
+  isPinned: boolean
+  publishedAt: string | null
+  isRead: boolean
+}
+
+export interface AnnouncementDetail extends AnnouncementSummary {
+  expiresAt: string | null
+  createdBy: string | null
+  createdByName: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // ==================== API Types ====================
 
 export interface ApiResponse<T> {

@@ -8,10 +8,16 @@ import {
   DashboardPage,
   ProfilePage,
   PayslipsPage,
+  PayslipDetailPage,
   AssetsPage,
   LeaveIndexPage,
   ApplyLeavePage,
   LeaveApplicationDetailPage,
+  TaxDeclarationsPage,
+  TaxDeclarationDetailPage,
+  AnnouncementsPage,
+  HelpDeskPage,
+  DocumentsPage,
 } from '@/pages'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,10 +72,16 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="payslips" element={<PayslipsPage />} />
+        <Route path="payslips/:id" element={<PayslipDetailPage />} />
         <Route path="assets" element={<AssetsPage />} />
         <Route path="leave" element={<LeaveIndexPage />} />
         <Route path="leave/apply" element={<ApplyLeavePage />} />
         <Route path="leave/applications/:id" element={<LeaveApplicationDetailPage />} />
+        <Route path="tax-declarations" element={<TaxDeclarationsPage />} />
+        <Route path="tax-declarations/:id" element={<TaxDeclarationDetailPage />} />
+        <Route path="announcements" element={<AnnouncementsPage />} />
+        <Route path="help" element={<HelpDeskPage />} />
+        <Route path="documents" element={<DocumentsPage />} />
       </Route>
 
       {/* Catch-all redirect */}

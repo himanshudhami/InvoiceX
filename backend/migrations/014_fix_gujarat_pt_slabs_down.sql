@@ -10,3 +10,4 @@ INSERT INTO professional_tax_slabs (state, min_monthly_income, max_monthly_incom
 
 
 
+

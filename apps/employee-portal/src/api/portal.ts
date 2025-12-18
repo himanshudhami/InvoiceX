@@ -7,6 +7,8 @@ import type {
   MyAsset,
   TaxDeclarationSummary,
   TaxDeclarationDetail,
+  AnnouncementSummary,
+  AnnouncementDetail,
 } from '@/types'
 
 export const portalApi = {
@@ -34,13 +36,6 @@ export const portalApi = {
     return response.data
   },
 
-  downloadPayslipPdf: async (id: string): Promise<Blob> => {
-    const response = await apiClient.get(`/portal/payslips/${id}/pdf`, {
-      responseType: 'blob',
-    })
-    return response.data
-  },
-
   // Assets
   getMyAssets: async (): Promise<MyAsset[]> => {
     const response = await apiClient.get<MyAsset[]>('/portal/assets')
@@ -56,5 +51,25 @@ export const portalApi = {
   getTaxDeclarationDetail: async (id: string): Promise<TaxDeclarationDetail> => {
     const response = await apiClient.get<TaxDeclarationDetail>(`/portal/tax-declarations/${id}`)
     return response.data
+  },
+
+  // Announcements
+  getAnnouncements: async (): Promise<AnnouncementSummary[]> => {
+    const response = await apiClient.get<AnnouncementSummary[]>('/portal/announcements')
+    return response.data
+  },
+
+  getAnnouncementDetail: async (id: string): Promise<AnnouncementDetail> => {
+    const response = await apiClient.get<AnnouncementDetail>(`/portal/announcements/${id}`)
+    return response.data
+  },
+
+  getUnreadAnnouncementsCount: async (): Promise<number> => {
+    const response = await apiClient.get<number>('/portal/announcements/unread-count')
+    return response.data
+  },
+
+  markAnnouncementAsRead: async (id: string): Promise<void> => {
+    await apiClient.post(`/portal/announcements/${id}/read`)
   },
 }

@@ -7,3 +7,4 @@ DROP COLUMN IF EXISTS amount_in_inr;
 
 
 
+

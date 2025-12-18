@@ -25,6 +25,9 @@ import {
   Calendar,
   Shield,
   UserCog,
+  Megaphone,
+  HelpCircle,
+  FolderOpen,
 } from 'lucide-react'
 
 interface Props {
@@ -96,6 +99,16 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'TDS Receivables', href: '/tds-receivables', icon: Receipt },
         { name: 'Expense Reports', href: '/expense-dashboard', icon: BarChart3 },
         { name: 'Financial Report', href: '/financial-report', icon: FileSpreadsheet },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Employee Portal',
+      icon: UserCircle,
+      items: [
+        { name: 'Announcements', href: '/announcements', icon: Megaphone },
+        { name: 'Support Tickets', href: '/support-tickets', icon: HelpCircle },
+        { name: 'Documents', href: '/employee-documents', icon: FolderOpen },
       ],
     },
     {

@@ -24,3 +24,7 @@ export {
   getInitials,
   getStatusBadgeVariant,
 } from '@repo/ui'
+
+// Export local UI components
+export { GlassCard, GlassCardHeader, GlassCardContent, GlassCardFooter } from './GlassCard'
+export { StatCard, QuickStat } from './StatCard'

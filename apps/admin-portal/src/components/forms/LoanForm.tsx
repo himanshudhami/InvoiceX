@@ -3,6 +3,7 @@ import { Loan, CreateLoanDto, UpdateLoanDto } from '@/services/api/types';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import { useCreateLoan, useUpdateLoan } from '@/hooks/api/useLoans';
 import { cn } from '@/lib/utils';
+import { CompanySelect } from '@/components/ui/CompanySelect';
 
 type LoanFormProps = {
   loan?: Loan;
@@ -172,24 +173,15 @@ export const LoanForm = ({ loan, onSuccess, onCancel }: LoanFormProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Company *</label>
-            <select
-              className={cn(
-                'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2',
-                errors.companyId && 'border-red-500',
-                companiesLoading && 'bg-gray-100',
-              )}
+            <CompanySelect
+              companies={companies}
               value={formData.companyId}
-              onChange={(e) => setField('companyId', e.target.value)}
+              onChange={(value) => setField('companyId', value)}
+              placeholder={companiesLoading ? 'Loading companies...' : 'Select company...'}
               disabled={companiesLoading || isEditing}
-            >
-              <option value="">{companiesLoading ? 'Loading companies...' : 'Select company'}</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {errors.companyId && <p className="text-sm text-red-600 mt-1">{errors.companyId}</p>}
+              error={errors.companyId}
+              className="mt-1"
+            />
           </div>
 
           <div>

@@ -5,6 +5,7 @@ import { useCompanies } from '@/hooks/api/useCompanies'
 import { useCreateOrUpdatePayrollInfo, usePayrollInfo } from '@/features/payroll/hooks'
 import { cn } from '@/lib/utils'
 import { User, Mail, Phone, MapPin, Building, Calendar, Hash } from 'lucide-react'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 
 interface EmployeeFormProps {
   employee?: Employee
@@ -297,18 +298,12 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Company
             </label>
-            <select
+            <CompanySelect
+              companies={companies}
               value={formData.companyId || ''}
-              onChange={(e) => handleInputChange('companyId', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select company</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => handleInputChange('companyId', value)}
+              placeholder="Select company..."
+            />
           </div>
 
           <div>

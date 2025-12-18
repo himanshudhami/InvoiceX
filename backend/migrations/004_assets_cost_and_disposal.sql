@@ -31,3 +31,4 @@ CREATE INDEX IF NOT EXISTS idx_asset_disposals_asset ON asset_disposals(asset_id
 
 
 
+

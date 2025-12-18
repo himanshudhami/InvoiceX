@@ -115,6 +115,14 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Leave.IHolidayRepository>(sp =>
                 new Infrastructure.Data.Leave.HolidayRepository(connectionString));
 
+            // Portal feature repositories
+            services.AddScoped<Core.Interfaces.IAnnouncementsRepository>(sp =>
+                new Infrastructure.Data.AnnouncementsRepository(connectionString));
+            services.AddScoped<Core.Interfaces.ISupportTicketsRepository>(sp =>
+                new Infrastructure.Data.SupportTicketsRepository(connectionString));
+            services.AddScoped<Core.Interfaces.IEmployeeDocumentsRepository>(sp =>
+                new Infrastructure.Data.EmployeeDocumentsRepository(connectionString));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();

@@ -1,4 +1,5 @@
 export { MainLayout } from './MainLayout'
+export { Sidebar } from './Sidebar'
 export { BottomNav } from './BottomNav'
 export { PageHeader } from './PageHeader'
 export { EmptyState } from './EmptyState'

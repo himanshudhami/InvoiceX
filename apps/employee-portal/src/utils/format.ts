@@ -13,7 +13,10 @@ export function formatDateTime(date: string | Date): string {
   return formatDate(date, 'dd MMM yyyy, hh:mm a')
 }
 
-export function formatCurrency(amount: number, currency = 'INR'): string {
+export function formatCurrency(amount: number | null | undefined, currency = 'INR'): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) {
+    return '-'
+  }
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency,

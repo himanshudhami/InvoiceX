@@ -22,3 +22,4 @@ WHERE ad.asset_id = a.id AND a.currency IS NOT NULL AND ad.currency IS NULL;
 
 
 
+

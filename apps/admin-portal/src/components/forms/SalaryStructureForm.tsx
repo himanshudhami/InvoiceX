@@ -11,6 +11,8 @@ import type {
 } from '@/features/payroll/types/payroll'
 import { useEmployees } from '@/hooks/api/useEmployees'
 import { useCompanies } from '@/hooks/api/useCompanies'
+import { EmployeeSelect } from '@/components/ui/EmployeeSelect'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import { formatINR } from '@/lib/currency'
 
 interface SalaryStructureFormProps {
@@ -216,62 +218,33 @@ export const SalaryStructureForm = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Company <span className="text-red-500">*</span>
           </label>
-          <select
-            className={`w-full rounded-md border px-3 py-2 ${
-              errors.companyId ? 'border-red-500' : 'border-gray-300'
-            }`}
+          <CompanySelect
+            companies={companies}
             value={formData.companyId}
-            onChange={(e) => {
-              handleInputChange('companyId', e.target.value)
-              // Clear employee selection when company changes
+            onChange={(value) => {
+              handleInputChange('companyId', value)
               if (!isEditing) {
                 handleInputChange('employeeId', '')
               }
             }}
+            placeholder="Select company..."
             disabled={isEditing}
-          >
-            <option value="">Select company</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
-          {errors.companyId && (
-            <p className="text-red-500 text-xs mt-1">{errors.companyId}</p>
-          )}
+            error={errors.companyId}
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Employee <span className="text-red-500">*</span>
           </label>
-          <select
-            className={`w-full rounded-md border px-3 py-2 ${
-              errors.employeeId ? 'border-red-500' : 'border-gray-300'
-            }`}
+          <EmployeeSelect
+            employees={filteredEmployees}
             value={formData.employeeId}
-            onChange={(e) => handleInputChange('employeeId', e.target.value)}
-            disabled={isEditing}
-          >
-            <option value="">Select employee</option>
-            {filteredEmployees.length === 0 ? (
-              <option value="" disabled>
-                {formData.companyId 
-                  ? 'No full-time employees found for this company'
-                  : 'Please select a company first'}
-              </option>
-            ) : (
-              filteredEmployees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.employeeName}
-                </option>
-              ))
-            )}
-          </select>
-          {errors.employeeId && (
-            <p className="text-red-500 text-xs mt-1">{errors.employeeId}</p>
-          )}
+            onChange={(value) => handleInputChange('employeeId', value)}
+            placeholder={formData.companyId ? "Search employee..." : "Select company first..."}
+            disabled={isEditing || !formData.companyId}
+            error={errors.employeeId}
+          />
         </div>
       </div>
 

@@ -22,6 +22,7 @@ import { SubscriptionForm } from '@/components/forms/SubscriptionForm';
 import { PauseSubscriptionModal } from '@/components/modals/PauseSubscriptionModal';
 import { ResumeSubscriptionModal } from '@/components/modals/ResumeSubscriptionModal';
 import { CancelSubscriptionModal } from '@/components/modals/CancelSubscriptionModal';
+import { EmployeeSelect } from '@/components/ui/EmployeeSelect';
 import { Edit, Trash2, Link2, RefreshCcw, Pause, Play, X } from 'lucide-react';
 
 const getStatusBadgeColor = (status: string) => {
@@ -298,19 +299,13 @@ const SubscriptionsManagement = () => {
               {assignForm.targetType === 'employee' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Employee</label>
-                  <select
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                  <EmployeeSelect
+                    employees={employees}
                     value={assignForm.employeeId}
-                    onChange={(e) => setAssignForm({ ...assignForm, employeeId: e.target.value })}
-                    required
-                  >
-                    <option value="">Select employee</option>
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.employeeName} ({emp.employeeId})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setAssignForm({ ...assignForm, employeeId: value })}
+                    placeholder="Search employee..."
+                    className="mt-1"
+                  />
                 </div>
               )}
               <input
