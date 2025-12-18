@@ -28,7 +28,9 @@ namespace Core.Entities
         public string Role { get; set; } = "Employee";
 
         /// <summary>
-        /// Company the user belongs to (required for tenant isolation)
+        /// Company the user belongs to (required for tenant isolation).
+        /// For regular employees, this is their assigned company.
+        /// For Company Admins, this may be their "home" company but they access assigned companies via UserCompanyAssignments.
         /// </summary>
         public Guid CompanyId { get; set; }
 
@@ -36,6 +38,11 @@ namespace Core.Entities
         /// Link to employee record if user is an employee (nullable for admin-only users)
         /// </summary>
         public Guid? EmployeeId { get; set; }
+
+        /// <summary>
+        /// Super Admin has access to ALL companies. Takes precedence over company assignments.
+        /// </summary>
+        public bool IsSuperAdmin { get; set; } = false;
 
         /// <summary>
         /// Whether the account is active

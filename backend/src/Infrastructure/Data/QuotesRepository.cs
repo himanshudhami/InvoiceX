@@ -1,6 +1,7 @@
 using Core.Entities;
 using Core.Interfaces;
 using Dapper;
+using Infrastructure.Data.Common;
 using Npgsql;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,6 +12,19 @@ namespace Infrastructure.Data
     {
         private readonly string _connectionString;
 
+        // Whitelist of allowed columns for sorting and filtering
+        private static readonly string[] AllowedColumns = new[]
+        {
+            "id", "company_id", "customer_id", "quote_number", "quote_date",
+            "expiry_date", "status", "total_amount", "created_at", "notes", "project_name"
+        };
+
+        // Columns searchable via ILIKE
+        private static readonly string[] SearchableColumns = new[]
+        {
+            "quote_number", "status", "notes", "project_name"
+        };
+
         public QuotesRepository(string connectionString)
         {
             _connectionString = connectionString;
@@ -20,7 +34,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<Quotes>(
-                $"SELECT * FROM quotes WHERE id = @id",
+                "SELECT * FROM quotes WHERE id = @id",
                 new { id });
         }
 
@@ -28,7 +42,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Quotes>(
-                $"SELECT * FROM quotes ORDER BY created_at DESC");
+                "SELECT * FROM quotes ORDER BY created_at DESC");
         }
 
         public async Task<(IEnumerable<Quotes> Items, int TotalCount)> GetPagedAsync(
@@ -41,56 +55,43 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
-            var offset = (pageNumber - 1) * pageSize;
-            var limit = pageSize;
+            // Use SqlQueryBuilder for secure parameterized queries
+            var builder = SqlQueryBuilder.From("quotes", AllowedColumns);
 
-            // Build where clause for search and filters
-            var whereClause = "1=1";
-            var parameters = new DynamicParameters();
+            // Apply search across multiple columns
+            builder.SearchAcross(SearchableColumns, searchTerm);
 
-            if (!string.IsNullOrEmpty(searchTerm))
-            {
-                whereClause += " AND (quote_number ILIKE @searchTerm OR status ILIKE @searchTerm OR notes ILIKE @searchTerm OR project_name ILIKE @searchTerm)";
-                parameters.Add("searchTerm", $"%{searchTerm}%");
-            }
-
+            // Apply filters using safe parameterized queries
             if (filters != null)
             {
+                // Map filter keys to database column names
+                var dbFilters = new Dictionary<string, object?>();
                 if (filters.TryGetValue("companyId", out var companyId) && companyId != null)
-                {
-                    whereClause += " AND company_id = @companyId";
-                    parameters.Add("companyId", companyId);
-                }
+                    dbFilters["company_id"] = companyId;
                 if (filters.TryGetValue("customerId", out var customerId) && customerId != null)
-                {
-                    whereClause += " AND customer_id = @customerId";
-                    parameters.Add("customerId", customerId);
-                }
+                    dbFilters["customer_id"] = customerId;
                 if (filters.TryGetValue("status", out var status) && !string.IsNullOrEmpty(status?.ToString()))
-                {
-                    whereClause += " AND status = @status";
-                    parameters.Add("status", status);
-                }
+                    dbFilters["status"] = status;
+
+                builder.ApplyFilters(dbFilters);
             }
 
-            // Build sort clause
-            var sortClause = "created_at DESC";
-            if (!string.IsNullOrEmpty(sortBy))
-            {
-                var allowedColumns = new[] { "quote_number", "quote_date", "expiry_date", "status", "total_amount", "created_at" };
-                if (allowedColumns.Contains(sortBy.ToLower()))
-                {
-                    sortClause = $"{sortBy} {(sortDescending ? "DESC" : "ASC")}";
-                }
-            }
+            // Apply sorting with column whitelist validation
+            var sortColumn = !string.IsNullOrEmpty(sortBy) && AllowedColumns.Contains(sortBy.ToLower())
+                ? sortBy.ToLower()
+                : "created_at";
+            builder.OrderBy(sortColumn, sortDescending || (sortColumn == "created_at" && string.IsNullOrEmpty(sortBy)));
 
-            // Get total count
-            var countQuery = $"SELECT COUNT(*) FROM quotes WHERE {whereClause}";
-            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, parameters);
+            // Apply pagination
+            builder.Paginate(pageNumber, pageSize);
 
-            // Get items
-            var itemsQuery = $"SELECT * FROM quotes WHERE {whereClause} ORDER BY {sortClause} OFFSET {offset} LIMIT {limit}";
-            var items = await connection.QueryAsync<Quotes>(itemsQuery, parameters);
+            // Get total count using the builder
+            var (countSql, countParams) = builder.BuildCount();
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, countParams);
+
+            // Get items using the builder
+            var (itemsSql, itemsParams) = builder.BuildSelect();
+            var items = await connection.QueryAsync<Quotes>(itemsSql, itemsParams);
 
             return (items, totalCount);
         }

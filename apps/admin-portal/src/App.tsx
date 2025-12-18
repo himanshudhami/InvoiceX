@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { CompanyProvider } from './contexts/CompanyContext'
 import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -137,13 +138,15 @@ function ProtectedLayout() {
   }
 
   return (
-    <Layout>
-      <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <Outlet />
-        </Suspense>
-      </ErrorBoundary>
-    </Layout>
+    <CompanyProvider>
+      <Layout>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
+      </Layout>
+    </CompanyProvider>
   )
 }
 

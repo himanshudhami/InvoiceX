@@ -2,15 +2,31 @@
 
 export type UserRole = 'Admin' | 'HR' | 'Accountant' | 'Manager' | 'Employee'
 
+export type AccessScope = 'all_companies' | 'assigned_companies' | undefined
+
 export interface UserInfo {
   id: string
   email: string
   displayName: string
   role: UserRole
   companyId: string
+  companyIds?: string[]         // Array of accessible company IDs (from JWT)
+  accessScope?: AccessScope     // all_companies | assigned_companies
+  isSuperAdmin?: boolean        // Super Admin flag
   employeeId?: string
   isActive: boolean
   lastLoginAt?: string
+}
+
+/**
+ * Check if user has multi-company access (Super Admin or Company Admin with assigned companies)
+ */
+export function hasMultiCompanyAccess(user: UserInfo | null): boolean {
+  if (!user) return false
+  return user.isSuperAdmin ||
+         user.accessScope === 'all_companies' ||
+         user.accessScope === 'assigned_companies' ||
+         (user.companyIds && user.companyIds.length > 1)
 }
 
 export interface LoginRequest {

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 export const EMPLOYEE_QUERY_KEYS = {
   all: ['employees'] as const,
   lists: () => [...EMPLOYEE_QUERY_KEYS.all, 'list'] as const,
+  listByCompany: (companyId?: string) => [...EMPLOYEE_QUERY_KEYS.lists(), companyId ?? 'default'] as const,
   list: (filters: string) => [...EMPLOYEE_QUERY_KEYS.lists(), filters] as const,
   details: () => [...EMPLOYEE_QUERY_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...EMPLOYEE_QUERY_KEYS.details(), id] as const,
@@ -15,11 +16,12 @@ export const EMPLOYEE_QUERY_KEYS = {
 
 /**
  * Get all employees
+ * @param companyId Optional company ID to filter by (for multi-company users)
  */
-export const useEmployees = () => {
+export const useEmployees = (companyId?: string) => {
   return useQuery({
-    queryKey: EMPLOYEE_QUERY_KEYS.lists(),
-    queryFn: () => employeeService.getAll(),
+    queryKey: EMPLOYEE_QUERY_KEYS.listByCompany(companyId),
+    queryFn: () => employeeService.getAll(companyId),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

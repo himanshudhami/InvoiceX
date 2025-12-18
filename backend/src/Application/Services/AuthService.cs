@@ -18,6 +18,8 @@ namespace Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IEmployeesRepository _employeesRepository;
+        private readonly ICompaniesRepository _companiesRepository;
+        private readonly IUserCompanyAssignmentRepository _userCompanyAssignmentRepository;
         private readonly JwtSettings _jwtSettings;
         private readonly ILogger<AuthService> _logger;
 
@@ -29,12 +31,16 @@ namespace Application.Services
             IUserRepository userRepository,
             IRefreshTokenRepository refreshTokenRepository,
             IEmployeesRepository employeesRepository,
+            ICompaniesRepository companiesRepository,
+            IUserCompanyAssignmentRepository userCompanyAssignmentRepository,
             IOptions<JwtSettings> jwtSettings,
             ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
             _employeesRepository = employeesRepository;
+            _companiesRepository = companiesRepository;
+            _userCompanyAssignmentRepository = userCompanyAssignmentRepository;
             _jwtSettings = jwtSettings.Value;
             _logger = logger;
         }
@@ -354,7 +360,7 @@ namespace Application.Services
 
         private async Task<TokenResponseDto> GenerateTokensAsync(User user, string? ipAddress, string? userAgent)
         {
-            var accessToken = GenerateAccessToken(user);
+            var accessToken = await GenerateAccessTokenAsync(user);
             var refreshToken = await GenerateRefreshTokenAsync(user.Id, ipAddress, userAgent);
             var userInfo = await MapToUserInfoAsync(user);
 
@@ -368,7 +374,7 @@ namespace Application.Services
             };
         }
 
-        private string GenerateAccessToken(User user)
+        private async Task<string> GenerateAccessTokenAsync(User user)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -380,8 +386,70 @@ namespace Application.Services
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(ClaimTypes.Name, user.DisplayName),
                 new(ClaimTypes.Role, user.Role),
-                new("company_id", user.CompanyId.ToString()),
             };
+
+            // Super Admin: Access to ALL companies (system-wide admin)
+            if (user.IsSuperAdmin)
+            {
+                _logger.LogInformation("User {UserId} is Super Admin - granting all_companies access", user.Id);
+
+                // Fetch all companies and add them to the JWT
+                var allCompanies = await _companiesRepository.GetAllAsync();
+                var companyIds = allCompanies.Select(c => c.Id.ToString()).ToList();
+
+                if (companyIds.Any())
+                {
+                    // Add company_ids as a JSON array claim
+                    claims.Add(new Claim("company_ids", System.Text.Json.JsonSerializer.Serialize(companyIds)));
+
+                    // Set active company_id to the first company (can be switched later)
+                    claims.Add(new Claim("company_id", companyIds.First()));
+                }
+
+                claims.Add(new Claim("access_scope", "all_companies"));
+                claims.Add(new Claim("is_super_admin", "true"));
+            }
+            // Company Admin/HR: Access to ASSIGNED companies only
+            else if (user.Role == UserRoles.Admin || user.Role == UserRoles.HR)
+            {
+                _logger.LogInformation("User {UserId} is Company Admin/HR - checking assigned companies", user.Id);
+
+                // Get assigned companies from the junction table
+                var assignments = await _userCompanyAssignmentRepository.GetByUserIdAsync(user.Id);
+                var assignmentList = assignments.ToList();
+
+                if (assignmentList.Any())
+                {
+                    var companyIds = assignmentList.Select(a => a.CompanyId.ToString()).ToList();
+                    claims.Add(new Claim("company_ids", System.Text.Json.JsonSerializer.Serialize(companyIds)));
+                    claims.Add(new Claim("access_scope", "assigned_companies"));
+
+                    // Set primary company or first as default
+                    var primary = assignmentList.FirstOrDefault(a => a.IsPrimary) ?? assignmentList.First();
+                    claims.Add(new Claim("company_id", primary.CompanyId.ToString()));
+
+                    _logger.LogInformation("User {UserId} has access to {Count} companies", user.Id, companyIds.Count);
+                }
+                else
+                {
+                    // Fallback: No assignments, use user's default company
+                    _logger.LogWarning("Company Admin/HR {UserId} has no company assignments, falling back to user.CompanyId", user.Id);
+                    if (user.CompanyId != Guid.Empty)
+                    {
+                        claims.Add(new Claim("company_id", user.CompanyId.ToString()));
+                        claims.Add(new Claim("company_ids", System.Text.Json.JsonSerializer.Serialize(new[] { user.CompanyId.ToString() })));
+                        claims.Add(new Claim("access_scope", "assigned_companies"));
+                    }
+                }
+            }
+            else
+            {
+                // Regular users get their assigned company only
+                if (user.CompanyId != Guid.Empty)
+                {
+                    claims.Add(new Claim("company_id", user.CompanyId.ToString()));
+                }
+            }
 
             if (user.EmployeeId.HasValue)
             {

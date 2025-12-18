@@ -16,11 +16,12 @@ namespace Infrastructure.Data
             _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         }
 
-        public async Task<(decimal TotalRevenue, decimal OutstandingAmount, decimal ThisMonthAmount, decimal OverdueAmount, int OutstandingCount, int ThisMonthCount, int OverdueCount)> GetDashboardStatsAsync()
+        public async Task<(decimal TotalRevenue, decimal OutstandingAmount, decimal ThisMonthAmount, decimal OverdueAmount, int OutstandingCount, int ThisMonthCount, int OverdueCount)> GetDashboardStatsAsync(Guid companyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
             // Get revenue stats from payments table (actual income received)
+            // Filter by company_id for multi-tenancy
             var paymentsSql = @"
                 SELECT
                     -- Total Revenue: Sum of all payments received (using INR amount for accurate totals)
@@ -29,9 +30,11 @@ namespace Infrastructure.Data
                     -- This Month Income: Payments received this month
                     COALESCE(SUM(CASE WHEN DATE_TRUNC('month', payment_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE::timestamp)
                         THEN COALESCE(amount_in_inr, amount) ELSE 0 END), 0) as ThisMonthAmount
-                FROM payments";
+                FROM payments
+                WHERE company_id = @companyId OR company_id IS NULL";
 
             // Get outstanding/overdue stats from invoices table (amounts not yet received)
+            // Filter by company_id for multi-tenancy
             var invoicesSql = @"
                 SELECT
                     -- Outstanding Amount (sent, viewed, overdue - not draft, paid, or cancelled)
@@ -49,10 +52,11 @@ namespace Infrastructure.Data
                     -- Overdue Count
                     COUNT(CASE WHEN due_date < CURRENT_DATE AND status != 'paid' AND status != 'cancelled' THEN 1 END) as OverdueCount
                 FROM invoices
-                WHERE status != 'cancelled'";
+                WHERE status != 'cancelled'
+                AND company_id = @companyId";
 
-            var paymentsResult = await connection.QueryFirstOrDefaultAsync<(decimal TotalRevenue, decimal ThisMonthAmount)>(paymentsSql);
-            var invoicesResult = await connection.QueryFirstOrDefaultAsync<(decimal OutstandingAmount, decimal OverdueAmount, int OutstandingCount, int ThisMonthCount, int OverdueCount)>(invoicesSql);
+            var paymentsResult = await connection.QueryFirstOrDefaultAsync<(decimal TotalRevenue, decimal ThisMonthAmount)>(paymentsSql, new { companyId });
+            var invoicesResult = await connection.QueryFirstOrDefaultAsync<(decimal OutstandingAmount, decimal OverdueAmount, int OutstandingCount, int ThisMonthCount, int OverdueCount)>(invoicesSql, new { companyId });
 
             return (
                 paymentsResult.TotalRevenue,
@@ -65,12 +69,13 @@ namespace Infrastructure.Data
             );
         }
 
-        public async Task<List<(Guid Id, string InvoiceNumber, string CustomerName, decimal TotalAmount, string Status, DateOnly InvoiceDate, DateOnly DueDate)>> GetRecentInvoicesAsync(int count = 10)
+        public async Task<List<(Guid Id, string InvoiceNumber, string CustomerName, decimal TotalAmount, string Status, DateOnly InvoiceDate, DateOnly DueDate)>> GetRecentInvoicesAsync(Guid companyId, int count = 10)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            
+
+            // Filter by company_id for multi-tenancy
             var sql = @"
-                SELECT 
+                SELECT
                     i.id as Id,
                     i.invoice_number as InvoiceNumber,
                     COALESCE(c.name, 'Unknown Customer') as CustomerName,
@@ -81,10 +86,11 @@ namespace Infrastructure.Data
                 FROM invoices i
                 LEFT JOIN customers c ON i.customer_id = c.id
                 WHERE i.status != 'cancelled'
+                AND i.company_id = @companyId
                 ORDER BY i.created_at DESC
                 LIMIT @count";
 
-            var results = await connection.QueryAsync<(Guid, string, string, decimal, string, DateOnly, DateOnly)>(sql, new { count });
+            var results = await connection.QueryAsync<(Guid, string, string, decimal, string, DateOnly, DateOnly)>(sql, new { companyId, count });
             return results.ToList();
         }
     }

@@ -112,6 +112,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                 new Infrastructure.Data.UserRepository(connectionString));
             services.AddScoped<Core.Interfaces.IRefreshTokenRepository>(sp =>
                 new Infrastructure.Data.RefreshTokenRepository(connectionString));
+            services.AddScoped<Core.Interfaces.IUserCompanyAssignmentRepository>(sp =>
+                new Infrastructure.Data.UserCompanyAssignmentRepository(connectionString));
 
             // Leave management repositories
             services.AddScoped<Core.Interfaces.Leave.ILeaveTypeRepository>(sp =>

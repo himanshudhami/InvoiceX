@@ -50,6 +50,25 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+/**
+ * ManagerProtectedRoute - Protects routes that require manager role
+ * Redirects non-managers to the home page
+ */
+function ManagerProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <FullScreenLoader />
+  }
+
+  // If user is not a manager, redirect to home page
+  if (!user?.isManager) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <Routes>
@@ -84,9 +103,24 @@ export default function App() {
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="help" element={<HelpDeskPage />} />
         <Route path="documents" element={<DocumentsPage />} />
-        {/* Manager Routes */}
-        <Route path="manager/team" element={<MyTeamPage />} />
-        <Route path="manager/approvals" element={<PendingApprovalsPage />} />
+
+        {/* Manager Routes - Protected by ManagerProtectedRoute */}
+        <Route
+          path="manager/team"
+          element={
+            <ManagerProtectedRoute>
+              <MyTeamPage />
+            </ManagerProtectedRoute>
+          }
+        />
+        <Route
+          path="manager/approvals"
+          element={
+            <ManagerProtectedRoute>
+              <PendingApprovalsPage />
+            </ManagerProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Catch-all redirect */}

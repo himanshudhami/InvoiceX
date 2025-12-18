@@ -1,5 +1,6 @@
 import { FC, ReactNode } from 'react'
 import { ThemeSwitcher } from './ThemeSwitcher'
+import { HeaderCompanySelector } from './HeaderCompanySelector'
 import { NavGroup, SingleNavItem } from './ui/NavGroup'
 import { useSidebarState } from '@/hooks/useSidebarState'
 import {
@@ -131,10 +132,13 @@ const Layout: FC<Props> = ({ children }) => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <nav className="fixed w-64 h-full bg-white border-r border-gray-200 shadow-sm overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Invoice System</h2>
-            <ThemeSwitcher />
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Invoice System</h2>
+              <ThemeSwitcher />
+            </div>
+            <HeaderCompanySelector />
           </div>
         </div>
         <div className="py-2">

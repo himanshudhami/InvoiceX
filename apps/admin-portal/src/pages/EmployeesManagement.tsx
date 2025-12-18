@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import { useEmployeesPaged, useDeleteEmployee, useEmployees, useRejoinEmployee } from '@/hooks/api/useEmployees'
+import { useCompanyContext } from '@/contexts/CompanyContext'
 import { Employee, PagedResponse } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
@@ -65,6 +66,9 @@ const EmployeesManagement = () => {
   const [sortBy] = useState('employeeName')
   const [sortDescending] = useState(false)
 
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext()
+
   // URL-backed filter state with nuqs - persists on refresh
   const [urlState, setUrlState] = useQueryStates(
     {
@@ -80,17 +84,20 @@ const EmployeesManagement = () => {
     { history: 'replace' }
   )
 
-  // Get all employees once to populate department filter options
-  const { data: allEmployees = [] } = useEmployees()
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = urlState.company || (hasMultiCompanyAccess ? selectedCompanyId : undefined)
+
+  // Get all employees for the selected company to populate department filter options
+  const { data: allEmployees = [] } = useEmployees(effectiveCompanyId || undefined)
 
   // Debounced search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlState.search)
-  
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(urlState.search)
     }, 300)
-    
+
     return () => clearTimeout(timer)
   }, [urlState.search])
 
@@ -101,7 +108,7 @@ const EmployeesManagement = () => {
     sortBy,
     sortDescending,
     status: urlState.status !== 'all' ? urlState.status : undefined,
-    companyId: urlState.company || undefined,
+    companyId: effectiveCompanyId || undefined,
     department: urlState.department !== 'all' ? urlState.department : undefined,
     contractType: urlState.contractType !== 'all' ? urlState.contractType : undefined,
   })

@@ -9,19 +9,22 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using WebApi.Controllers.Common;
 using WebApi.DTOs;
 using WebApi.DTOs.Common;
 
 namespace WebApi.Controllers
 {
     /// <summary>
-    /// Employees management endpoints
+    /// Employees management endpoints.
+    /// - Super Admin: Can access employees from ALL companies.
+    /// - Company Admin/HR: Can access employees from ASSIGNED companies only.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Produces("application/json")]
     [Authorize(Policy = "AdminOnly")]
-    public class EmployeesController : ControllerBase
+    public class EmployeesController : CompanyAuthorizedController
     {
         private readonly IEmployeesService _service;
         private readonly IEmployeePayrollInfoRepository _payrollInfoRepository;
@@ -36,26 +39,12 @@ namespace WebApi.Controllers
         }
 
         /// <summary>
-        /// Get the company ID from the JWT claims
-        /// </summary>
-        private Guid? CurrentCompanyId
-        {
-            get
-            {
-                var claim = User.FindFirst("company_id");
-                if (claim != null && Guid.TryParse(claim.Value, out var companyId))
-                    return companyId;
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Get Employee by ID
         /// </summary>
         /// <param name="id">The Employee ID</param>
         /// <returns>The Employee entity</returns>
         /// <response code="200">Returns the Employee entity</response>
-        /// <response code="403">Forbidden - employee belongs to different company</response>
+        /// <response code="403">Forbidden - employee belongs to different company or user has no company access</response>
         /// <response code="404">Employee not found</response>
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Employees), 200)]
@@ -64,11 +53,8 @@ namespace WebApi.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetById(Guid id)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
             var result = await _service.GetByIdAsync(id);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -80,10 +66,10 @@ namespace WebApi.Controllers
                 };
             }
 
-            // Validate company isolation
-            if (result.Value!.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
-            
+            // Validate company access (Super Admin, Company Admin with assignment, or own company)
+            if (!HasCompanyAccess(result.Value!.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
+
             return Ok(result.Value);
         }
 
@@ -102,11 +88,8 @@ namespace WebApi.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetByEmployeeId(string employeeId)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
             var result = await _service.GetByEmployeeIdAsync(employeeId);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -118,28 +101,37 @@ namespace WebApi.Controllers
                 };
             }
 
-            // Validate company isolation
-            if (result.Value!.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
-            
+            // Validate company access
+            if (!HasCompanyAccess(result.Value!.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
+
             return Ok(result.Value);
         }
 
         /// <summary>
         /// Get all Employees entities
         /// </summary>
+        /// <param name="company">Optional company ID filter (Super Admin/Company Admin only)</param>
         /// <returns>List of Employees entities</returns>
         /// <response code="200">Returns the list of Employees entities</response>
+        /// <response code="403">Forbidden - no company access or access denied to requested company</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Employees>), 200)]
-        public async Task<IActionResult> GetAll()
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> GetAll([FromQuery] Guid? company = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
+            // Get effective company ID with validation
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
 
-            var filters = new Dictionary<string, object> { { "company_id", CurrentCompanyId.Value } };
-            var result = await _service.GetPagedAsync(1, int.MaxValue, null, null, false, filters);
-            
+            if (errorMessage != null)
+                return StatusCode(403, new { error = errorMessage });
+
+            if (!effectiveCompanyId.HasValue)
+                return CompanyIdNotFoundResponse();
+
+            var filters = new Dictionary<string, object> { { "company_id", effectiveCompanyId.Value } };
+            var result = await _service.GetPagedAsync(1, 100, null, null, false, filters);
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -148,7 +140,7 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return Ok(result.Value.Items);
         }
 
@@ -156,18 +148,27 @@ namespace WebApi.Controllers
         /// Get paginated Employees entities with filtering and sorting
         /// </summary>
         /// <param name="request">Pagination and filter parameters</param>
+        /// <param name="company">Optional company ID filter (Super Admin/Company Admin only)</param>
         /// <returns>Paginated list of Employees entities</returns>
         /// <response code="200">Returns the paginated list of Employees entities</response>
+        /// <response code="403">Forbidden - no company access or access denied to requested company</response>
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<Employees>), 200)]
-        public async Task<IActionResult> GetPaged([FromQuery] EmployeesFilterRequest request)
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> GetPaged([FromQuery] EmployeesFilterRequest request, [FromQuery] Guid? company = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
+            // Get effective company ID with validation
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+
+            if (errorMessage != null)
+                return StatusCode(403, new { error = errorMessage });
+
+            if (!effectiveCompanyId.HasValue)
+                return CompanyIdNotFoundResponse();
 
             var filters = request.GetFilters();
-            // Enforce company isolation - override any company_id in filters
-            filters["company_id"] = CurrentCompanyId.Value;
+            // Set company filter based on effective company
+            filters["company_id"] = effectiveCompanyId.Value;
 
             var result = await _service.GetPagedAsync(
                 request.PageNumber,
@@ -176,7 +177,7 @@ namespace WebApi.Controllers
                 request.SortBy,
                 request.SortDescending,
                 filters);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -186,13 +187,13 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             var pagedResponse = new PagedResponse<Employees>(
                 result.Value.Items,
                 result.Value.TotalCount,
                 request.PageNumber,
                 request.PageSize);
-            
+
             return Ok(pagedResponse);
         }
 
@@ -203,7 +204,7 @@ namespace WebApi.Controllers
         /// <returns>The created Employee entity</returns>
         /// <response code="201">Employee created successfully</response>
         /// <response code="400">Invalid request data</response>
-        /// <response code="403">Forbidden - cannot create employee for different company</response>
+        /// <response code="403">Forbidden - cannot create employee for a company you don't have access to</response>
         /// <response code="409">Employee ID or email already exists</response>
         [HttpPost]
         [ProducesResponseType(typeof(Employees), 201)]
@@ -212,21 +213,25 @@ namespace WebApi.Controllers
         [ProducesResponseType(409)]
         public async Task<IActionResult> Create([FromBody] CreateEmployeesDto dto)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
-            // Enforce company isolation - ensure employee is created for current user's company
-            if (dto.CompanyId.HasValue && dto.CompanyId.Value != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Cannot create employee for a different company" });
-
-            // Set company_id from token if not provided
-            if (!dto.CompanyId.HasValue)
+            // Determine target company
+            if (dto.CompanyId.HasValue)
             {
-                dto.CompanyId = CurrentCompanyId.Value;
+                // Validate user has access to the specified company
+                if (!CanAccessCompany(dto.CompanyId.Value))
+                    return StatusCode(403, new { error = "Cannot create employee for a company you don't have access to" });
+            }
+            else
+            {
+                // Use default company from JWT
+                var defaultCompanyId = CurrentCompanyId;
+                if (!defaultCompanyId.HasValue)
+                    return CompanyIdNotFoundResponse();
+
+                dto.CompanyId = defaultCompanyId.Value;
             }
 
             var result = await _service.CreateAsync(dto);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -237,7 +242,7 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
         }
 
@@ -245,27 +250,41 @@ namespace WebApi.Controllers
         /// Bulk create employees
         /// </summary>
         /// <param name="dto">Bulk employees payload</param>
+        /// <param name="company">Optional target company ID (Super Admin/Company Admin only)</param>
         /// <returns>Bulk upload summary</returns>
         /// <response code="200">Bulk upload processed</response>
         /// <response code="400">Validation errors</response>
-        /// <response code="403">Forbidden - company ID not found</response>
+        /// <response code="403">Forbidden - no access to target company</response>
         [HttpPost("bulk")]
         [ProducesResponseType(typeof(BulkEmployeesResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> BulkCreate([FromBody] BulkEmployeesDto dto)
+        public async Task<IActionResult> BulkCreate([FromBody] BulkEmployeesDto dto, [FromQuery] Guid? company = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
+            // Determine target company
+            var (targetCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
 
-            // Enforce company isolation - set company_id for all employees
+            if (errorMessage != null)
+                return StatusCode(403, new { error = errorMessage });
+
+            if (!targetCompanyId.HasValue)
+                return CompanyIdNotFoundResponse();
+
+            // Set company_id for all employees to the target company
             if (dto.Employees != null)
             {
                 foreach (var employee in dto.Employees)
                 {
-                    if (employee.CompanyId.HasValue && employee.CompanyId.Value != CurrentCompanyId.Value)
-                        return StatusCode(403, new { error = "Cannot create employees for a different company" });
-                    employee.CompanyId = CurrentCompanyId.Value;
+                    // If employee specifies a company, validate access
+                    if (employee.CompanyId.HasValue && employee.CompanyId.Value != targetCompanyId.Value)
+                    {
+                        if (!CanAccessCompany(employee.CompanyId.Value))
+                            return StatusCode(403, new { error = "Cannot create employees for a company you don't have access to" });
+                    }
+                    else
+                    {
+                        employee.CompanyId = targetCompanyId.Value;
+                    }
                 }
             }
 
@@ -292,7 +311,7 @@ namespace WebApi.Controllers
         /// <returns>No content if successful</returns>
         /// <response code="204">Employee updated successfully</response>
         /// <response code="400">Invalid request data</response>
-        /// <response code="403">Forbidden - employee belongs to different company</response>
+        /// <response code="403">Forbidden - no access to employee's company</response>
         /// <response code="404">Employee not found</response>
         /// <response code="409">Employee ID or email already exists</response>
         [HttpPut("{id}")]
@@ -303,10 +322,7 @@ namespace WebApi.Controllers
         [ProducesResponseType(409)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeesDto dto)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
-            // Validate employee belongs to current company before update
+            // Validate employee exists and user has access
             var employeeResult = await _service.GetByIdAsync(id);
             if (employeeResult.IsFailure)
             {
@@ -317,15 +333,19 @@ namespace WebApi.Controllers
                 };
             }
 
-            if (employeeResult.Value!.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
+            // Validate company access
+            if (!HasCompanyAccess(employeeResult.Value!.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
 
-            // Prevent changing company_id
-            if (dto.CompanyId.HasValue && dto.CompanyId.Value != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Cannot change employee's company" });
+            // Prevent changing company to one user doesn't have access to
+            if (dto.CompanyId.HasValue && dto.CompanyId.Value != employeeResult.Value.CompanyId)
+            {
+                if (!CanAccessCompany(dto.CompanyId.Value))
+                    return StatusCode(403, new { error = "Cannot move employee to a company you don't have access to" });
+            }
 
             var result = await _service.UpdateAsync(id, dto);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -337,7 +357,7 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return NoContent();
         }
 
@@ -348,7 +368,7 @@ namespace WebApi.Controllers
         /// <returns>No content if successful</returns>
         /// <response code="204">Employee deleted successfully</response>
         /// <response code="400">Invalid request data</response>
-        /// <response code="403">Forbidden - employee belongs to different company</response>
+        /// <response code="403">Forbidden - no access to employee's company</response>
         /// <response code="404">Employee not found</response>
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]
@@ -357,10 +377,7 @@ namespace WebApi.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> Delete(Guid id)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
-            // Validate employee belongs to current company before delete
+            // Validate employee exists and user has access
             var employeeResult = await _service.GetByIdAsync(id);
             if (employeeResult.IsFailure)
             {
@@ -371,11 +388,12 @@ namespace WebApi.Controllers
                 };
             }
 
-            if (employeeResult.Value!.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
+            // Validate company access
+            if (!HasCompanyAccess(employeeResult.Value!.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
 
             var result = await _service.DeleteAsync(id);
-            
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -386,7 +404,7 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return NoContent();
         }
 
@@ -394,24 +412,21 @@ namespace WebApi.Controllers
         /// Check if Employee exists
         /// </summary>
         /// <param name="id">The Employee ID</param>
-        /// <returns>True if exists, false otherwise</returns>
+        /// <returns>True if exists and user has access, false otherwise</returns>
         /// <response code="200">Returns existence status</response>
         [HttpGet("{id}/exists")]
         [ProducesResponseType(typeof(bool), 200)]
         public async Task<IActionResult> Exists(Guid id)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
             var result = await _service.GetByIdAsync(id);
-            
+
             if (result.IsFailure)
             {
                 return Ok(false);
             }
 
-            // Only return true if employee belongs to current company
-            return Ok(result.Value!.CompanyId == CurrentCompanyId.Value);
+            // Return true only if user has access to the employee's company
+            return Ok(HasCompanyAccess(result.Value!.CompanyId));
         }
 
         /// <summary>
@@ -419,17 +434,24 @@ namespace WebApi.Controllers
         /// </summary>
         /// <param name="employeeId">The Employee ID to check</param>
         /// <param name="excludeId">Optional ID to exclude from check (for updates)</param>
+        /// <param name="company">Optional company ID (Super Admin/Company Admin only)</param>
         /// <returns>True if unique, false otherwise</returns>
         /// <response code="200">Returns uniqueness status</response>
         [HttpGet("check-employee-id-unique")]
         [ProducesResponseType(typeof(bool), 200)]
-        public async Task<IActionResult> CheckEmployeeIdUnique([FromQuery] string employeeId, [FromQuery] Guid? excludeId = null)
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> CheckEmployeeIdUnique([FromQuery] string employeeId, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? company = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
 
-            var result = await _service.IsEmployeeIdUniqueAsync(employeeId, excludeId, CurrentCompanyId.Value);
-            
+            if (errorMessage != null)
+                return StatusCode(403, new { error = errorMessage });
+
+            if (!effectiveCompanyId.HasValue)
+                return CompanyIdNotFoundResponse();
+
+            var result = await _service.IsEmployeeIdUniqueAsync(employeeId, excludeId, effectiveCompanyId.Value);
+
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -438,7 +460,7 @@ namespace WebApi.Controllers
                     _ => BadRequest(result.Error.Message)
                 };
             }
-            
+
             return Ok(result.Value);
         }
 
@@ -447,16 +469,23 @@ namespace WebApi.Controllers
         /// </summary>
         /// <param name="email">The Email to check</param>
         /// <param name="excludeId">Optional ID to exclude from check (for updates)</param>
+        /// <param name="company">Optional company ID (Super Admin/Company Admin only)</param>
         /// <returns>True if unique, false otherwise</returns>
         /// <response code="200">Returns uniqueness status</response>
         [HttpGet("check-email-unique")]
         [ProducesResponseType(typeof(bool), 200)]
-        public async Task<IActionResult> CheckEmailUnique([FromQuery] string email, [FromQuery] Guid? excludeId = null)
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> CheckEmailUnique([FromQuery] string email, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? company = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
 
-            var result = await _service.IsEmailUniqueAsync(email, excludeId, CurrentCompanyId.Value);
+            if (errorMessage != null)
+                return StatusCode(403, new { error = errorMessage });
+
+            if (!effectiveCompanyId.HasValue)
+                return CompanyIdNotFoundResponse();
+
+            var result = await _service.IsEmailUniqueAsync(email, excludeId, effectiveCompanyId.Value);
 
             if (result.IsFailure)
             {
@@ -478,7 +507,7 @@ namespace WebApi.Controllers
         /// <returns>No content if successful</returns>
         /// <response code="204">Employee resigned successfully</response>
         /// <response code="400">Invalid request data</response>
-        /// <response code="403">Forbidden - employee belongs to different company</response>
+        /// <response code="403">Forbidden - no access to employee's company</response>
         /// <response code="404">Employee not found</response>
         [HttpPost("{id}/resign")]
         [ProducesResponseType(204)]
@@ -487,9 +516,6 @@ namespace WebApi.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> Resign(Guid id, [FromBody] ResignEmployeeDto dto)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
             // Validate employee exists
             var employeeResult = await _service.GetByIdAsync(id);
             if (employeeResult.IsFailure)
@@ -503,9 +529,9 @@ namespace WebApi.Controllers
 
             var employee = employeeResult.Value!;
 
-            // Validate company isolation
-            if (employee.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
+            // Validate company access
+            if (!HasCompanyAccess(employee.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
 
             // Check if employee is already resigned
             if (employee.Status == "resigned")
@@ -559,7 +585,7 @@ namespace WebApi.Controllers
         /// <returns>No content if successful</returns>
         /// <response code="204">Employee rejoined successfully</response>
         /// <response code="400">Invalid request data or employee is not resigned</response>
-        /// <response code="403">Forbidden - employee belongs to different company</response>
+        /// <response code="403">Forbidden - no access to employee's company</response>
         /// <response code="404">Employee not found</response>
         [HttpPost("{id}/rejoin")]
         [ProducesResponseType(204)]
@@ -568,9 +594,6 @@ namespace WebApi.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> Rejoin(Guid id, [FromBody] RejoinEmployeeDto? dto = null)
         {
-            if (CurrentCompanyId == null)
-                return StatusCode(403, new { error = "Company ID not found in token" });
-
             // Validate employee exists
             var employeeResult = await _service.GetByIdAsync(id);
             if (employeeResult.IsFailure)
@@ -584,9 +607,9 @@ namespace WebApi.Controllers
 
             var employee = employeeResult.Value!;
 
-            // Validate company isolation
-            if (employee.CompanyId != CurrentCompanyId.Value)
-                return StatusCode(403, new { error = "Access denied. Employee belongs to a different company." });
+            // Validate company access
+            if (!HasCompanyAccess(employee.CompanyId))
+                return AccessDeniedDifferentCompanyResponse("Employee");
 
             // Check if employee is resigned
             if (employee.Status != "resigned")

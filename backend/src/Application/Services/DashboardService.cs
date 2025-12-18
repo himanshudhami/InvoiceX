@@ -20,13 +20,18 @@ namespace Application.Services
             _dashboardRepository = dashboardRepository ?? throw new ArgumentNullException(nameof(dashboardRepository));
         }
 
-        public async Task<Result<DashboardDataDto>> GetDashboardDataAsync()
+        public async Task<Result<DashboardDataDto>> GetDashboardDataAsync(Guid companyId)
         {
             try
             {
+                // Validate company ID
+                if (companyId == Guid.Empty)
+                    return Error.Validation("Company ID is required");
+
                 // Get statistics and recent invoices in parallel for better performance
-                var statsTask = _dashboardRepository.GetDashboardStatsAsync();
-                var recentInvoicesTask = _dashboardRepository.GetRecentInvoicesAsync(10);
+                // Pass companyId for multi-tenancy filtering
+                var statsTask = _dashboardRepository.GetDashboardStatsAsync(companyId);
+                var recentInvoicesTask = _dashboardRepository.GetRecentInvoicesAsync(companyId, 10);
 
                 await Task.WhenAll(statsTask, recentInvoicesTask);
 
@@ -49,7 +54,7 @@ namespace Application.Services
                 var recentInvoices = recentInvoicesData.Select(invoice =>
                 {
                     var daysOverdue = CalculateDaysOverdue(invoice.DueDate, invoice.Status);
-                    
+
                     return new RecentInvoiceDto
                     {
                         Id = invoice.Id,

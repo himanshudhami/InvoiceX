@@ -7,8 +7,9 @@ import { Employee, CreateEmployeeDto, UpdateEmployeeDto, PagedResponse, Employee
 export class EmployeeService {
   private readonly endpoint = 'employees';
 
-  async getAll(): Promise<Employee[]> {
-    return apiClient.get<Employee[]>(this.endpoint);
+  async getAll(companyId?: string): Promise<Employee[]> {
+    const params = companyId ? { company: companyId } : undefined;
+    return apiClient.get<Employee[]>(this.endpoint, params);
   }
 
   async getById(id: string): Promise<Employee> {
