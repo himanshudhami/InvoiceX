@@ -1081,6 +1081,128 @@ export interface CalculationLineItem {
   notes?: string;
 }
 
+// ==================== Calculation Rules ====================
+export interface CalculationRule {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+  componentType: 'earning' | 'deduction' | 'employer_contribution';
+  componentCode: string;
+  componentName?: string;
+  ruleType: 'percentage' | 'fixed' | 'slab' | 'formula';
+  formulaConfig: string; // JSON string
+  priority: number;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  isActive: boolean;
+  isSystem: boolean;
+  isTaxable: boolean;
+  affectsPfWage: boolean;
+  affectsEsiWage: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  companyName?: string;
+  conditions: CalculationRuleCondition[];
+}
+
+export interface CalculationRuleCondition {
+  id: string;
+  ruleId: string;
+  conditionGroup: number;
+  field: string;
+  operator: string;
+  value: string; // JSON string
+}
+
+export interface CreateCalculationRuleDto {
+  companyId: string;
+  name: string;
+  description?: string;
+  componentType: 'earning' | 'deduction' | 'employer_contribution';
+  componentCode: string;
+  componentName?: string;
+  ruleType: 'percentage' | 'fixed' | 'slab' | 'formula';
+  formulaConfig: string;
+  priority?: number;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  isTaxable?: boolean;
+  affectsPfWage?: boolean;
+  affectsEsiWage?: boolean;
+  conditions?: CreateCalculationRuleConditionDto[];
+}
+
+export interface UpdateCalculationRuleDto {
+  name?: string;
+  description?: string;
+  componentType?: 'earning' | 'deduction' | 'employer_contribution';
+  componentCode?: string;
+  componentName?: string;
+  ruleType?: 'percentage' | 'fixed' | 'slab' | 'formula';
+  formulaConfig?: string;
+  priority?: number;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  isActive?: boolean;
+  isTaxable?: boolean;
+  affectsPfWage?: boolean;
+  affectsEsiWage?: boolean;
+  conditions?: CreateCalculationRuleConditionDto[];
+}
+
+export interface CreateCalculationRuleConditionDto {
+  conditionGroup?: number;
+  field: string;
+  operator: string;
+  value: string;
+}
+
+export interface FormulaVariable {
+  id: string;
+  code: string;
+  displayName: string;
+  description?: string;
+  dataType: string;
+  source: string;
+  isSystem: boolean;
+}
+
+export interface CalculationRuleTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+  componentType: string;
+  componentCode: string;
+  ruleType: string;
+  formulaConfig: string;
+  defaultConditions?: string;
+  displayOrder: number;
+}
+
+export interface FormulaValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
+  sampleResult?: number;
+  usedVariables: string[];
+  unknownVariables: string[];
+}
+
+export interface RuleCalculationPreview {
+  success: boolean;
+  errorMessage?: string;
+  result: number;
+  inputValues: Record<string, number>;
+  steps: CalculationStep[];
+}
+
+export interface CalculationStep {
+  description: string;
+  expression: string;
+  value: number;
+}
+
 
 
 

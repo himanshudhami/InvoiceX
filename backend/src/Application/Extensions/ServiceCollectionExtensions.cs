@@ -81,6 +81,10 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Services.Payroll.TdsCalculationService>();
             services.AddScoped<Application.Services.Payroll.PayrollCalculationService>();
 
+            // Calculation rules engine
+            services.AddScoped<Application.Services.Payroll.FormulaEvaluator>();
+            services.AddScoped<Application.Services.Payroll.CalculationRuleEngine>();
+
             // Payroll configuration services
             services.AddScoped<Application.Interfaces.Payroll.IProfessionalTaxSlabService,
                               Application.Services.Payroll.ProfessionalTaxSlabService>();

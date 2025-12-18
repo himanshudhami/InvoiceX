@@ -30,6 +30,7 @@ import {
   FolderOpen,
   GitBranch,
   Network,
+  Calculator,
 } from 'lucide-react'
 
 interface Props {
@@ -68,6 +69,7 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Salary Structures', href: '/payroll/salary-structures', icon: FileSpreadsheet },
         { name: 'Tax Declarations', href: '/payroll/tax-declarations', icon: Receipt },
         { name: 'Contractors', href: '/payroll/contractors', icon: Users },
+        { name: 'Calculation Rules', href: '/payroll/calculation-rules', icon: Calculator },
       ],
     },
     {

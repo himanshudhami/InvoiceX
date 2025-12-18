@@ -53,6 +53,9 @@ export const PayrollTab: FC<PayrollTabProps> = ({ employeeId }) => {
                 <Badge variant={payrollInfo.isPfApplicable ? 'default' : 'outline'}>
                   {payrollInfo.isPfApplicable ? 'Yes' : 'No'}
                 </Badge>
+                {payrollInfo.isPfApplicable && payrollInfo.optedForRestrictedPf && (
+                  <div className="text-xs text-amber-600 mt-1">Restricted PF</div>
+                )}
               </div>
               <div>
                 <div className="text-xs text-gray-500 uppercase">ESI</div>

@@ -30,6 +30,13 @@ import type {
   ProfessionalTaxSlab,
   CreateProfessionalTaxSlabDto,
   UpdateProfessionalTaxSlabDto,
+  CalculationRule,
+  CreateCalculationRuleDto,
+  UpdateCalculationRuleDto,
+  FormulaVariable,
+  CalculationRuleTemplate,
+  FormulaValidationResult,
+  RuleCalculationPreview,
 } from '@/features/payroll/types/payroll';
 
 /**
@@ -422,6 +429,72 @@ export class PayrollService {
 
   async getNoPtStates(): Promise<string[]> {
     return apiClient.get<string[]>(`${this.taxConfigEndpoint}/no-pt-states`);
+  }
+
+  // ==================== Calculation Rules ====================
+
+  private readonly calculationRulesEndpoint = 'payroll/calculationrules';
+
+  async getCalculationRules(params: PaginationParams & {
+    companyId?: string;
+    componentType?: string;
+    isActive?: boolean;
+  } = {}): Promise<PagedResponse<CalculationRule>> {
+    return apiClient.getPaged<CalculationRule>(this.calculationRulesEndpoint, params);
+  }
+
+  async getCalculationRuleById(id: string): Promise<CalculationRule> {
+    return apiClient.get<CalculationRule>(`${this.calculationRulesEndpoint}/${id}`);
+  }
+
+  async getActiveRulesByCompany(companyId: string): Promise<CalculationRule[]> {
+    return apiClient.get<CalculationRule[]>(`${this.calculationRulesEndpoint}/company/${companyId}/active`);
+  }
+
+  async createCalculationRule(data: CreateCalculationRuleDto): Promise<CalculationRule> {
+    return apiClient.post<CalculationRule, CreateCalculationRuleDto>(this.calculationRulesEndpoint, data);
+  }
+
+  async updateCalculationRule(id: string, data: UpdateCalculationRuleDto): Promise<CalculationRule> {
+    return apiClient.put<CalculationRule, UpdateCalculationRuleDto>(`${this.calculationRulesEndpoint}/${id}`, data);
+  }
+
+  async deleteCalculationRule(id: string): Promise<void> {
+    return apiClient.delete<void>(`${this.calculationRulesEndpoint}/${id}`);
+  }
+
+  async validateFormula(expression: string, sampleValues?: Record<string, number>): Promise<FormulaValidationResult> {
+    return apiClient.post<FormulaValidationResult, { expression: string; sampleValues?: Record<string, number> }>(
+      `${this.calculationRulesEndpoint}/validate-formula`,
+      { expression, sampleValues }
+    );
+  }
+
+  async previewRuleCalculation(params: {
+    ruleId?: string;
+    rule?: CreateCalculationRuleDto;
+    employeeId?: string;
+    customValues?: Record<string, number>;
+  }): Promise<RuleCalculationPreview> {
+    return apiClient.post<RuleCalculationPreview, typeof params>(
+      `${this.calculationRulesEndpoint}/preview`,
+      params
+    );
+  }
+
+  async getFormulaVariables(): Promise<FormulaVariable[]> {
+    return apiClient.get<FormulaVariable[]>(`${this.calculationRulesEndpoint}/variables`);
+  }
+
+  async getCalculationRuleTemplates(): Promise<CalculationRuleTemplate[]> {
+    return apiClient.get<CalculationRuleTemplate[]>(`${this.calculationRulesEndpoint}/templates`);
+  }
+
+  async createRuleFromTemplate(templateId: string, companyId: string): Promise<CalculationRule> {
+    return apiClient.post<CalculationRule, Record<string, never>>(
+      `${this.calculationRulesEndpoint}/from-template/${templateId}?companyId=${companyId}`,
+      {}
+    );
   }
 }
 

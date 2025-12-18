@@ -17,6 +17,7 @@ public class EmployeePayrollInfoDto
     public bool IsPfApplicable { get; set; }
     public bool IsEsiApplicable { get; set; }
     public bool IsPtApplicable { get; set; }
+    public bool OptedForRestrictedPf { get; set; }
     public DateTime? DateOfJoining { get; set; }
     public DateTime? DateOfLeaving { get; set; }
     public bool IsActive { get; set; }
@@ -58,6 +59,7 @@ public class CreateEmployeePayrollInfoDto
     public bool IsPfApplicable { get; set; } = true;
     public bool IsEsiApplicable { get; set; } = false;
     public bool IsPtApplicable { get; set; } = true;
+    public bool OptedForRestrictedPf { get; set; } = false;
     public DateTime? DateOfJoining { get; set; }
 
     // Compliance Fields
@@ -81,6 +83,7 @@ public class UpdateEmployeePayrollInfoDto
     public bool? IsPfApplicable { get; set; }
     public bool? IsEsiApplicable { get; set; }
     public bool? IsPtApplicable { get; set; }
+    public bool? OptedForRestrictedPf { get; set; }
     public DateTime? DateOfJoining { get; set; }
     public DateTime? DateOfLeaving { get; set; }
     public bool? IsActive { get; set; }

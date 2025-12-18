@@ -28,8 +28,9 @@ public class PayrollCalculationService
     private readonly IEmployeeTaxDeclarationRepository _taxDeclarationRepository;
     private readonly IPayrollTransactionRepository _payrollTransactionRepository;
     private readonly IEsiEligibilityRepository? _esiEligibilityRepository;
+    private readonly CalculationRuleEngine? _ruleEngine;
 
-    private const string CONFIG_VERSION = "FY_2024-25_v1";
+    private const string CONFIG_VERSION = "FY_2024-25_v2"; // Updated for rules engine integration
 
     public PayrollCalculationService(
         PfCalculationService pfService,
@@ -39,7 +40,8 @@ public class PayrollCalculationService
         ICompanyStatutoryConfigRepository companyConfigRepository,
         IEmployeeTaxDeclarationRepository taxDeclarationRepository,
         IPayrollTransactionRepository payrollTransactionRepository,
-        IEsiEligibilityRepository? esiEligibilityRepository = null)
+        IEsiEligibilityRepository? esiEligibilityRepository = null,
+        CalculationRuleEngine? ruleEngine = null)
     {
         _pfService = pfService;
         _esiService = esiService;
@@ -49,6 +51,7 @@ public class PayrollCalculationService
         _taxDeclarationRepository = taxDeclarationRepository;
         _payrollTransactionRepository = payrollTransactionRepository;
         _esiEligibilityRepository = esiEligibilityRepository;
+        _ruleEngine = ruleEngine;
     }
 
     /// <summary>
@@ -159,58 +162,124 @@ public class PayrollCalculationService
                                     transaction.LtaPaid + transaction.BonusPaid + transaction.Arrears +
                                     transaction.Reimbursements + transaction.Incentives + transaction.OtherEarnings;
 
+        // Build variables dictionary for rules engine
+        var ruleVariables = BuildRuleVariables(salaryStructure, transaction, workingDays, presentDays, prorationFactor, companyConfig, payrollMonth, payrollYear);
+
         // Calculate PF with audit lines
         if (payrollInfo.IsPfApplicable && companyConfig.PfEnabled)
         {
-            // Get PF calculation mode from company config (default: ceiling_based)
-            var pfCalculationMode = companyConfig.PfCalculationMode ?? "ceiling_based";
-            var restrictedPfMaxWage = companyConfig.RestrictedPfMaxWage > 0 ? companyConfig.RestrictedPfMaxWage : 15000m;
+            // Try to use rules engine first
+            var pfCalculatedViaRules = false;
 
-            var pfResult = _pfService.CalculateProrated(
-                salaryStructure.BasicSalary,
-                salaryStructure.DearnessAllowance,
-                salaryStructure.SpecialAllowance,
-                companyConfig.PfIncludeSpecialAllowance,
-                companyConfig.PfWageCeiling,
-                companyConfig.PfEmployeeRate,
-                companyConfig.PfEmployerRate,
-                true,
-                workingDays,
-                presentDays,
-                pfCalculationMode,
-                restrictedPfMaxWage,
-                payrollInfo.OptedForRestrictedPf);
+            if (_ruleEngine != null)
+            {
+                // Calculate PF Employee using rules engine
+                var pfEmployeeResult = await _ruleEngine.CalculateComponentAsync(
+                    payrollInfo.CompanyId, "PF_EMPLOYEE", ruleVariables);
 
-            transaction.PfEmployee = pfResult.EmployeeContribution;
-            transaction.PfEmployer = pfResult.EmployerContribution;
-            transaction.PfAdminCharges = pfResult.AdminCharges;
-            transaction.PfEdli = pfResult.EdliCharges;
+                if (pfEmployeeResult.Success && pfEmployeeResult.RuleUsed != null)
+                {
+                    transaction.PfEmployee = Math.Round(pfEmployeeResult.Result, 0, MidpointRounding.AwayFromZero);
+                    pfCalculatedViaRules = true;
 
-            // Use PfWageBase from result for audit (already includes mode-specific calculation)
-            var auditPfWageBase = pfResult.PfWageBase * prorationFactor;
+                    if (transaction.PfEmployee > 0)
+                        lines.Add(CreateLine("deduction", ++lineSeq, "PF_EMPLOYEE", "PF Employee Contribution",
+                            ruleVariables.GetValueOrDefault("pf_wage", 0), null, transaction.PfEmployee,
+                            JsonSerializer.Serialize(new {
+                                source = "rules_engine",
+                                rule_name = pfEmployeeResult.RuleUsed.Name,
+                                rule_id = pfEmployeeResult.RuleUsed.Id,
+                                steps = pfEmployeeResult.Steps.Select(s => new { s.Description, s.Expression, s.Value })
+                            })));
+                }
 
-            if (transaction.PfEmployee > 0)
-                lines.Add(CreateLine("deduction", ++lineSeq, "PF_EMPLOYEE_12", "PF Employee Contribution", auditPfWageBase, companyConfig.PfEmployeeRate, transaction.PfEmployee,
-                    JsonSerializer.Serialize(new {
-                        calculation_mode = pfCalculationMode,
-                        wage_ceiling = companyConfig.PfWageCeiling,
-                        actual_pf_wage = pfResult.ActualPfWage,
-                        pf_wage_base = pfResult.PfWageBase,
-                        ceiling_applied = pfResult.CeilingApplied,
-                        rate = companyConfig.PfEmployeeRate,
-                        include_special_allowance = companyConfig.PfIncludeSpecialAllowance,
-                        opted_for_restricted_pf = payrollInfo.OptedForRestrictedPf
-                    })));
+                // Calculate PF Employer using rules engine
+                var pfEmployerResult = await _ruleEngine.CalculateComponentAsync(
+                    payrollInfo.CompanyId, "PF_EMPLOYER", ruleVariables);
 
-            if (transaction.PfEmployer > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EMPLOYER_12", "PF Employer Contribution", auditPfWageBase, companyConfig.PfEmployerRate, transaction.PfEmployer,
-                    JsonSerializer.Serialize(new { calculation_mode = pfCalculationMode })));
+                if (pfEmployerResult.Success && pfEmployerResult.RuleUsed != null)
+                {
+                    transaction.PfEmployer = Math.Round(pfEmployerResult.Result, 0, MidpointRounding.AwayFromZero);
 
-            if (transaction.PfAdminCharges > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_ADMIN_CHARGES", "PF Admin Charges", auditPfWageBase, 0.5m, transaction.PfAdminCharges));
+                    if (transaction.PfEmployer > 0)
+                        lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EMPLOYER", "PF Employer Contribution",
+                            ruleVariables.GetValueOrDefault("pf_wage", 0), null, transaction.PfEmployer,
+                            JsonSerializer.Serialize(new {
+                                source = "rules_engine",
+                                rule_name = pfEmployerResult.RuleUsed.Name,
+                                rule_id = pfEmployerResult.RuleUsed.Id
+                            })));
+                }
 
-            if (transaction.PfEdli > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EDLI", "PF EDLI", auditPfWageBase, 0.5m, transaction.PfEdli));
+                // Admin charges and EDLI still use standard calculation (0.5% each on capped wage)
+                if (pfCalculatedViaRules)
+                {
+                    var cappedPfWage = Math.Min(ruleVariables.GetValueOrDefault("pf_wage", 0), 15000m) * prorationFactor;
+                    transaction.PfAdminCharges = Math.Round(cappedPfWage * 0.5m / 100m, 0, MidpointRounding.AwayFromZero);
+                    transaction.PfEdli = Math.Round(cappedPfWage * 0.5m / 100m, 0, MidpointRounding.AwayFromZero);
+
+                    if (transaction.PfAdminCharges > 0)
+                        lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_ADMIN_CHARGES", "PF Admin Charges", cappedPfWage, 0.5m, transaction.PfAdminCharges));
+
+                    if (transaction.PfEdli > 0)
+                        lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EDLI", "PF EDLI", cappedPfWage, 0.5m, transaction.PfEdli));
+                }
+            }
+
+            // Fall back to legacy calculation if rules engine not used
+            if (!pfCalculatedViaRules)
+            {
+                // Get PF calculation mode from company config (default: ceiling_based)
+                var pfCalculationMode = companyConfig.PfCalculationMode ?? "ceiling_based";
+                var restrictedPfMaxWage = companyConfig.RestrictedPfMaxWage > 0 ? companyConfig.RestrictedPfMaxWage : 15000m;
+
+                var pfResult = _pfService.CalculateProrated(
+                    salaryStructure.BasicSalary,
+                    salaryStructure.DearnessAllowance,
+                    salaryStructure.SpecialAllowance,
+                    companyConfig.PfIncludeSpecialAllowance,
+                    companyConfig.PfWageCeiling,
+                    companyConfig.PfEmployeeRate,
+                    companyConfig.PfEmployerRate,
+                    true,
+                    workingDays,
+                    presentDays,
+                    pfCalculationMode,
+                    restrictedPfMaxWage,
+                    payrollInfo.OptedForRestrictedPf);
+
+                transaction.PfEmployee = pfResult.EmployeeContribution;
+                transaction.PfEmployer = pfResult.EmployerContribution;
+                transaction.PfAdminCharges = pfResult.AdminCharges;
+                transaction.PfEdli = pfResult.EdliCharges;
+
+                // Use PfWageBase from result for audit (already includes mode-specific calculation)
+                var auditPfWageBase = pfResult.PfWageBase * prorationFactor;
+
+                if (transaction.PfEmployee > 0)
+                    lines.Add(CreateLine("deduction", ++lineSeq, "PF_EMPLOYEE_12", "PF Employee Contribution", auditPfWageBase, companyConfig.PfEmployeeRate, transaction.PfEmployee,
+                        JsonSerializer.Serialize(new {
+                            source = "legacy",
+                            calculation_mode = pfCalculationMode,
+                            wage_ceiling = companyConfig.PfWageCeiling,
+                            actual_pf_wage = pfResult.ActualPfWage,
+                            pf_wage_base = pfResult.PfWageBase,
+                            ceiling_applied = pfResult.CeilingApplied,
+                            rate = companyConfig.PfEmployeeRate,
+                            include_special_allowance = companyConfig.PfIncludeSpecialAllowance,
+                            opted_for_restricted_pf = payrollInfo.OptedForRestrictedPf
+                        })));
+
+                if (transaction.PfEmployer > 0)
+                    lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EMPLOYER_12", "PF Employer Contribution", auditPfWageBase, companyConfig.PfEmployerRate, transaction.PfEmployer,
+                        JsonSerializer.Serialize(new { source = "legacy", calculation_mode = pfCalculationMode })));
+
+                if (transaction.PfAdminCharges > 0)
+                    lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_ADMIN_CHARGES", "PF Admin Charges", auditPfWageBase, 0.5m, transaction.PfAdminCharges));
+
+                if (transaction.PfEdli > 0)
+                    lines.Add(CreateLine("employer_contribution", ++lineSeq, "PF_EDLI", "PF EDLI", auditPfWageBase, 0.5m, transaction.PfEdli));
+            }
         }
 
         // Calculate ESI with audit lines
@@ -244,24 +313,73 @@ public class PayrollCalculationService
 
             if (isEsiEligibleForPeriod)
             {
-                var esiResult = _esiService.CalculateProrated(
-                    salaryStructure.MonthlyGross,
-                    companyConfig.EsiGrossCeiling,
-                    companyConfig.EsiEmployeeRate,
-                    companyConfig.EsiEmployerRate,
-                    true, // Force applicable since we've already determined eligibility
-                    workingDays,
-                    presentDays);
+                var esiCalculatedViaRules = false;
 
-                transaction.EsiEmployee = esiResult.EmployeeContribution;
-                transaction.EsiEmployer = esiResult.EmployerContribution;
+                // Try rules engine first for ESI
+                if (_ruleEngine != null)
+                {
+                    // Calculate ESI Employee using rules engine
+                    var esiEmployeeResult = await _ruleEngine.CalculateComponentAsync(
+                        payrollInfo.CompanyId, "ESI_EMPLOYEE", ruleVariables);
 
-                if (transaction.EsiEmployee > 0)
-                    lines.Add(CreateLine("deduction", ++lineSeq, "ESI_EMPLOYEE_075", "ESI Employee Contribution", transaction.GrossEarnings, companyConfig.EsiEmployeeRate, transaction.EsiEmployee,
-                        JsonSerializer.Serialize(new { gross_ceiling = companyConfig.EsiGrossCeiling, rate = companyConfig.EsiEmployeeRate, six_month_rule = _esiEligibilityRepository != null })));
+                    if (esiEmployeeResult.Success && esiEmployeeResult.RuleUsed != null)
+                    {
+                        transaction.EsiEmployee = Math.Round(esiEmployeeResult.Result, 0, MidpointRounding.AwayFromZero);
+                        esiCalculatedViaRules = true;
 
-                if (transaction.EsiEmployer > 0)
-                    lines.Add(CreateLine("employer_contribution", ++lineSeq, "ESI_EMPLOYER_325", "ESI Employer Contribution", transaction.GrossEarnings, companyConfig.EsiEmployerRate, transaction.EsiEmployer));
+                        if (transaction.EsiEmployee > 0)
+                            lines.Add(CreateLine("deduction", ++lineSeq, "ESI_EMPLOYEE", "ESI Employee Contribution",
+                                transaction.GrossEarnings, null, transaction.EsiEmployee,
+                                JsonSerializer.Serialize(new {
+                                    source = "rules_engine",
+                                    rule_name = esiEmployeeResult.RuleUsed.Name,
+                                    rule_id = esiEmployeeResult.RuleUsed.Id,
+                                    six_month_rule = _esiEligibilityRepository != null
+                                })));
+                    }
+
+                    // Calculate ESI Employer using rules engine
+                    var esiEmployerResult = await _ruleEngine.CalculateComponentAsync(
+                        payrollInfo.CompanyId, "ESI_EMPLOYER", ruleVariables);
+
+                    if (esiEmployerResult.Success && esiEmployerResult.RuleUsed != null)
+                    {
+                        transaction.EsiEmployer = Math.Round(esiEmployerResult.Result, 0, MidpointRounding.AwayFromZero);
+
+                        if (transaction.EsiEmployer > 0)
+                            lines.Add(CreateLine("employer_contribution", ++lineSeq, "ESI_EMPLOYER", "ESI Employer Contribution",
+                                transaction.GrossEarnings, null, transaction.EsiEmployer,
+                                JsonSerializer.Serialize(new {
+                                    source = "rules_engine",
+                                    rule_name = esiEmployerResult.RuleUsed.Name,
+                                    rule_id = esiEmployerResult.RuleUsed.Id
+                                })));
+                    }
+                }
+
+                // Fall back to legacy calculation if rules engine not used
+                if (!esiCalculatedViaRules)
+                {
+                    var esiResult = _esiService.CalculateProrated(
+                        salaryStructure.MonthlyGross,
+                        companyConfig.EsiGrossCeiling,
+                        companyConfig.EsiEmployeeRate,
+                        companyConfig.EsiEmployerRate,
+                        true, // Force applicable since we've already determined eligibility
+                        workingDays,
+                        presentDays);
+
+                    transaction.EsiEmployee = esiResult.EmployeeContribution;
+                    transaction.EsiEmployer = esiResult.EmployerContribution;
+
+                    if (transaction.EsiEmployee > 0)
+                        lines.Add(CreateLine("deduction", ++lineSeq, "ESI_EMPLOYEE_075", "ESI Employee Contribution", transaction.GrossEarnings, companyConfig.EsiEmployeeRate, transaction.EsiEmployee,
+                            JsonSerializer.Serialize(new { source = "legacy", gross_ceiling = companyConfig.EsiGrossCeiling, rate = companyConfig.EsiEmployeeRate, six_month_rule = _esiEligibilityRepository != null })));
+
+                    if (transaction.EsiEmployer > 0)
+                        lines.Add(CreateLine("employer_contribution", ++lineSeq, "ESI_EMPLOYER_325", "ESI Employer Contribution", transaction.GrossEarnings, companyConfig.EsiEmployerRate, transaction.EsiEmployer,
+                            JsonSerializer.Serialize(new { source = "legacy" })));
+                }
             }
         }
 
@@ -270,18 +388,52 @@ public class PayrollCalculationService
         if (payrollInfo.IsPtApplicable && companyConfig.PtEnabled)
         {
             var ptState = payrollInfo.WorkState ?? companyConfig.PtState ?? "";
-            var ptResult = await _ptService.CalculateAsync(
-                transaction.GrossEarnings,
-                ptState,
-                payrollMonth,
-                true);
+            var ptCalculatedViaRules = false;
 
-            transaction.ProfessionalTax = ptResult.TaxAmount;
+            // Try rules engine first for PT
+            if (_ruleEngine != null)
+            {
+                // PT rules are typically named PT (generic) or can include state in conditions
+                var ptResult = await _ruleEngine.CalculateComponentAsync(
+                    payrollInfo.CompanyId, "PT", ruleVariables);
 
-            if (transaction.ProfessionalTax > 0)
-                lines.Add(CreateLine("statutory", ++lineSeq, $"PT_{(ptState.Length > 0 ? ptState : "UNKNOWN").ToUpperInvariant().Replace(" ", "_")}",
-                    $"Professional Tax ({ptState})", transaction.GrossEarnings, null, transaction.ProfessionalTax,
-                    JsonSerializer.Serialize(new { state = ptState, employee_work_state = payrollInfo.WorkState, company_default_state = companyConfig.PtState, month = payrollMonth })));
+                if (ptResult.Success && ptResult.RuleUsed != null)
+                {
+                    transaction.ProfessionalTax = Math.Round(ptResult.Result, 0, MidpointRounding.AwayFromZero);
+                    ptCalculatedViaRules = true;
+
+                    if (transaction.ProfessionalTax > 0)
+                        lines.Add(CreateLine("statutory", ++lineSeq, $"PT_{(ptState.Length > 0 ? ptState : "UNKNOWN").ToUpperInvariant().Replace(" ", "_")}",
+                            $"Professional Tax ({ptState})", transaction.GrossEarnings, null, transaction.ProfessionalTax,
+                            JsonSerializer.Serialize(new {
+                                source = "rules_engine",
+                                rule_name = ptResult.RuleUsed.Name,
+                                rule_id = ptResult.RuleUsed.Id,
+                                state = ptState,
+                                employee_work_state = payrollInfo.WorkState,
+                                company_default_state = companyConfig.PtState,
+                                month = payrollMonth,
+                                steps = ptResult.Steps.Select(s => new { s.Description, s.Expression, s.Value })
+                            })));
+                }
+            }
+
+            // Fall back to legacy PT service if rules not used
+            if (!ptCalculatedViaRules)
+            {
+                var ptResult = await _ptService.CalculateAsync(
+                    transaction.GrossEarnings,
+                    ptState,
+                    payrollMonth,
+                    true);
+
+                transaction.ProfessionalTax = ptResult.TaxAmount;
+
+                if (transaction.ProfessionalTax > 0)
+                    lines.Add(CreateLine("statutory", ++lineSeq, $"PT_{(ptState.Length > 0 ? ptState : "UNKNOWN").ToUpperInvariant().Replace(" ", "_")}",
+                        $"Professional Tax ({ptState})", transaction.GrossEarnings, null, transaction.ProfessionalTax,
+                        JsonSerializer.Serialize(new { source = "legacy", state = ptState, employee_work_state = payrollInfo.WorkState, company_default_state = companyConfig.PtState, month = payrollMonth })));
+            }
         }
 
         // Calculate TDS with audit lines
@@ -324,10 +476,39 @@ public class PayrollCalculationService
         // Gratuity provision (only if enabled in company config)
         if (companyConfig.GratuityEnabled)
         {
-            var gratuityRate = companyConfig.GratuityRate > 0 ? companyConfig.GratuityRate : 4.81m;
-            transaction.GratuityProvision = Math.Round(transaction.BasicEarned * (gratuityRate / 100m), 0, MidpointRounding.AwayFromZero);
-            if (transaction.GratuityProvision > 0)
-                lines.Add(CreateLine("employer_contribution", ++lineSeq, "GRATUITY_PROVISION", "Gratuity Provision", transaction.BasicEarned, gratuityRate, transaction.GratuityProvision));
+            var gratuityCalculatedViaRules = false;
+
+            // Try rules engine first for Gratuity
+            if (_ruleEngine != null)
+            {
+                var gratuityResult = await _ruleEngine.CalculateComponentAsync(
+                    payrollInfo.CompanyId, "GRATUITY", ruleVariables);
+
+                if (gratuityResult.Success && gratuityResult.RuleUsed != null)
+                {
+                    transaction.GratuityProvision = Math.Round(gratuityResult.Result, 0, MidpointRounding.AwayFromZero);
+                    gratuityCalculatedViaRules = true;
+
+                    if (transaction.GratuityProvision > 0)
+                        lines.Add(CreateLine("employer_contribution", ++lineSeq, "GRATUITY_PROVISION", "Gratuity Provision",
+                            transaction.BasicEarned, null, transaction.GratuityProvision,
+                            JsonSerializer.Serialize(new {
+                                source = "rules_engine",
+                                rule_name = gratuityResult.RuleUsed.Name,
+                                rule_id = gratuityResult.RuleUsed.Id
+                            })));
+                }
+            }
+
+            // Fall back to legacy calculation if rules not used
+            if (!gratuityCalculatedViaRules)
+            {
+                var gratuityRate = companyConfig.GratuityRate > 0 ? companyConfig.GratuityRate : 4.81m;
+                transaction.GratuityProvision = Math.Round(transaction.BasicEarned * (gratuityRate / 100m), 0, MidpointRounding.AwayFromZero);
+                if (transaction.GratuityProvision > 0)
+                    lines.Add(CreateLine("employer_contribution", ++lineSeq, "GRATUITY_PROVISION", "Gratuity Provision", transaction.BasicEarned, gratuityRate, transaction.GratuityProvision,
+                        JsonSerializer.Serialize(new { source = "legacy", rate = gratuityRate })));
+            }
         }
         else
         {
@@ -566,6 +747,78 @@ public class PayrollCalculationService
             PrevEmployerPf = declaration.PrevEmployerPf,
             PrevEmployerPt = declaration.PrevEmployerPt,
             Status = declaration.Status
+        };
+    }
+
+    /// <summary>
+    /// Build the variables dictionary for the rules engine.
+    /// These variables can be referenced in formula expressions.
+    /// </summary>
+    private Dictionary<string, decimal> BuildRuleVariables(
+        EmployeeSalaryStructure salaryStructure,
+        PayrollTransaction transaction,
+        int workingDays,
+        int presentDays,
+        decimal prorationFactor,
+        CompanyStatutoryConfig companyConfig,
+        int payrollMonth,
+        int payrollYear)
+    {
+        // Calculate PF wage (Basic + DA, optionally + Special Allowance)
+        var pfWage = salaryStructure.BasicSalary + salaryStructure.DearnessAllowance;
+        if (companyConfig.PfIncludeSpecialAllowance)
+        {
+            pfWage += salaryStructure.SpecialAllowance;
+        }
+
+        return new Dictionary<string, decimal>
+        {
+            // Basic salary components (monthly values)
+            ["basic"] = salaryStructure.BasicSalary,
+            ["hra"] = salaryStructure.Hra,
+            ["da"] = salaryStructure.DearnessAllowance,
+            ["conveyance"] = salaryStructure.ConveyanceAllowance,
+            ["medical"] = salaryStructure.MedicalAllowance,
+            ["special_allowance"] = salaryStructure.SpecialAllowance,
+            ["other_allowances"] = salaryStructure.OtherAllowances,
+
+            // Gross and CTC
+            ["monthly_gross"] = salaryStructure.MonthlyGross,
+            ["annual_ctc"] = salaryStructure.AnnualCtc,
+
+            // PF wage base (for PF calculations)
+            ["pf_wage"] = pfWage,
+            ["pf_wage_ceiling"] = companyConfig.PfWageCeiling,
+
+            // Prorated/earned values (after attendance adjustment)
+            ["basic_earned"] = transaction.BasicEarned,
+            ["hra_earned"] = transaction.HraEarned,
+            ["da_earned"] = transaction.DaEarned,
+            ["gross_earnings"] = transaction.GrossEarnings,
+
+            // Attendance variables
+            ["working_days"] = workingDays,
+            ["present_days"] = presentDays,
+            ["lop_days"] = workingDays - presentDays,
+            ["proration_factor"] = prorationFactor,
+
+            // Payroll period (for month-specific calculations like PT February adjustment)
+            ["payroll_month"] = payrollMonth,
+            ["payroll_year"] = payrollYear,
+
+            // Variable pay (not prorated)
+            ["bonus"] = transaction.BonusPaid,
+            ["arrears"] = transaction.Arrears,
+            ["incentives"] = transaction.Incentives,
+            ["reimbursements"] = transaction.Reimbursements,
+            ["lta"] = transaction.LtaPaid,
+
+            // Statutory ceilings and rates for reference
+            ["esi_ceiling"] = companyConfig.EsiGrossCeiling,
+            ["pf_employee_rate"] = companyConfig.PfEmployeeRate,
+            ["pf_employer_rate"] = companyConfig.PfEmployerRate,
+            ["esi_employee_rate"] = companyConfig.EsiEmployeeRate,
+            ["esi_employer_rate"] = companyConfig.EsiEmployerRate,
         };
     }
 }

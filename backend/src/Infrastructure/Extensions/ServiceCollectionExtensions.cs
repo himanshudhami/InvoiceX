@@ -99,6 +99,14 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Payroll.IEmployeeTaxDeclarationHistoryRepository>(sp =>
                 new Infrastructure.Data.Payroll.EmployeeTaxDeclarationHistoryRepository(connectionString));
 
+            // Calculation rules repositories
+            services.AddScoped<Core.Interfaces.Payroll.ICalculationRuleRepository>(sp =>
+                new Infrastructure.Data.Payroll.CalculationRuleRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Payroll.IFormulaVariableRepository>(sp =>
+                new Infrastructure.Data.Payroll.FormulaVariableRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Payroll.ICalculationRuleTemplateRepository>(sp =>
+                new Infrastructure.Data.Payroll.CalculationRuleTemplateRepository(connectionString));
+
             // Authentication repositories
             services.AddScoped<Core.Interfaces.IUserRepository>(sp =>
                 new Infrastructure.Data.UserRepository(connectionString));

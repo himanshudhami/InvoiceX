@@ -94,6 +94,20 @@ export const payrollKeys = {
     [...payrollKeys.all, 'indian-states'] as const,
   noPtStates: () =>
     [...payrollKeys.all, 'no-pt-states'] as const,
+
+  // Calculation Rules
+  calculationRulesBase: () =>
+    [...payrollKeys.all, 'calculation-rules'] as const,
+  calculationRules: (params?: { companyId?: string; componentType?: string; isActive?: boolean }) =>
+    [...payrollKeys.calculationRulesBase(), 'list', params ?? {}] as const,
+  calculationRule: (id: string) =>
+    [...payrollKeys.calculationRulesBase(), id] as const,
+  activeCalculationRules: (companyId: string) =>
+    [...payrollKeys.calculationRulesBase(), 'active', companyId] as const,
+  formulaVariables: () =>
+    [...payrollKeys.calculationRulesBase(), 'variables'] as const,
+  calculationRuleTemplates: () =>
+    [...payrollKeys.calculationRulesBase(), 'templates'] as const,
 }
 
 

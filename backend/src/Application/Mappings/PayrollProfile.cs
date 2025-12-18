@@ -285,6 +285,29 @@ namespace Application.Mappings
 
             CreateMap<PayrollCalculationLine, CalculationLineItemDto>()
                 .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.ComputedAmount));
+
+            // ==================== CalculationRule ====================
+
+            CreateMap<CreateCalculationRuleDto, CalculationRule>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.FormulaConfig, opt => opt.Ignore()) // Handled manually
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.IsSystem, opt => opt.MapFrom(_ => false))
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Company, opt => opt.Ignore())
+                .ForMember(dest => dest.Conditions, opt => opt.Ignore());
+
+            CreateMap<CalculationRule, CalculationRuleDto>()
+                .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src =>
+                    src.Company != null ? src.Company.Name : null))
+                .ForMember(dest => dest.Conditions, opt => opt.MapFrom(src => src.Conditions));
+
+            CreateMap<CalculationRuleCondition, CalculationRuleConditionDto>();
+
+            CreateMap<FormulaVariable, FormulaVariableDto>();
+
+            CreateMap<CalculationRuleTemplate, CalculationRuleTemplateDto>();
         }
 
         // Helper methods

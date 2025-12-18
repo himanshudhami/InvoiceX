@@ -59,6 +59,7 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
   const [uan, setUan] = useState('')
   const [pfAccountNumber, setPfAccountNumber] = useState('')
   const [esiNumber, setEsiNumber] = useState('')
+  const [optedForRestrictedPf, setOptedForRestrictedPf] = useState(false)
 
   const createEmployee = useCreateEmployee()
   const updateEmployee = useUpdateEmployee()
@@ -78,6 +79,7 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
       setUan(existingPayrollInfo.uan || '')
       setPfAccountNumber(existingPayrollInfo.pfAccountNumber || '')
       setEsiNumber(existingPayrollInfo.esiNumber || '')
+      setOptedForRestrictedPf(existingPayrollInfo.optedForRestrictedPf || false)
     }
   }, [existingPayrollInfo])
 
@@ -208,6 +210,8 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
             uan: uan || undefined,
             pfAccountNumber: pfAccountNumber || undefined,
             esiNumber: esiNumber || undefined,
+            // Restricted PF opt-in
+            optedForRestrictedPf: optedForRestrictedPf,
           })
         } catch (payrollError) {
           console.error('Failed to save payroll info:', payrollError)
@@ -570,6 +574,27 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
               <p className="text-xs text-gray-500 mt-1">
                 ESI Insurance Person number (17 digits)
               </p>
+            </div>
+
+            {/* Restricted PF Option */}
+            <div className="md:col-span-2 pt-4 border-t">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={optedForRestrictedPf}
+                  onChange={(e) => setOptedForRestrictedPf(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Opt for Restricted PF Contribution
+                  </span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    If enabled, PF will be calculated on the statutory minimum (₹15,000) instead of actual basic salary.
+                    This is applicable only when company's PF mode is set to "Restricted PF" and the employee earns above ₹15,000 basic.
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
         </div>

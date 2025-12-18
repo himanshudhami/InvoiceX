@@ -1,0 +1,33 @@
+-- Rollback: Remove seeded calculation rule templates and additional variables
+
+-- Remove seeded templates
+DELETE FROM calculation_rule_templates WHERE id IN (
+    'a1b2c3d4-1111-4000-8000-000000000001',
+    'a1b2c3d4-1111-4000-8000-000000000002',
+    'a1b2c3d4-1111-4000-8000-000000000003',
+    'a1b2c3d4-1111-4000-8000-000000000004',
+    'a1b2c3d4-2222-4000-8000-000000000001',
+    'a1b2c3d4-2222-4000-8000-000000000002',
+    'a1b2c3d4-3333-4000-8000-000000000001',
+    'a1b2c3d4-4444-4000-8000-000000000001',
+    'a1b2c3d4-4444-4000-8000-000000000002',
+    'a1b2c3d4-5555-4000-8000-000000000001',
+    'a1b2c3d4-5555-4000-8000-000000000002',
+    'a1b2c3d4-6666-4000-8000-000000000001',
+    'a1b2c3d4-6666-4000-8000-000000000002',
+    'a1b2c3d4-6666-4000-8000-000000000003',
+    'a1b2c3d4-7777-4000-8000-000000000001',
+    'a1b2c3d4-7777-4000-8000-000000000002',
+    'a1b2c3d4-8888-4000-8000-000000000001',
+    'a1b2c3d4-9999-4000-8000-000000000001',
+    'a1b2c3d4-9999-4000-8000-000000000002'
+);
+
+-- Remove additional formula variables
+DELETE FROM formula_variables WHERE code IN (
+    'overtime_hours',
+    'arrears',
+    'bonus',
+    'incentives',
+    'reimbursements'
+);
