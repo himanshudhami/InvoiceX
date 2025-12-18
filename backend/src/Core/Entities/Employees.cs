@@ -26,5 +26,17 @@ namespace Core.Entities
         public Guid? CompanyId { get; set; }
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        // Hierarchy fields
+        public Guid? ManagerId { get; set; }
+        public int ReportingLevel { get; set; } = 0;
+        public bool IsManager { get; set; } = false;
+
+        // Denormalized field for display (populated via JOIN, not stored in DB)
+        public string? ManagerName { get; set; }
+
+        // Navigation properties (for service layer use, not DB mapping)
+        public Employees? Manager { get; set; }
+        public ICollection<Employees>? DirectReports { get; set; }
     }
 }

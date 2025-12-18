@@ -123,6 +123,20 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.IEmployeeDocumentsRepository>(sp =>
                 new Infrastructure.Data.EmployeeDocumentsRepository(connectionString));
 
+            // Employee hierarchy repository
+            services.AddScoped<Core.Interfaces.Hierarchy.IEmployeeHierarchyRepository>(sp =>
+                new Infrastructure.Data.Hierarchy.EmployeeHierarchyRepository(connectionString));
+
+            // Approval workflow repositories
+            services.AddScoped<Core.Interfaces.Approval.IApprovalTemplateRepository>(sp =>
+                new Infrastructure.Data.Approval.ApprovalTemplateRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Approval.IApprovalWorkflowRepository>(sp =>
+                new Infrastructure.Data.Approval.ApprovalWorkflowRepository(connectionString));
+
+            // Asset request repository
+            services.AddScoped<Core.Interfaces.IAssetRequestRepository>(sp =>
+                new Infrastructure.Data.AssetRequestRepository(connectionString));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();

@@ -17,6 +17,7 @@ namespace Application.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly IEmployeesRepository _employeesRepository;
         private readonly JwtSettings _jwtSettings;
         private readonly ILogger<AuthService> _logger;
 
@@ -27,11 +28,13 @@ namespace Application.Services
         public AuthService(
             IUserRepository userRepository,
             IRefreshTokenRepository refreshTokenRepository,
+            IEmployeesRepository employeesRepository,
             IOptions<JwtSettings> jwtSettings,
             ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
+            _employeesRepository = employeesRepository;
             _jwtSettings = jwtSettings.Value;
             _logger = logger;
         }
@@ -113,7 +116,7 @@ namespace Application.Services
 
             _logger.LogInformation("User registered successfully with ID {UserId}", createdUser.Id);
 
-            return MapToUserInfo(createdUser);
+            return await MapToUserInfoAsync(createdUser);
         }
 
         public async Task<Result<TokenResponseDto>> RefreshTokenAsync(string refreshToken, string? ipAddress = null, string? userAgent = null)
@@ -239,14 +242,15 @@ namespace Application.Services
                 return Error.NotFound("User not found");
             }
 
-            return MapToUserInfo(user);
+            return await MapToUserInfoAsync(user);
         }
 
         public async Task<Result<(IEnumerable<UserInfoDto> Items, int TotalCount)>> GetUsersAsync(
             Guid companyId, int pageNumber, int pageSize, string? searchTerm = null, string? role = null)
         {
             var (users, totalCount) = await _userRepository.GetPagedAsync(companyId, pageNumber, pageSize, searchTerm, role);
-            var userInfos = users.Select(MapToUserInfo);
+            var userInfoTasks = users.Select(MapToUserInfoAsync);
+            var userInfos = await Task.WhenAll(userInfoTasks);
 
             return (userInfos, totalCount);
         }
@@ -282,7 +286,7 @@ namespace Application.Services
             await _userRepository.UpdateAsync(user);
 
             _logger.LogInformation("User {UserId} updated by {UpdatedBy}", userId, updatedBy);
-            return MapToUserInfo(user);
+            return await MapToUserInfoAsync(user);
         }
 
         public async Task<Result> DeactivateUserAsync(Guid userId)
@@ -352,6 +356,7 @@ namespace Application.Services
         {
             var accessToken = GenerateAccessToken(user);
             var refreshToken = await GenerateRefreshTokenAsync(user.Id, ipAddress, userAgent);
+            var userInfo = await MapToUserInfoAsync(user);
 
             return new TokenResponseDto
             {
@@ -359,7 +364,7 @@ namespace Application.Services
                 RefreshToken = refreshToken.Token,
                 AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
                 RefreshTokenExpiresAt = refreshToken.ExpiresAt,
-                User = MapToUserInfo(user)
+                User = userInfo
             };
         }
 
@@ -416,8 +421,20 @@ namespace Application.Services
             return Convert.ToBase64String(randomBytes);
         }
 
-        private static UserInfoDto MapToUserInfo(User user)
+        private async Task<UserInfoDto> MapToUserInfoAsync(User user)
         {
+            // Derive isManager from:
+            // 1. User role is "Manager", OR
+            // 2. Employee has direct reports in the hierarchy
+            var isManager = user.Role == UserRoles.Manager;
+
+            if (!isManager && user.EmployeeId.HasValue)
+            {
+                // Check if this employee has any direct reports
+                var directReports = await _employeesRepository.GetByManagerIdAsync(user.EmployeeId.Value);
+                isManager = directReports.Any();
+            }
+
             return new UserInfoDto
             {
                 Id = user.Id,
@@ -425,7 +442,8 @@ namespace Application.Services
                 DisplayName = user.DisplayName,
                 Role = user.Role,
                 CompanyId = user.CompanyId,
-                EmployeeId = user.EmployeeId
+                EmployeeId = user.EmployeeId,
+                IsManager = isManager
             };
         }
     }

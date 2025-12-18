@@ -28,6 +28,8 @@ import {
   Megaphone,
   HelpCircle,
   FolderOpen,
+  GitBranch,
+  Network,
 } from 'lucide-react'
 
 interface Props {
@@ -117,6 +119,8 @@ const Layout: FC<Props> = ({ children }) => {
       icon: Shield,
       items: [
         { name: 'Users', href: '/users', icon: UserCog },
+        { name: 'Organization Chart', href: '/org-chart', icon: Network },
+        { name: 'Approval Workflows', href: '/workflows', icon: GitBranch },
         { name: 'Settings', href: '/settings', icon: Settings },
       ],
     },

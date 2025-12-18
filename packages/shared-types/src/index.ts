@@ -19,6 +19,7 @@ export interface UserInfo {
   employeeId: string | null
   companyId: string
   employeeName: string | null
+  isManager: boolean
 }
 
 export interface RefreshTokenRequest {
@@ -356,6 +357,243 @@ export interface PagedResponse<T> {
   pageNumber: number
   pageSize: number
   totalPages: number
+}
+
+// ==================== Employee Hierarchy Types ====================
+
+export interface EmployeeHierarchy {
+  id: string
+  employeeName: string
+  employeeId: string | null
+  email: string | null
+  department: string | null
+  designation: string | null
+  managerId: string | null
+  managerName: string | null
+  reportingLevel: number
+  isManager: boolean
+  directReportsCount: number
+}
+
+export interface OrgTreeNode {
+  id: string
+  employeeName: string
+  employeeId: string | null
+  email: string | null
+  department: string | null
+  designation: string | null
+  managerId: string | null
+  reportingLevel: number
+  directReportsCount: number
+  totalSubordinatesCount: number
+  children: OrgTreeNode[]
+}
+
+export interface UpdateManagerDto {
+  managerId: string | null
+}
+
+export interface HierarchyStats {
+  totalEmployees: number
+  totalManagers: number
+  topLevelEmployees: number
+  maxDepth: number
+  averageTeamSize: number
+}
+
+export interface ManagerSummary {
+  id: string
+  employeeName: string
+  employeeId: string | null
+  department: string | null
+  designation: string | null
+  directReportsCount: number
+}
+
+export interface DirectReports {
+  managerId: string
+  managerName: string
+  totalDirectReports: number
+  totalSubordinates: number
+  directReports: EmployeeHierarchy[]
+}
+
+export interface ReportingChain {
+  employeeId: string
+  employeeName: string
+  chain: EmployeeHierarchy[]
+}
+
+// ==================== Approval Workflow Types ====================
+
+export type ApproverType =
+  | 'direct_manager'
+  | 'skip_level_manager'
+  | 'role'
+  | 'specific_user'
+  | 'department_head'
+
+export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'cancelled'
+
+export type ApprovalStepStatus = 'pending' | 'approved' | 'rejected' | 'skipped'
+
+export interface ApprovalWorkflowTemplate {
+  id: string
+  companyId: string
+  activityType: string
+  name: string
+  description: string | null
+  isActive: boolean
+  isDefault: boolean
+  stepCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ApprovalWorkflowStep {
+  id: string
+  templateId: string
+  stepOrder: number
+  name: string
+  approverType: ApproverType
+  approverRole: string | null
+  approverUserId: string | null
+  approverUserName: string | null
+  isRequired: boolean
+  canSkip: boolean
+  autoApproveAfterDays: number | null
+  conditionsJson: string | null
+}
+
+export interface ApprovalWorkflowTemplateDetail extends ApprovalWorkflowTemplate {
+  steps: ApprovalWorkflowStep[]
+}
+
+export interface ApprovalRequest {
+  id: string
+  companyId: string
+  activityType: string
+  activityId: string
+  activityTitle: string
+  requestorId: string
+  requestorName: string
+  currentStep: number
+  totalSteps: number
+  status: ApprovalStatus
+  createdAt: string
+  completedAt: string | null
+}
+
+export interface ApprovalRequestStep {
+  id: string
+  requestId: string
+  stepOrder: number
+  stepName: string
+  approverType: ApproverType
+  assignedToId: string | null
+  assignedToName: string | null
+  status: ApprovalStepStatus
+  actionById: string | null
+  actionByName: string | null
+  actionAt: string | null
+  comments: string | null
+  createdAt: string
+}
+
+export interface ApprovalRequestDetail extends ApprovalRequest {
+  steps: ApprovalRequestStep[]
+}
+
+export interface PendingApproval {
+  requestId: string
+  stepId: string
+  activityType: string
+  activityId: string
+  activityTitle: string
+  requestorId: string
+  requestorName: string
+  requestorDepartment: string
+  stepName: string
+  stepOrder: number
+  totalSteps: number
+  requestedAt: string
+}
+
+export interface CreateApprovalTemplateDto {
+  companyId: string
+  activityType: string
+  name: string
+  description?: string
+  isActive?: boolean
+  isDefault?: boolean
+}
+
+export interface UpdateApprovalTemplateDto {
+  name: string
+  description?: string
+  isActive: boolean
+  isDefault: boolean
+}
+
+export interface CreateApprovalStepDto {
+  name: string
+  approverType: ApproverType
+  approverRole?: string
+  approverUserId?: string
+  isRequired?: boolean
+  canSkip?: boolean
+  autoApproveAfterDays?: number
+  conditionsJson?: string
+}
+
+export interface UpdateApprovalStepDto extends CreateApprovalStepDto {}
+
+export interface ReorderStepsDto {
+  stepIds: string[]
+}
+
+export interface ApproveRequestDto {
+  comments?: string
+}
+
+export interface RejectRequestDto {
+  reason: string
+}
+
+// ==================== Manager Portal Types ====================
+
+export interface ManagerDashboard {
+  directReportsCount: number
+  totalTeamSize: number
+  pendingApprovalsCount: number
+}
+
+export interface TeamLeaveApplication {
+  id: string
+  employeeId: string
+  employeeName: string
+  employeeCode: string | null
+  department: string | null
+  designation: string | null
+  leaveTypeId: string
+  leaveTypeName: string
+  leaveTypeCode: string
+  leaveTypeColor: string
+  fromDate: string
+  toDate: string
+  totalDays: number
+  isHalfDay: boolean
+  halfDayType: string | null
+  reason: string | null
+  status: string
+  appliedAt: string
+  approvedBy: string | null
+  approvedByName: string | null
+  approvedAt: string | null
+  rejectionReason: string | null
+  approvalRequestId: string | null
+  hasApprovalWorkflow: boolean
+  isCurrentApprover: boolean
 }
 
 // ==================== Utility Types ====================

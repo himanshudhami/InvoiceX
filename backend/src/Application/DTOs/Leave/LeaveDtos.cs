@@ -161,6 +161,26 @@ namespace Application.DTOs.Leave
         public bool CanEdit { get; set; }
         public bool CanCancel { get; set; }
         public bool CanWithdraw { get; set; }
+
+        /// <summary>
+        /// The approval workflow request ID if using workflow-based approval
+        /// </summary>
+        public Guid? ApprovalRequestId { get; set; }
+
+        /// <summary>
+        /// Whether this leave application uses the approval workflow system
+        /// </summary>
+        public bool HasApprovalWorkflow { get; set; }
+
+        /// <summary>
+        /// Current step in the approval workflow (if applicable)
+        /// </summary>
+        public int? CurrentApprovalStep { get; set; }
+
+        /// <summary>
+        /// Total steps in the approval workflow (if applicable)
+        /// </summary>
+        public int? TotalApprovalSteps { get; set; }
     }
 
     /// <summary>
@@ -296,5 +316,39 @@ namespace Application.DTOs.Leave
         public string Type { get; set; } = string.Empty; // "leave" or "holiday"
         public string? EmployeeName { get; set; }
         public string? LeaveTypeCode { get; set; }
+    }
+
+    /// <summary>
+    /// Team leave application for manager view
+    /// </summary>
+    public class TeamLeaveApplicationDto
+    {
+        public Guid Id { get; set; }
+        public Guid EmployeeId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public string? EmployeeCode { get; set; }
+        public string? Department { get; set; }
+        public string? Designation { get; set; }
+        public Guid LeaveTypeId { get; set; }
+        public string LeaveTypeName { get; set; } = string.Empty;
+        public string LeaveTypeCode { get; set; } = string.Empty;
+        public string LeaveTypeColor { get; set; } = string.Empty;
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public decimal TotalDays { get; set; }
+        public bool IsHalfDay { get; set; }
+        public string? HalfDayType { get; set; }
+        public string? Reason { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime AppliedAt { get; set; }
+        public Guid? ApprovedBy { get; set; }
+        public string? ApprovedByName { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? RejectionReason { get; set; }
+
+        // Approval workflow details
+        public Guid? ApprovalRequestId { get; set; }
+        public bool HasApprovalWorkflow { get; set; }
+        public bool IsCurrentApprover { get; set; }
     }
 }

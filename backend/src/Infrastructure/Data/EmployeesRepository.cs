@@ -21,24 +21,34 @@ namespace Infrastructure.Data
         public async Task<Employees?> GetByIdAsync(Guid id)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            return await connection.QueryFirstOrDefaultAsync<Employees>(
-                "SELECT * FROM employees WHERE id = @id", 
-                new { id });
+            const string sql = @"
+                SELECT e.*, m.employee_name AS manager_name
+                FROM employees e
+                LEFT JOIN employees m ON e.manager_id = m.id
+                WHERE e.id = @id";
+            return await connection.QueryFirstOrDefaultAsync<Employees>(sql, new { id });
         }
 
         public async Task<Employees?> GetByEmployeeIdAsync(string employeeId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            return await connection.QueryFirstOrDefaultAsync<Employees>(
-                "SELECT * FROM employees WHERE employee_id = @employeeId", 
-                new { employeeId });
+            const string sql = @"
+                SELECT e.*, m.employee_name AS manager_name
+                FROM employees e
+                LEFT JOIN employees m ON e.manager_id = m.id
+                WHERE e.employee_id = @employeeId";
+            return await connection.QueryFirstOrDefaultAsync<Employees>(sql, new { employeeId });
         }
 
         public async Task<IEnumerable<Employees>> GetAllAsync()
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            return await connection.QueryAsync<Employees>(
-                "SELECT * FROM employees ORDER BY employee_name");
+            const string sql = @"
+                SELECT e.*, m.employee_name AS manager_name
+                FROM employees e
+                LEFT JOIN employees m ON e.manager_id = m.id
+                ORDER BY e.employee_name";
+            return await connection.QueryAsync<Employees>(sql);
         }
 
         public async Task<(IEnumerable<Employees> Items, int TotalCount)> GetPagedAsync(
@@ -160,6 +170,16 @@ namespace Infrastructure.Data
 
             var count = await connection.QuerySingleAsync<int>(sql, parameters);
             return count > 0;
+        }
+
+        public async Task<IEnumerable<Employees>> GetByManagerIdAsync(Guid managerId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            const string sql = @"
+                SELECT * FROM employees
+                WHERE manager_id = @managerId
+                ORDER BY employee_name";
+            return await connection.QueryAsync<Employees>(sql, new { managerId });
         }
 
         private static string GetSafeSortColumn(string? sortBy, HashSet<string> allowedColumns)

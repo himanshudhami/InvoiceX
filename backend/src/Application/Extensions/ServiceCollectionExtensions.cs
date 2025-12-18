@@ -121,6 +121,36 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.IEmployeeDocumentsService,
                               Application.Services.EmployeeDocumentsService>();
 
+            // Employee hierarchy service
+            services.AddScoped<Application.Interfaces.Hierarchy.IEmployeeHierarchyService,
+                              Application.Services.Hierarchy.EmployeeHierarchyService>();
+
+            // Approval workflow services
+            services.AddScoped<Application.Interfaces.Approval.IApprovalTemplateService,
+                              Application.Services.Approval.ApprovalTemplateService>();
+            services.AddScoped<Application.Interfaces.Approval.IApprovalWorkflowService,
+                              Application.Services.Approval.ApprovalWorkflowService>();
+
+            // Approver resolver implementations (registered for factory consumption)
+            services.AddScoped<Core.Interfaces.Approval.IApproverResolver,
+                              Application.Services.Approval.Resolvers.DirectManagerApproverResolver>();
+            services.AddScoped<Core.Interfaces.Approval.IApproverResolver,
+                              Application.Services.Approval.Resolvers.SkipLevelManagerApproverResolver>();
+            services.AddScoped<Core.Interfaces.Approval.IApproverResolver,
+                              Application.Services.Approval.Resolvers.RoleBasedApproverResolver>();
+            services.AddScoped<Core.Interfaces.Approval.IApproverResolver,
+                              Application.Services.Approval.Resolvers.SpecificUserApproverResolver>();
+            services.AddScoped<Core.Interfaces.Approval.IApproverResolver,
+                              Application.Services.Approval.Resolvers.DepartmentHeadApproverResolver>();
+
+            // Approver resolver factory
+            services.AddScoped<Core.Abstractions.IApproverResolverFactory,
+                              Application.Services.Approval.ApproverResolverFactory>();
+
+            // Asset request service
+            services.AddScoped<Application.Interfaces.IAssetRequestService,
+                              Application.Services.AssetRequestService>();
+
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();
             // services.AddScoped<INotificationService, NotificationService>();

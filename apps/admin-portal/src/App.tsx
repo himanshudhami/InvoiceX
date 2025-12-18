@@ -74,6 +74,11 @@ const EmployeeDocumentsManagement = lazy(() => import('./pages/EmployeeDocuments
 // Administration
 const Users = lazy(() => import('./pages/Users'))
 
+// Approval Workflows
+const WorkflowTemplatesManagement = lazy(() => import('./pages/WorkflowTemplatesManagement'))
+const WorkflowTemplateEditor = lazy(() => import('./pages/WorkflowTemplateEditor'))
+const OrgChartManagement = lazy(() => import('./pages/OrgChartManagement'))
+
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -241,6 +246,13 @@ function AppRoutes() {
 
               {/* Administration Routes */}
               <Route path="/users" element={<Users />} />
+
+              {/* Approval Workflow Routes */}
+              <Route path="/workflows" element={<WorkflowTemplatesManagement />} />
+              <Route path="/workflows/:id/edit" element={<WorkflowTemplateEditor />} />
+
+              {/* Organization Chart */}
+              <Route path="/org-chart" element={<OrgChartManagement />} />
             </Route>
 
             {/* Catch-all redirect */}

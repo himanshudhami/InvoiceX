@@ -22,9 +22,14 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor for logging
+    // Request interceptor for auth token and logging
     this.client.interceptors.request.use(
       (config) => {
+        // Add auth token from localStorage
+        const token = localStorage.getItem('admin_access_token');
+        if (token && config.headers) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
         console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },

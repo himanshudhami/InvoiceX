@@ -497,6 +497,11 @@ export interface Employee {
   contractType?: string;
   company?: string; // Legacy field, kept for backward compatibility
   companyId?: string; // Foreign key to companies table
+  // Hierarchy fields
+  managerId?: string; // Foreign key to employees table (reporting manager)
+  managerName?: string; // Denormalized manager name for display
+  reportingLevel?: number; // Level in org hierarchy (0 = top)
+  isManager?: boolean; // Whether employee has direct reports
   createdAt?: string;
   updatedAt?: string;
   // Statutory identifiers for Indian compliance (from payroll info)
@@ -527,6 +532,7 @@ export interface CreateEmployeeDto {
   contractType?: string;
   company?: string;
   companyId?: string;
+  managerId?: string; // Reporting manager
 }
 
 export interface UpdateEmployeeDto extends CreateEmployeeDto {}

@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Approval;
 using Application.DTOs.Companies;
 using Application.Validators.Companies;
 using Core.Entities;
@@ -22,17 +23,20 @@ namespace Application.Services
         private readonly IMapper _mapper;
         private readonly IValidator<CreateCompaniesDto> _createValidator;
         private readonly IValidator<UpdateCompaniesDto> _updateValidator;
+        private readonly IApprovalTemplateService? _approvalTemplateService;
 
         public CompaniesService(
-            ICompaniesRepository repository, 
+            ICompaniesRepository repository,
             IMapper mapper,
             IValidator<CreateCompaniesDto> createValidator,
-            IValidator<UpdateCompaniesDto> updateValidator)
+            IValidator<UpdateCompaniesDto> updateValidator,
+            IApprovalTemplateService? approvalTemplateService = null)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
+            _approvalTemplateService = approvalTemplateService;
         }
 
         /// <inheritdoc />
@@ -89,12 +93,19 @@ namespace Application.Services
 
             // Map DTO to entity
             var entity = _mapper.Map<Companies>(dto);
-            
+
             // Set timestamps
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Seed default approval workflow templates for the new company
+            if (_approvalTemplateService != null)
+            {
+                await _approvalTemplateService.SeedDefaultTemplatesAsync(createdEntity.Id);
+            }
+
             return Result<Companies>.Success(createdEntity);
         }
 

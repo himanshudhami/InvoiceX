@@ -18,6 +18,8 @@ import {
   AnnouncementsPage,
   HelpDeskPage,
   DocumentsPage,
+  MyTeamPage,
+  PendingApprovalsPage,
 } from '@/pages'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -82,6 +84,9 @@ export default function App() {
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="help" element={<HelpDeskPage />} />
         <Route path="documents" element={<DocumentsPage />} />
+        {/* Manager Routes */}
+        <Route path="manager/team" element={<MyTeamPage />} />
+        <Route path="manager/approvals" element={<PendingApprovalsPage />} />
       </Route>
 
       {/* Catch-all redirect */}

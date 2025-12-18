@@ -13,7 +13,10 @@ import {
   User,
   X,
   ChevronRight,
+  Users,
+  ClipboardCheck,
 } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/utils/cn'
 
 interface NavItemProps {
@@ -70,9 +73,15 @@ const moreMenuItems: MoreMenuItem[] = [
   { to: '/profile', icon: User, label: 'Profile' },
 ]
 
+const managerMenuItems: MoreMenuItem[] = [
+  { to: '/manager/team', icon: Users, label: 'My Team' },
+  { to: '/manager/approvals', icon: ClipboardCheck, label: 'Pending Approvals' },
+]
+
 export function BottomNav() {
   const [isMoreOpen, setIsMoreOpen] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const handleMoreItemClick = (to: string) => {
     setIsMoreOpen(false)
@@ -112,6 +121,30 @@ export function BottomNav() {
               <X size={20} className="text-gray-500" />
             </button>
           </div>
+
+          {/* Manager Items */}
+          {user?.isManager && (
+            <div className="space-y-1 mb-4">
+              <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Manager
+              </p>
+              {managerMenuItems.map((item) => (
+                <button
+                  key={item.to}
+                  onClick={() => handleMoreItemClick(item.to)}
+                  className="flex items-center gap-4 w-full p-3 rounded-xl hover:bg-amber-50 transition-colors touch-feedback"
+                >
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50">
+                    <item.icon size={20} className="text-amber-600" />
+                  </div>
+                  <span className="flex-1 text-left text-sm font-medium text-gray-900">
+                    {item.label}
+                  </span>
+                  <ChevronRight size={18} className="text-gray-400" />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Menu Items */}
           <div className="space-y-1">

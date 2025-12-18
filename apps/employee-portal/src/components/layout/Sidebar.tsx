@@ -10,6 +10,8 @@ import {
   HelpCircle,
   LogOut,
   ChevronRight,
+  Users,
+  ClipboardCheck,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn, getInitials } from '@repo/ui'
@@ -30,6 +32,11 @@ const navItems: NavItem[] = [
   { name: 'Documents', href: '/documents', icon: FolderOpen },
   { name: 'Announcements', href: '/announcements', icon: Megaphone },
   { name: 'Help Desk', href: '/help', icon: HelpCircle },
+]
+
+const managerNavItems: NavItem[] = [
+  { name: 'My Team', href: '/manager/team', icon: Users },
+  { name: 'Pending Approvals', href: '/manager/approvals', icon: ClipboardCheck },
 ]
 
 export function Sidebar() {
@@ -91,6 +98,47 @@ export function Sidebar() {
             </NavLink>
           ))}
         </div>
+
+        {/* Manager Section */}
+        {user?.isManager && (
+          <div className="mt-6 px-3">
+            <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Manager
+            </p>
+            <div className="space-y-1">
+              {managerNavItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
+                      isActive
+                        ? 'bg-amber-50 text-amber-700 shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <item.icon
+                        size={18}
+                        className={cn(
+                          'transition-colors',
+                          isActive ? 'text-amber-600' : 'text-gray-400'
+                        )}
+                      />
+                      <span className="flex-1">{item.name}</span>
+                      {isActive && (
+                        <ChevronRight size={14} className="text-amber-400" />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* User Profile Section */}

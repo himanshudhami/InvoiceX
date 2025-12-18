@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Employee, CreateEmployeeDto, UpdateEmployeeDto } from '@/services/api/types'
-import { useCreateEmployee, useUpdateEmployee, useCheckEmployeeIdUnique, useCheckEmailUnique } from '@/hooks/api/useEmployees'
+import { useCreateEmployee, useUpdateEmployee, useCheckEmployeeIdUnique, useCheckEmailUnique, useEmployees } from '@/hooks/api/useEmployees'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { useCreateOrUpdatePayrollInfo, usePayrollInfo } from '@/features/payroll/hooks'
 import { cn } from '@/lib/utils'
-import { User, Mail, Phone, MapPin, Building, Calendar, Hash } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Building, Calendar, Hash, Users } from 'lucide-react'
 import { CompanySelect } from '@/components/ui/CompanySelect'
 
 interface EmployeeFormProps {
@@ -36,7 +36,19 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
     country: 'India',
     companyId: '',
     contractType: 'Full',
+    managerId: '',
   })
+
+  // Fetch all employees for manager selection
+  const { data: allEmployees = [], isLoading: employeesLoading } = useEmployees()
+
+  // Filter employees by selected company for manager dropdown
+  const potentialManagers = useMemo(() => {
+    if (!formData.companyId) return []
+    return allEmployees.filter(
+      (emp) => emp.companyId === formData.companyId && emp.id !== employee?.id && emp.status === 'active'
+    )
+  }, [allEmployees, formData.companyId, employee?.id])
 
   const [payrollType, setPayrollType] = useState<'employee' | 'contractor'>('employee')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -119,6 +131,7 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
         country: employee.country || 'India',
         companyId: employee.companyId || '',
         contractType: employee.contractType || 'Full',
+        managerId: employee.managerId || '',
       })
     }
   }, [employee])
@@ -395,6 +408,33 @@ export const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProp
             </select>
             <p className="text-xs text-gray-500 mt-1">
               Employment contract type for HR records
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Users className="w-4 h-4 inline mr-1" />
+              Reporting Manager
+            </label>
+            <select
+              value={formData.managerId || ''}
+              onChange={(e) => handleInputChange('managerId', e.target.value)}
+              disabled={!formData.companyId || employeesLoading}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            >
+              <option value="">No Manager (Top Level)</option>
+              {potentialManagers.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.employeeName}
+                  {emp.designation ? ` - ${emp.designation}` : ''}
+                  {emp.department ? ` (${emp.department})` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {!formData.companyId
+                ? 'Select a company first to see available employees'
+                : 'Select the employee\'s reporting manager'}
             </p>
           </div>
         </div>

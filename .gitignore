@@ -5,4 +5,4 @@ node_modules
 .gitignore
 .gitignore
 .turbo/cache/
-.turbo/cookies
+.turbo/*

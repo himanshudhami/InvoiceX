@@ -1,7 +1,7 @@
 import { FC } from 'react'
 import { Employee } from '@/services/api/types'
 import { format } from 'date-fns'
-import { Mail, Phone, MapPin, Calendar, Building, CreditCard, User } from 'lucide-react'
+import { Mail, Phone, MapPin, Calendar, Building, CreditCard, User, Users } from 'lucide-react'
 
 interface OverviewTabProps {
   employee: Employee
@@ -50,6 +50,7 @@ export const OverviewTab: FC<OverviewTabProps> = ({ employee }) => {
           <DetailRow icon={<Building className="w-4 h-4" />} label="Department" value={employee.department} />
           <DetailRow icon={<User className="w-4 h-4" />} label="Designation" value={employee.designation} />
           <DetailRow icon={<User className="w-4 h-4" />} label="Contract Type" value={employee.contractType} />
+          <DetailRow icon={<Users className="w-4 h-4" />} label="Reporting Manager" value={employee.managerName} />
           <DetailRow
             icon={<Calendar className="w-4 h-4" />}
             label="Hire Date"

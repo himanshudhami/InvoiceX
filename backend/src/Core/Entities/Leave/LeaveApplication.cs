@@ -1,9 +1,12 @@
+using Core.Abstractions;
+
 namespace Core.Entities.Leave
 {
     /// <summary>
     /// Leave application submitted by an employee
+    /// Implements IApprovableActivity to participate in the generic approval workflow
     /// </summary>
-    public class LeaveApplication
+    public class LeaveApplication : IApprovableActivity
     {
         public Guid Id { get; set; }
         public Guid EmployeeId { get; set; }
@@ -72,6 +75,81 @@ namespace Core.Entities.Leave
         public Employees? Employee { get; set; }
         public LeaveType? LeaveType { get; set; }
         public Employees? Approver { get; set; }
+
+        // ==================== IApprovableActivity Implementation ====================
+
+        /// <summary>
+        /// Activity type identifier for the approval workflow
+        /// </summary>
+        public string ActivityType => ActivityTypes.Leave;
+
+        /// <summary>
+        /// The unique identifier for this leave application
+        /// </summary>
+        public Guid ActivityId => Id;
+
+        /// <summary>
+        /// The employee requesting the leave
+        /// </summary>
+        public Guid RequestorId => EmployeeId;
+
+        /// <summary>
+        /// Gets a display-friendly title for the leave request
+        /// </summary>
+        public string GetDisplayTitle()
+        {
+            var leaveTypeName = LeaveType?.Name ?? "Leave";
+            var days = TotalDays == 1 ? "1 day" : $"{TotalDays} days";
+            return $"{leaveTypeName} - {days} ({FromDate:MMM dd} - {ToDate:MMM dd})";
+        }
+
+        /// <summary>
+        /// Called when the leave application is fully approved
+        /// </summary>
+        public Task OnApprovedAsync()
+        {
+            Status = LeaveStatus.Approved;
+            ApprovedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Called when the leave application is rejected
+        /// </summary>
+        public Task OnRejectedAsync(string reason, Guid rejectedBy)
+        {
+            Status = LeaveStatus.Rejected;
+            RejectionReason = reason;
+            ApprovedBy = rejectedBy; // Store who rejected it
+            UpdatedAt = DateTime.UtcNow;
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Called when the leave application is cancelled
+        /// </summary>
+        public Task OnCancelledAsync()
+        {
+            Status = LeaveStatus.Cancelled;
+            CancelledAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Returns context data for evaluating workflow step conditions
+        /// </summary>
+        public Dictionary<string, object> GetConditionContext()
+        {
+            return new Dictionary<string, object>
+            {
+                { "total_days", TotalDays },
+                { "leave_type_id", LeaveTypeId },
+                { "is_half_day", IsHalfDay },
+                { "days_from_now", (FromDate.Date - DateTime.UtcNow.Date).Days }
+            };
+        }
     }
 
     /// <summary>

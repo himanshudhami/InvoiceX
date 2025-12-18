@@ -67,6 +67,7 @@ namespace Application.DTOs.Auth
         public string Role { get; set; } = string.Empty;
         public Guid CompanyId { get; set; }
         public Guid? EmployeeId { get; set; }
+        public bool IsManager { get; set; }
     }
 
     /// <summary>

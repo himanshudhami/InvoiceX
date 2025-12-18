@@ -1,9 +1,12 @@
 using Application.DTOs.Leave;
+using Application.Interfaces.Approval;
 using Application.Interfaces.Leave;
+using Core.Abstractions;
 using Core.Common;
 using Core.Entities.Leave;
 using Core.Interfaces;
 using Core.Interfaces.Leave;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Leave
 {
@@ -14,19 +17,25 @@ namespace Application.Services.Leave
         private readonly ILeaveApplicationRepository _applicationRepository;
         private readonly IHolidayRepository _holidayRepository;
         private readonly IEmployeesRepository _employeesRepository;
+        private readonly IApprovalWorkflowService? _approvalWorkflowService;
+        private readonly ILogger<LeaveService>? _logger;
 
         public LeaveService(
             ILeaveTypeRepository leaveTypeRepository,
             IEmployeeLeaveBalanceRepository balanceRepository,
             ILeaveApplicationRepository applicationRepository,
             IHolidayRepository holidayRepository,
-            IEmployeesRepository employeesRepository)
+            IEmployeesRepository employeesRepository,
+            IApprovalWorkflowService? approvalWorkflowService = null,
+            ILogger<LeaveService>? logger = null)
         {
             _leaveTypeRepository = leaveTypeRepository ?? throw new ArgumentNullException(nameof(leaveTypeRepository));
             _balanceRepository = balanceRepository ?? throw new ArgumentNullException(nameof(balanceRepository));
             _applicationRepository = applicationRepository ?? throw new ArgumentNullException(nameof(applicationRepository));
             _holidayRepository = holidayRepository ?? throw new ArgumentNullException(nameof(holidayRepository));
             _employeesRepository = employeesRepository ?? throw new ArgumentNullException(nameof(employeesRepository));
+            _approvalWorkflowService = approvalWorkflowService; // Optional - if null, falls back to legacy approval
+            _logger = logger;
         }
 
         // ==================== Leave Types ====================
@@ -140,15 +149,53 @@ namespace Application.Services.Leave
         public async Task<Result<IEnumerable<LeaveBalanceDto>>> GetEmployeeBalancesAsync(Guid employeeId, string? financialYear = null)
         {
             financialYear ??= GetCurrentFinancialYear();
-            var balances = await _balanceRepository.GetByEmployeeAsync(employeeId, financialYear);
+
+            // Get the employee to find their company
+            var employee = await _employeesRepository.GetByIdAsync(employeeId);
+            if (employee == null)
+                return Error.NotFound("Employee not found");
+
+            if (!employee.CompanyId.HasValue)
+                return Error.Validation("Employee is not associated with a company");
+
+            // Get all active leave types for the company
+            var allLeaveTypes = await _leaveTypeRepository.GetAllByCompanyAsync(employee.CompanyId.Value, activeOnly: true);
+
+            // Get existing balances for the employee
+            var existingBalances = await _balanceRepository.GetByEmployeeAsync(employeeId, financialYear);
+            var balancesByType = existingBalances.ToDictionary(b => b.LeaveTypeId);
+
             var result = new List<LeaveBalanceDto>();
 
-            foreach (var balance in balances)
+            // For each leave type, use existing balance or create virtual zero balance
+            foreach (var leaveType in allLeaveTypes)
             {
-                var leaveType = await _leaveTypeRepository.GetByIdAsync(balance.LeaveTypeId);
-                if (leaveType != null)
+                if (balancesByType.TryGetValue(leaveType.Id, out var balance))
                 {
                     result.Add(MapToLeaveBalanceDto(balance, leaveType));
+                }
+                else
+                {
+                    // Create virtual zero balance for display
+                    var defaultDays = leaveType.DaysPerYear;
+                    result.Add(new LeaveBalanceDto
+                    {
+                        Id = Guid.Empty,
+                        EmployeeId = employeeId,
+                        LeaveTypeId = leaveType.Id,
+                        LeaveTypeName = leaveType.Name,
+                        LeaveTypeCode = leaveType.Code,
+                        ColorCode = leaveType.ColorCode ?? "#3B82F6",
+                        FinancialYear = financialYear,
+                        OpeningBalance = defaultDays,
+                        Accrued = 0,
+                        Taken = 0,
+                        CarryForwarded = 0,
+                        Adjusted = 0,
+                        Encashed = 0,
+                        AvailableBalance = defaultDays,
+                        TotalCredited = defaultDays
+                    });
                 }
             }
 
@@ -238,11 +285,13 @@ namespace Application.Services.Leave
                 IsHalfDay = dto.IsHalfDay,
                 HalfDayType = dto.HalfDayType,
                 Reason = dto.Reason,
-                Status = leaveType.RequiresApproval ? "pending" : "approved",
+                Status = leaveType.RequiresApproval ? LeaveStatus.Pending : LeaveStatus.Approved,
                 AppliedAt = DateTime.UtcNow,
                 EmergencyContact = dto.EmergencyContact,
                 HandoverNotes = dto.HandoverNotes,
-                AttachmentUrl = dto.AttachmentUrl
+                AttachmentUrl = dto.AttachmentUrl,
+                // Set leave type for display title generation
+                LeaveType = leaveType
             };
 
             if (!leaveType.RequiresApproval)
@@ -253,6 +302,30 @@ namespace Application.Services.Leave
             }
 
             var created = await _applicationRepository.AddAsync(application);
+
+            // If approval is required and we have the workflow service, try to start the workflow
+            if (leaveType.RequiresApproval && _approvalWorkflowService != null)
+            {
+                // Attach leave type for GetDisplayTitle
+                created.LeaveType = leaveType;
+
+                var workflowResult = await _approvalWorkflowService.StartWorkflowAsync(created);
+                if (workflowResult.IsFailure)
+                {
+                    // Log the failure but don't fail the leave application
+                    // It will remain in pending status for legacy approval flow
+                    _logger?.LogWarning(
+                        "Failed to start approval workflow for leave application {LeaveId}: {Error}. Falling back to legacy approval.",
+                        created.Id, workflowResult.Error?.Message);
+                }
+                else
+                {
+                    _logger?.LogInformation(
+                        "Started approval workflow {RequestId} for leave application {LeaveId}",
+                        workflowResult.Value?.Id, created.Id);
+                }
+            }
+
             return await GetLeaveApplicationAsync(created.Id);
         }
 
@@ -268,8 +341,24 @@ namespace Application.Services.Leave
                 ? await _employeesRepository.GetByIdAsync(application.ApprovedBy.Value)
                 : null;
 
-            return Result<LeaveApplicationDetailDto>.Success(
-                MapToLeaveApplicationDetail(application, employee, leaveType, approver));
+            var dto = MapToLeaveApplicationDetail(application, employee, leaveType, approver);
+
+            // Try to get approval workflow status if service is available
+            if (_approvalWorkflowService != null)
+            {
+                var approvalStatus = await _approvalWorkflowService.GetActivityApprovalStatusAsync(
+                    Core.Abstractions.ActivityTypes.Leave, applicationId);
+
+                if (approvalStatus.IsSuccess && approvalStatus.Value != null)
+                {
+                    dto.ApprovalRequestId = approvalStatus.Value.Id;
+                    dto.HasApprovalWorkflow = true;
+                    dto.CurrentApprovalStep = approvalStatus.Value.CurrentStep;
+                    dto.TotalApprovalSteps = approvalStatus.Value.Steps?.Count ?? 0;
+                }
+            }
+
+            return Result<LeaveApplicationDetailDto>.Success(dto);
         }
 
         public async Task<Result<IEnumerable<LeaveApplicationSummaryDto>>> GetEmployeeApplicationsAsync(Guid employeeId, string? status = null)
@@ -580,6 +669,125 @@ namespace Application.Services.Leave
             }
 
             return Result<IEnumerable<LeaveCalendarEventDto>>.Success(events.OrderBy(e => e.Start));
+        }
+
+        // ==================== Manager Portal ====================
+
+        public async Task<Result<IEnumerable<TeamLeaveApplicationDto>>> GetTeamLeaveApplicationsAsync(Guid managerId, string? status = null)
+        {
+            // Get direct reports
+            var directReports = await _employeesRepository.GetByManagerIdAsync(managerId);
+            var directReportIds = directReports.Select(e => e.Id).ToHashSet();
+
+            if (!directReportIds.Any())
+            {
+                return Result<IEnumerable<TeamLeaveApplicationDto>>.Success(Enumerable.Empty<TeamLeaveApplicationDto>());
+            }
+
+            // Get leave applications for all direct reports
+            var allApplications = new List<TeamLeaveApplicationDto>();
+
+            foreach (var employee in directReports)
+            {
+                var applications = await _applicationRepository.GetByEmployeeAsync(employee.Id);
+
+                // Filter by status if provided
+                if (!string.IsNullOrEmpty(status))
+                {
+                    applications = applications.Where(a => a.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+                }
+
+                foreach (var app in applications)
+                {
+                    var leaveType = await _leaveTypeRepository.GetByIdAsync(app.LeaveTypeId);
+                    Core.Entities.Employees? approver = null;
+                    if (app.ApprovedBy.HasValue)
+                    {
+                        approver = await _employeesRepository.GetByIdAsync(app.ApprovedBy.Value);
+                    }
+
+                    // Check if this manager is the current approver (if using approval workflow)
+                    var isCurrentApprover = false;
+                    Guid? approvalRequestId = null;
+                    var hasApprovalWorkflow = false;
+
+                    if (_approvalWorkflowService != null)
+                    {
+                        var approvalStatusResult = await _approvalWorkflowService.GetActivityApprovalStatusAsync("leave", app.Id);
+                        if (approvalStatusResult.IsSuccess && approvalStatusResult.Value != null)
+                        {
+                            hasApprovalWorkflow = true;
+                            approvalRequestId = approvalStatusResult.Value.Id;
+                            // Check if any pending step is assigned to this manager
+                            isCurrentApprover = approvalStatusResult.Value.Steps
+                                .Any(s => s.Status == "pending" && s.AssignedToId == managerId);
+                        }
+                    }
+
+                    allApplications.Add(new TeamLeaveApplicationDto
+                    {
+                        Id = app.Id,
+                        EmployeeId = app.EmployeeId,
+                        EmployeeName = employee.EmployeeName,
+                        EmployeeCode = employee.EmployeeId,
+                        Department = employee.Department,
+                        Designation = employee.Designation,
+                        LeaveTypeId = app.LeaveTypeId,
+                        LeaveTypeName = leaveType?.Name ?? string.Empty,
+                        LeaveTypeCode = leaveType?.Code ?? string.Empty,
+                        LeaveTypeColor = leaveType?.ColorCode ?? "#3B82F6",
+                        FromDate = app.FromDate,
+                        ToDate = app.ToDate,
+                        TotalDays = app.TotalDays,
+                        IsHalfDay = app.IsHalfDay,
+                        HalfDayType = app.HalfDayType,
+                        Reason = app.Reason,
+                        Status = app.Status,
+                        AppliedAt = app.AppliedAt,
+                        ApprovedBy = app.ApprovedBy,
+                        ApprovedByName = approver?.EmployeeName,
+                        ApprovedAt = app.ApprovedAt,
+                        RejectionReason = app.RejectionReason,
+                        ApprovalRequestId = approvalRequestId,
+                        HasApprovalWorkflow = hasApprovalWorkflow,
+                        IsCurrentApprover = isCurrentApprover
+                    });
+                }
+            }
+
+            // Sort by applied date descending (most recent first)
+            var sortedApplications = allApplications.OrderByDescending(a => a.AppliedAt);
+
+            return Result<IEnumerable<TeamLeaveApplicationDto>>.Success(sortedApplications);
+        }
+
+        public async Task<Result> UpdateLeaveStatusAsync(Guid applicationId, string status, string? reason = null)
+        {
+            var application = await _applicationRepository.GetByIdAsync(applicationId);
+            if (application == null)
+                return Error.NotFound("Leave application not found");
+
+            application.Status = status;
+
+            if (status == "approved")
+            {
+                application.ApprovedAt = DateTime.UtcNow;
+                // Deduct leave balance (increment taken days)
+                var financialYear = GetFinancialYearForDate(application.FromDate);
+                await _balanceRepository.IncrementTakenAsync(
+                    application.EmployeeId,
+                    application.LeaveTypeId,
+                    financialYear,
+                    application.TotalDays);
+            }
+            else if (status == "rejected")
+            {
+                application.RejectionReason = reason;
+            }
+
+            await _applicationRepository.UpdateAsync(application);
+
+            return Result.Success();
         }
 
         // ==================== Helper Methods ====================

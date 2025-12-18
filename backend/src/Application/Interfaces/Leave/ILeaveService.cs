@@ -96,5 +96,17 @@ namespace Application.Interfaces.Leave
         /// Get leave calendar events for a date range
         /// </summary>
         Task<Result<IEnumerable<LeaveCalendarEventDto>>> GetCalendarEventsAsync(Guid companyId, DateTime fromDate, DateTime toDate);
+
+        // ==================== Manager Portal ====================
+
+        /// <summary>
+        /// Get leave applications from the manager's team (direct reports)
+        /// </summary>
+        Task<Result<IEnumerable<TeamLeaveApplicationDto>>> GetTeamLeaveApplicationsAsync(Guid managerId, string? status = null);
+
+        /// <summary>
+        /// Update leave application status (called by approval workflow)
+        /// </summary>
+        Task<Result> UpdateLeaveStatusAsync(Guid applicationId, string status, string? reason = null);
     }
 }
