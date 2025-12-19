@@ -7,6 +7,7 @@ import { useProducts } from '@/hooks/api/useProducts'
 import { cn } from '@/lib/utils'
 import { CompanySelect } from '@/components/ui/CompanySelect'
 import { CustomerSelect } from '@/components/ui/CustomerSelect'
+import { ProductSelect } from '@/components/ui/ProductSelect'
 
 interface QuoteFormProps {
   quote?: Quote
@@ -74,7 +75,8 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
   // Scope customers to the selected company; rely on query key to refetch when company changes
   const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
-  const { data: products = [] } = useProducts()
+  // Product select now uses paged search in ProductSelect; this is kept only for detail lookup on selection
+  const { data: products = [] } = useProducts(formData.companyId || undefined)
   const { data: existingQuoteItems = [] } = useQuoteItems(quote?.id || '')
 
   const isEditing = !!quote
@@ -528,24 +530,19 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
                     </button>
                   </div>
 
-                  <div className="col-span-4 space-y-2">
-                    <select
-                      value={item.productId || ''}
-                      onChange={(e) => handleProductSelect(index, e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">Select product or custom</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} - {(formData.currency === 'EUR' ? '€' : formData.currency === 'GBP' ? '£' : formData.currency === 'INR' ? '₹' : '$')}{product.unitPrice}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => handleUpdateQuoteItem(index, 'description', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                <div className="col-span-4 space-y-2">
+                  <ProductSelect
+                    companyId={formData.companyId || undefined}
+                    value={item.productId || ''}
+                    onChange={(productId) => handleProductSelect(index, productId)}
+                    placeholder="Select product or custom"
+                    className="w-full"
+                  />
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={(e) => handleUpdateQuoteItem(index, 'description', e.target.value)}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="Item description"
                     />
                   </div>

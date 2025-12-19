@@ -8,6 +8,7 @@ import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
+import { CustomerSelect } from '@/components/ui/CustomerSelect'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Edit, Trash2, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -368,19 +369,16 @@ const InvoiceList = () => {
 
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700">Customer</label>
-                <select
+                <CustomerSelect
+                  customers={customers}
                   value={urlState.customer}
-                  onChange={(e) => setUrlState({ customer: e.target.value, page: 1 })}
-                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px]"
+                  onChange={(val) => setUrlState({ customer: val, page: 1 })}
+                  placeholder="All customers"
+                  className="min-w-[220px]"
                   disabled={!effectiveCompanyId}
-                >
-                  <option value="">All Customers</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}{customer.companyName ? ` (${customer.companyName})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  showAllOption
+                  allOptionLabel="All customers"
+                />
               </div>
 
               {(urlState.status || urlState.company) && (

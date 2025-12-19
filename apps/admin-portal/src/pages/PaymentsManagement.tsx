@@ -19,6 +19,7 @@ import { DirectPaymentForm } from '@/components/forms/DirectPaymentForm';
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import { cn } from '@/lib/utils';
+import { CustomerSelect } from '@/components/ui/CustomerSelect';
 
 const PaymentsManagement = () => {
   const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
@@ -432,18 +433,16 @@ const PaymentsManagement = () => {
           />
 
           {/* Customer Filter */}
-          <select
+          <CustomerSelect
+            customers={customers}
             value={urlState.customerId}
-            onChange={(e) => setUrlState({ customerId: e.target.value, page: 1 })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">All Customers</option>
-            {customers.map((customer: Customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setUrlState({ customerId: val, page: 1 })}
+            placeholder="All customers"
+            className="min-w-[220px]"
+            disabled={!effectiveCompanyId}
+            showAllOption
+            allOptionLabel="All customers"
+          />
 
           {/* Payment Type Filter */}
           <select

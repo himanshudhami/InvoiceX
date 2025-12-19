@@ -1,34 +1,37 @@
 import { FC } from 'react'
 import { useCompanies } from '@/hooks/api/useCompanies'
+import { CompanySelect } from './CompanySelect'
 
 interface CompanyFilterDropdownProps {
   value: string
   onChange: (companyId: string) => void
   className?: string
+  allowAll?: boolean
 }
 
-const CompanyFilterDropdown: FC<CompanyFilterDropdownProps> = ({ value, onChange, className = '' }) => {
-  const { data: companies = [], isLoading } = useCompanies()
+// Wrapper to keep existing API while using the shared CompanySelect combobox
+const CompanyFilterDropdown: FC<CompanyFilterDropdownProps> = ({
+  value,
+  onChange,
+  className = '',
+  allowAll = false,
+}) => {
+  const { data: companies = [] } = useCompanies()
 
   return (
-    <select
+    <CompanySelect
+      companies={companies}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
-      disabled={isLoading}
-    >
-      <option value="">All companies</option>
-      {companies.map((company) => (
-        <option key={company.id} value={company.id}>
-          {company.name}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      placeholder="Filter by company"
+      className={className}
+      showAllOption={allowAll}
+      allOptionLabel="All companies"
+    />
   )
 }
 
 export default CompanyFilterDropdown
-
 
 
 
