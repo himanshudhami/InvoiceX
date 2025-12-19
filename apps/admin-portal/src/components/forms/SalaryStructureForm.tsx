@@ -26,13 +26,15 @@ export const SalaryStructureForm = ({
   onSuccess,
   onCancel,
 }: SalaryStructureFormProps) => {
-  const { data: allEmployees = [] } = useEmployees()
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(structure?.companyId || '')
+
+  const { data: allEmployees = [] } = useEmployees(selectedCompanyId || undefined)
   const { data: companies = [] } = useCompanies()
   const { data: employeePayrollInfo = [] } = usePayrollInfoByType('employee')
 
   const [formData, setFormData] = useState<CreateEmployeeSalaryStructureDto>({
     employeeId: '',
-    companyId: '',
+    companyId: selectedCompanyId,
     effectiveFrom: new Date().toISOString().split('T')[0],
     annualCtc: 0,
     basicSalary: 0,
@@ -159,6 +161,7 @@ export const SalaryStructureForm = ({
         gratuityMonthly: structure.gratuityMonthly,
         revisionReason: structure.revisionReason || '',
       })
+      setSelectedCompanyId(structure.companyId)
       // Keep useCtcCalculator enabled so users can recalculate when editing
       setUseCtcCalculator(true)
     }
@@ -220,8 +223,9 @@ export const SalaryStructureForm = ({
           </label>
           <CompanySelect
             companies={companies}
-            value={formData.companyId}
+            value={selectedCompanyId}
             onChange={(value) => {
+              setSelectedCompanyId(value)
               handleInputChange('companyId', value)
               if (!isEditing) {
                 handleInputChange('employeeId', '')
@@ -542,7 +546,3 @@ export const SalaryStructureForm = ({
     </form>
   )
 }
-
-
-
-

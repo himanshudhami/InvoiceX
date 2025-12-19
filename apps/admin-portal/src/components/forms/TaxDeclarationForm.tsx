@@ -30,11 +30,12 @@ export const TaxDeclarationForm = ({
   onSuccess,
   onCancel,
 }: TaxDeclarationFormProps) => {
-  const { data: allEmployees = [] } = useEmployees()
+  // Track the selected company and use it to scope employees
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(declaration?.employee?.companyId || '')
+
+  const { data: allEmployees = [] } = useEmployees(selectedCompanyId || undefined)
   const { data: companies = [] } = useCompanies()
   const { data: employeePayrollInfo = [] } = usePayrollInfoByType('employee')
-
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
 
   const currentYear = new Date().getFullYear()
   const financialYear = new Date().getMonth() >= 3
@@ -107,7 +108,7 @@ export const TaxDeclarationForm = ({
 
   // Load company from employee when editing
   useEffect(() => {
-    if (declaration && !selectedCompanyId) {
+    if (!selectedCompanyId && declaration?.employeeId) {
       const employee = allEmployees.find(e => e.id === declaration.employeeId)
       if (employee?.companyId) {
         setSelectedCompanyId(employee.companyId)
@@ -803,7 +804,3 @@ export const TaxDeclarationForm = ({
     </form>
   )
 }
-
-
-
-
