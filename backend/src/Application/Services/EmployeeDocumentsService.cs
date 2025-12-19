@@ -92,6 +92,24 @@ public class EmployeeDocumentsService : IEmployeeDocumentsService
     }
 
     /// <inheritdoc />
+    public async Task<Result<IEnumerable<EmployeeDocumentSummaryDto>>> GetByCompanyAsync(Guid companyId)
+    {
+        if (companyId == default)
+            return Error.Validation("Company ID cannot be empty");
+
+        try
+        {
+            var entities = await _repository.GetByCompanyAsync(companyId);
+            var dtos = _mapper.Map<IEnumerable<EmployeeDocumentSummaryDto>>(entities);
+            return Result<IEnumerable<EmployeeDocumentSummaryDto>>.Success(dtos);
+        }
+        catch (Exception ex)
+        {
+            return Error.Internal($"Failed to retrieve company documents: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<Result<IEnumerable<EmployeeDocumentSummaryDto>>> GetCompanyWideAsync(Guid companyId)
     {
         if (companyId == default)

@@ -63,11 +63,19 @@ export interface UpdateDocumentRequestDto {
 
 export const employeeDocumentService = {
   getAll: async (companyId?: string, employeeId?: string): Promise<EmployeeDocument[]> => {
-    const url = employeeId && companyId
-      ? `/employeedocuments/employee/${employeeId}/company/${companyId}`
-      : '/employeedocuments/paged?pageNumber=1&pageSize=100';
-    const response = await api.get(url);
-    return (employeeId && companyId) ? response.data : (response.data.data ?? []);
+    if (employeeId && companyId) {
+      const response = await api.get(`/employeedocuments/employee/${employeeId}/company/${companyId}`);
+      return response.data;
+    }
+
+    if (companyId) {
+      const response = await api.get(`/employeedocuments/company/${companyId}`);
+      return response.data;
+    }
+
+    // Fallback: fetch first page of all documents (admin view)
+    const response = await api.get('/employeedocuments/paged?pageNumber=1&pageSize=100');
+    return response.data.data ?? [];
   },
 
   getPaged: async (params: { pageNumber: number; pageSize: number; companyId?: string; employeeId?: string; documentType?: string; searchTerm?: string }) => {

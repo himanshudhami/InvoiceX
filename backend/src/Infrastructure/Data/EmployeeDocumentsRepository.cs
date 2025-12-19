@@ -48,7 +48,7 @@ public class EmployeeDocumentsRepository : IEmployeeDocumentsRepository
         Dictionary<string, object>? filters = null)
     {
         using var connection = new NpgsqlConnection(_connectionString);
-        var allowedColumns = new[] { "id", "title", "document_type", "file_name", "financial_year", "created_at" };
+        var allowedColumns = new[] { "id", "title", "document_type", "file_name", "financial_year", "created_at", "company_id", "employee_id", "is_company_wide" };
 
         var builder = SqlQueryBuilder
             .From("employee_documents d LEFT JOIN employees e ON d.employee_id = e.id", allowedColumns)

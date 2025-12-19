@@ -25,6 +25,7 @@ public interface IEmployeeDocumentsService
         string? sortBy = null,
         bool sortDescending = false,
         Dictionary<string, object>? filters = null);
+    Task<Result<IEnumerable<EmployeeDocumentSummaryDto>>> GetByCompanyAsync(Guid companyId);
 
     /// <summary>
     /// Get documents for an employee (including company-wide)

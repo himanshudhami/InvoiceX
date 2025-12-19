@@ -102,6 +102,27 @@ public class EmployeeDocumentsController : ControllerBase
     }
 
     /// <summary>
+    /// Get all documents for a company (includes company-specific and company-wide)
+    /// </summary>
+    [HttpGet("company/{companyId}")]
+    [ProducesResponseType(typeof(IEnumerable<EmployeeDocumentSummaryDto>), 200)]
+    public async Task<IActionResult> GetByCompany(Guid companyId)
+    {
+        var result = await _service.GetByCompanyAsync(companyId);
+
+        if (result.IsFailure)
+        {
+            return result.Error!.Type switch
+            {
+                ErrorType.Validation => BadRequest(result.Error.Message),
+                _ => StatusCode(500, result.Error.Message)
+            };
+        }
+
+        return Ok(result.Value);
+    }
+
+    /// <summary>
     /// Get documents for a specific employee
     /// </summary>
     [HttpGet("employee/{employeeId}/company/{companyId}")]
