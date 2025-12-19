@@ -1700,7 +1700,12 @@ export interface AdjustLeaveBalanceDto {
 export interface LeaveApplication {
   id: string;
   employeeId: string;
+  employeeName?: string;
+  employeeCode?: string;
   leaveTypeId: string;
+  leaveTypeName?: string;
+  leaveTypeCode?: string;
+  leaveTypeColor?: string;
   companyId: string;
   fromDate: string;
   toDate: string;
@@ -1711,6 +1716,7 @@ export interface LeaveApplication {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'withdrawn';
   appliedAt: string;
   approvedBy?: string;
+  approvedByName?: string;
   approvedAt?: string;
   rejectionReason?: string;
   createdAt?: string;

@@ -56,7 +56,8 @@ const InvoiceList = () => {
 
   const deleteInvoice = useDeleteInvoice()
   const duplicateInvoice = useDuplicateInvoice()
-  const { data: customers = [] } = useCustomers()
+  // Fetch customers scoped to the same company as invoices to keep lookups consistent
+  const { data: customers = [] } = useCustomers(effectiveCompanyId)
 
   // Extract items and pagination info from response
   const invoices = data?.items ?? []

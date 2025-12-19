@@ -96,6 +96,15 @@ const LeaveApplicationsManagement = () => {
     }
   }
 
+  const getEmployeeName = (application: LeaveApplication) =>
+    application.employee?.employeeName || application.employeeName || 'Unknown'
+
+  const getEmployeeDepartment = (application: LeaveApplication) =>
+    application.employee?.department || ''
+
+  const getLeaveTypeName = (application: LeaveApplication) =>
+    application.leaveType?.name || application.leaveTypeName || 'Unknown'
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { bg: string; text: string; icon: JSX.Element }> = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: <Clock size={14} /> },
@@ -119,8 +128,8 @@ const LeaveApplicationsManagement = () => {
       header: 'Employee',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-gray-900">{row.original.employee?.employeeName || 'Unknown'}</div>
-          <div className="text-sm text-gray-500">{row.original.employee?.department}</div>
+          <div className="font-medium text-gray-900">{getEmployeeName(row.original)}</div>
+          <div className="text-sm text-gray-500">{getEmployeeDepartment(row.original)}</div>
         </div>
       ),
     },
@@ -128,7 +137,7 @@ const LeaveApplicationsManagement = () => {
       accessorKey: 'leaveType',
       header: 'Leave Type',
       cell: ({ row }) => (
-        <div className="text-gray-900">{row.original.leaveType?.name || 'Unknown'}</div>
+        <div className="text-gray-900">{getLeaveTypeName(row.original)}</div>
       ),
     },
     {

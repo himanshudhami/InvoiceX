@@ -59,7 +59,8 @@ const QuoteList = () => {
   const acceptQuote = useAcceptQuote()
   const rejectQuote = useRejectQuote()
   const convertQuoteToInvoice = useConvertQuoteToInvoice()
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to the same company filter used for quotes
+  const { data: customers = [] } = useCustomers(effectiveCompanyId)
 
   // Extract items and pagination info from response
   const quotes = data?.items ?? []
