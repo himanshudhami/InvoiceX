@@ -55,5 +55,21 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    allowedHosts: [
+      'rcmr.xcdify.com',
+      'employee.rcmr.xcdify.com',
+      '192.168.86.250',
+      'localhost',
+    ],
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+    allowedHosts: [
+      'rcmr.xcdify.com',
+      'employee.rcmr.xcdify.com',
+      '192.168.86.250',
+      'localhost',
+    ],
   },
 })

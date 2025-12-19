@@ -67,11 +67,27 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3001,
+    allowedHosts: [
+      'rcmr.xcdify.com',
+      'employee.rcmr.xcdify.com',
+      '192.168.86.250',
+      'localhost',
+    ],
     proxy: {
       '/api': {
         target: 'http://192.168.86.250:5001',
         changeOrigin: true
       }
     }
-  }
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 3001,
+    allowedHosts: [
+      'rcmr.xcdify.com',
+      'employee.rcmr.xcdify.com',
+      '192.168.86.250',
+      'localhost',
+    ],
+  },
 })

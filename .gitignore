@@ -6,3 +6,4 @@ node_modules
 .gitignore
 .turbo/cache/
 .turbo/*
+apps/admin-portal/.env.production

@@ -1,6 +1,26 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+// Determine API URL based on environment or hostname
+const getApiBaseUrl = () => {
+  // Use environment variable if set (highest priority)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // If accessing via domain name, try to detect backend IP from current host
+  const hostname = window.location.hostname;
+  if (hostname === 'rcmr.xcdify.com' || hostname === 'employee.rcmr.xcdify.com') {
+    // Use VITE_BACKEND_IP env var or fallback to default
+    const backendIP = import.meta.env.VITE_BACKEND_IP || '192.168.86.250';
+    const backendPort = import.meta.env.VITE_BACKEND_PORT || '5001';
+    return `http://${backendIP}:${backendPort}/api`;
+  }
+  
+  // Default to relative path for local development (uses vite proxy)
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance
 export const apiClient = axios.create({

@@ -2,15 +2,38 @@ import axios, { AxiosInstance, AxiosError, AxiosResponse, AxiosRequestConfig } f
 import { ApiError, PagedResponse, PaginationParams } from './types';
 
 /**
+ * Determine API URL based on environment or hostname
+ */
+const getApiBaseUrl = (): string => {
+  // Use environment variable if set (highest priority)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // If accessing via domain name, try to detect backend IP from current host
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  if (hostname === 'rcmr.xcdify.com' || hostname === 'employee.rcmr.xcdify.com') {
+    // Use VITE_BACKEND_IP env var or fallback to default
+    const backendIP = import.meta.env.VITE_BACKEND_IP || '192.168.86.250';
+    const backendPort = import.meta.env.VITE_BACKEND_PORT || '5001';
+    return `http://${backendIP}:${backendPort}/api`;
+  }
+  
+  // Default to localhost for local development
+  return 'http://localhost:5001/api';
+};
+
+/**
  * HTTP client wrapper implementing SRP (Single Responsibility Principle)
  * Responsible only for HTTP communication and error handling
  */
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:5001/api') {
+  constructor(baseURL?: string) {
+    const apiBaseUrl = baseURL || getApiBaseUrl();
     this.client = axios.create({
-      baseURL,
+      baseURL: apiBaseUrl,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
