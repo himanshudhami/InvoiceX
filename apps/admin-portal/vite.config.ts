@@ -62,6 +62,13 @@ export default defineConfig({
       '192.168.86.50',
       'localhost',
     ],
+    proxy: {
+      '/api': {
+        target: 'http://192.168.86.50:5001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     host: '0.0.0.0',
