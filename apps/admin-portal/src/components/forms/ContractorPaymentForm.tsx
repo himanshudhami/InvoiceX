@@ -17,22 +17,22 @@ import { EmployeeSelect } from '@/components/ui/EmployeeSelect'
 
 interface ContractorPaymentFormProps {
   payment?: ContractorPayment
+  defaultCompanyId?: string
   onSuccess: () => void
   onCancel: () => void
 }
 
 export const ContractorPaymentForm = ({
   payment,
+  defaultCompanyId,
   onSuccess,
   onCancel,
 }: ContractorPaymentFormProps) => {
-  const { data: employees = [] } = useEmployees()
-  const { data: companies = [] } = useCompanies()
-  const { data: contractorPayrollInfo = [] } = usePayrollInfoByType('contractor')
+  const initialCompanyId = payment?.companyId || defaultCompanyId || ''
 
   const [formData, setFormData] = useState<CreateContractorPaymentDto>({
     employeeId: '',
-    companyId: '',
+    companyId: initialCompanyId,
     paymentMonth: new Date().getMonth() + 1,
     paymentYear: new Date().getFullYear(),
     grossAmount: 0,
@@ -47,6 +47,10 @@ export const ContractorPaymentForm = ({
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const { data: employees = [] } = useEmployees(formData.companyId || undefined)
+  const { data: companies = [] } = useCompanies()
+  const { data: contractorPayrollInfo = [] } = usePayrollInfoByType('contractor')
   const createPayment = useCreateContractorPayment()
   const updatePayment = useUpdateContractorPayment()
 
@@ -80,6 +84,20 @@ export const ContractorPaymentForm = ({
       })
     }
   }, [payment])
+
+  useEffect(() => {
+    if (payment) return
+
+    // Keep form in sync with the selected company from page filters
+    setFormData((prev) => {
+      if ((defaultCompanyId || '') === prev.companyId) return prev
+      return {
+        ...prev,
+        companyId: defaultCompanyId || '',
+        employeeId: '',
+      }
+    })
+  }, [defaultCompanyId, payment])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -131,8 +149,27 @@ export const ContractorPaymentForm = ({
   }
 
   // Filter employees to show only those marked as contractors
-  const contractorEmployeeIds = new Set(contractorPayrollInfo.map(info => info.employeeId))
-  const contractorEmployees = employees.filter((e) => contractorEmployeeIds.has(e.id))
+  const filteredContractorPayrollInfo = contractorPayrollInfo.filter(
+    (info) => !formData.companyId || info.companyId === formData.companyId
+  )
+  const contractorEmployeeIds = new Set(filteredContractorPayrollInfo.map((info) => info.employeeId))
+  const contractorEmployees = employees.filter(
+    (e) => contractorEmployeeIds.has(e.id) && (!formData.companyId || e.companyId === formData.companyId)
+  )
+
+  const handleCompanyChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      companyId: value,
+      employeeId: '',
+    }))
+    if (errors.companyId) {
+      setErrors((prev) => ({ ...prev, companyId: '' }))
+    }
+    if (errors.employeeId) {
+      setErrors((prev) => ({ ...prev, employeeId: '' }))
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -144,7 +181,7 @@ export const ContractorPaymentForm = ({
           <CompanySelect
             companies={companies}
             value={formData.companyId}
-            onChange={(value) => handleInputChange('companyId', value)}
+            onChange={handleCompanyChange}
             placeholder="Select company..."
             disabled={isEditing}
             error={errors.companyId}
@@ -385,7 +422,5 @@ export const ContractorPaymentForm = ({
     </form>
   )
 }
-
-
 
 

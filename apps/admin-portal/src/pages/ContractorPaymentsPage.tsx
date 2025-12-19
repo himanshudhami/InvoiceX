@@ -31,12 +31,6 @@ const ContractorPaymentsPage = () => {
   const [payingPayment, setPayingPayment] = useState<ContractorPayment | null>(null)
   const [paymentData, setPaymentData] = useState({ paymentReference: '', paymentMode: '', remarks: '' })
 
-  const { data: employees = [] } = useEmployees(urlState.companyId || undefined)
-  const { data: companies = [] } = useCompanies()
-  const deleteContractorPayment = useDeleteContractorPayment()
-  const approveContractorPayment = useApproveContractorPayment()
-  const markContractorPaymentAsPaid = useMarkContractorPaymentAsPaid()
-
   const [urlState, setUrlState] = useQueryStates(
     {
       page: parseAsInteger.withDefault(1),
@@ -61,6 +55,12 @@ const ContractorPaymentsPage = () => {
     paymentYear: urlState.paymentYear || undefined,
     status: urlState.status || undefined,
   })
+
+  const { data: employees = [] } = useEmployees(urlState.companyId || undefined)
+  const { data: companies = [] } = useCompanies()
+  const deleteContractorPayment = useDeleteContractorPayment()
+  const approveContractorPayment = useApproveContractorPayment()
+  const markContractorPaymentAsPaid = useMarkContractorPaymentAsPaid()
 
   const handleEdit = (payment: ContractorPayment) => {
     setEditingPayment(payment)
@@ -281,6 +281,7 @@ const ContractorPaymentsPage = () => {
       >
         <ContractorPaymentForm
           payment={editingPayment || undefined}
+          defaultCompanyId={urlState.companyId || undefined}
           onSuccess={() => {
             setIsCreateDrawerOpen(false)
             setEditingPayment(null)
@@ -402,6 +403,4 @@ const ContractorPaymentsPage = () => {
 }
 
 export default ContractorPaymentsPage
-
-
 
