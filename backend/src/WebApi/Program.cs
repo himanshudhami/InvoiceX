@@ -92,7 +92,7 @@ try
 
                 if (environment.IsDevelopment())
                 {
-                    // Development: Allow localhost origins
+                    // Development: Allow localhost origins, network IP, and domain origins
                     policy.WithOrigins(
                             "http://localhost:5173",
                             "http://localhost:3000",
@@ -100,7 +100,13 @@ try
                             "http://localhost:5174",
                             "http://127.0.0.1:5173",
                             "http://127.0.0.1:3000",
-                            "http://127.0.0.1:3001"
+                            "http://127.0.0.1:3001",
+                            "http://192.168.86.250:3000",
+                            "http://192.168.86.250:3001",
+                            "http://192.168.86.250:5173",
+                            "https://rcmr.xcdify.com:3000",
+                            "https://rcmr.xcdify.com",
+                            "https://employee.rcmr.xcdify.com"
                           )
                           .AllowAnyHeader()
                           .AllowAnyMethod()

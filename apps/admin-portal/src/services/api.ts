@@ -14,7 +14,7 @@ import {
   DashboardStats
 } from '../types/database'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
 
 // Token storage keys - independent from employee portal
 const ACCESS_TOKEN_KEY = 'admin_access_token'

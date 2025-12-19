@@ -8,7 +8,7 @@ import { ApiError, PagedResponse, PaginationParams } from './types';
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:5000/api') {
+  constructor(baseURL: string = 'http://localhost:5001/api') {
     this.client = axios.create({
       baseURL,
       timeout: 10000,

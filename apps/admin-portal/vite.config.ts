@@ -52,4 +52,8 @@ export default defineConfig({
       include: [/node_modules/],
     },
   },
+  server: {
+    host: '0.0.0.0',
+    port: 3000,
+  },
 })
