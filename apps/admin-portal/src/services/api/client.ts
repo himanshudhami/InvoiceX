@@ -14,7 +14,7 @@ const getApiBaseUrl = (): string => {
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   if (hostname === 'rcmr.xcdify.com' || hostname === 'employee.rcmr.xcdify.com') {
     // Use VITE_BACKEND_IP env var or fallback to default
-    const backendIP = import.meta.env.VITE_BACKEND_IP || '192.168.86.250';
+    const backendIP = import.meta.env.VITE_BACKEND_IP || '192.168.86.50';
     const backendPort = import.meta.env.VITE_BACKEND_PORT || '5001';
     return `http://${backendIP}:${backendPort}/api`;
   }

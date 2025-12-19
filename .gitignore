@@ -7,3 +7,4 @@ node_modules
 .turbo/cache/
 .turbo/*
 apps/admin-portal/.env.production
+apps/employee-portal/.env.production
