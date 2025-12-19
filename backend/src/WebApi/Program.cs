@@ -104,6 +104,9 @@ try
                             "http://192.168.86.250:3000",
                             "http://192.168.86.250:3001",
                             "http://192.168.86.250:5173",
+                            "http://192.168.86.50:3000",
+                            "http://192.168.86.50:3001",
+                            "http://192.168.86.50:5173",
                             "https://rcmr.xcdify.com:3000",
                             "https://rcmr.xcdify.com",
                             "https://employee.rcmr.xcdify.com"
