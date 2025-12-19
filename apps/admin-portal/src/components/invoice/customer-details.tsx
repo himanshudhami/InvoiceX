@@ -1,4 +1,5 @@
 import { useInvoiceForm } from './form-context'
+import { CustomerSelect } from '@/components/ui/CustomerSelect'
 
 export const CustomerDetails = () => {
   const { formData, updateField, customers } = useInvoiceForm()
@@ -8,19 +9,12 @@ export const CustomerDetails = () => {
       <label htmlFor="customerId" className="block text-sm font-medium text-gray-700">
         Bill To
       </label>
-      <select
-        id="customerId"
+      <CustomerSelect
+        customers={customers}
         value={formData.customerId || ''}
-        onChange={(e) => updateField('customerId', e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Select a customer</option>
-        {customers.map((customer) => (
-          <option key={customer.id} value={customer.id}>
-            {customer.name} {customer.companyName && `(${customer.companyName})`}
-          </option>
-        ))}
-      </select>
+        onChange={(value) => updateField('customerId', value)}
+        placeholder="Select a customer"
+      />
       
       {formData.customerId && (() => {
         const customer = customers.find(c => c.id === formData.customerId)

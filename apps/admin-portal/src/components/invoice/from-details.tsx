@@ -1,4 +1,5 @@
 import { useInvoiceForm } from './form-context'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 
 export const FromDetails = () => {
   const { formData, updateField, companies } = useInvoiceForm()
@@ -8,19 +9,12 @@ export const FromDetails = () => {
       <label htmlFor="companyId" className="block text-sm font-medium text-gray-700">
         From
       </label>
-      <select
-        id="companyId"
+      <CompanySelect
+        companies={companies}
         value={formData.companyId || ''}
-        onChange={(e) => updateField('companyId', e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Select your company</option>
-        {companies.map((company) => (
-          <option key={company.id} value={company.id}>
-            {company.name}
-          </option>
-        ))}
-      </select>
+        onChange={(value) => updateField('companyId', value)}
+        placeholder="Select your company"
+      />
       
       {formData.companyId && (() => {
         const company = companies.find(c => c.id === formData.companyId)

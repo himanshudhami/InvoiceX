@@ -6,9 +6,9 @@ import EditableSelect from './EditableSelect'
 import EditableTextarea from './EditableTextarea'
 import EditableCalendarInput from './EditableCalendarInput'
 import EditableFileImage from './EditableFileImage'
-import CustomerSelector from './CustomerSelector'
 import ProjectSelector from './ProjectSelector'
-import CompanySelector from './CompanySelector'
+import { CustomerSelect } from '@/components/ui/CustomerSelect'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import countryList from '../data/countryList'
 import Document from './Document'
 import Page from './Page'
@@ -17,6 +17,8 @@ import Text from './Text'
 import Download from './DownloadPDF'
 import { format } from 'date-fns/format'
 import { Customer, Company } from '@/services/api/types'
+import { useCustomers } from '@/features/customers/hooks'
+import { useCompanies } from '@/hooks/api/useCompanies'
 
 // Font registration is now handled centrally in utils/pdfFonts.ts
 
@@ -30,6 +32,8 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
   const [invoice, setInvoice] = useState<Invoice>(data ? { ...data } : { ...initialInvoice })
   const [subTotal, setSubTotal] = useState<number>()
   const [saleTax, setSaleTax] = useState<number>()
+  const { data: companies = [] } = useCompanies()
+  const { data: customers = [] } = useCustomers(selectedCompany?.id || undefined)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>()
   const [projectName, setProjectName] = useState<string>('')
   const [selectedCompany, setSelectedCompany] = useState<Company | undefined>()
@@ -107,7 +111,9 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
       clientName: customer.name,
       clientAddress: customer.address_line1,
       clientAddress2: customer.address_line2 ? `${customer.city}, ${customer.state} ${customer.zip_code}` : `${customer.city}, ${customer.state} ${customer.zip_code}`,
-      clientCountry: customer.country
+      clientCountry: customer.country,
+      clientPhone: customer.phone,
+      clientEmail: customer.email,
     })
   }
 
@@ -126,7 +132,9 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
       companyName: company.name,
       companyAddress: company.address_line1,
       companyAddress2: company.address_line2 ? `${company.city}, ${company.state} ${company.zip_code}` : `${company.city}, ${company.state} ${company.zip_code}`,
-      companyCountry: company.country
+      companyCountry: company.country,
+      companyPhone: company.phone,
+      companyEmail: company.email,
     })
   }
 
@@ -190,10 +198,16 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
             onChangeWidth={(value) => handleChange('logoWidth', value)}
           />
           {!pdfMode ? (
-            <CompanySelector
-              selectedCompany={selectedCompany}
-              onCompanySelect={handleCompanySelect}
-              pdfMode={pdfMode}
+            <CompanySelect
+              companies={companies}
+              value={selectedCompany?.id || ''}
+              onChange={(id) => {
+                const company = companies.find((c) => c.id === id)
+                if (company) {
+                  handleCompanySelect(company)
+                }
+              }}
+              placeholder="Select company"
             />
           ) : (
             <Text className="fs-20 bold center" pdfMode={pdfMode}>{invoice.companyName}</Text>
@@ -222,11 +236,16 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
               </View>
               <View className="w-60" pdfMode={pdfMode}>
                 {!pdfMode ? (
-                  <CustomerSelector
-                    selectedCustomer={selectedCustomer}
-                    onCustomerSelect={handleCustomerSelect}
-                    pdfMode={pdfMode}
-                    companyId={invoice.companyId}
+                  <CustomerSelect
+                    customers={customers}
+                    value={selectedCustomer?.id || ''}
+                    onChange={(id) => {
+                      const customer = customers.find((c) => c.id === id)
+                      if (customer) {
+                        handleCustomerSelect(customer)
+                      }
+                    }}
+                    placeholder="Select customer"
                   />
                 ) : (
                   <Text pdfMode={pdfMode}>{invoice.clientName}</Text>

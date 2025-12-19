@@ -5,6 +5,8 @@ import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { useProducts } from '@/hooks/api/useProducts'
 import { cn } from '@/lib/utils'
+import { CompanySelect } from '@/components/ui/CompanySelect'
+import { CustomerSelect } from '@/components/ui/CustomerSelect'
 
 interface QuoteFormProps {
   quote?: Quote
@@ -357,39 +359,25 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Company
           </label>
-          <select
+          <CompanySelect
+            companies={companies}
             value={formData.companyId}
-            onChange={(e) => handleInputChange('companyId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Select a company</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleInputChange('companyId', value)}
+            placeholder="Select a company"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Customer *
           </label>
-          <select
+          <CustomerSelect
+            customers={customers}
             value={formData.customerId}
-            onChange={(e) => handleInputChange('customerId', e.target.value)}
-            className={cn(
-              "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-              errors.customerId && "border-red-500"
-            )}
-          >
-            <option value="">Select a customer</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}{customer.companyName ? ` (${customer.companyName})` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleInputChange('customerId', value)}
+            placeholder="Select a customer"
+            error={errors.customerId}
+          />
           {errors.customerId && (
             <p className="mt-1 text-sm text-red-600">{errors.customerId}</p>
           )}
