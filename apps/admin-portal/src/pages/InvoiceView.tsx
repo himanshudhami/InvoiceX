@@ -35,7 +35,8 @@ const InvoiceView = () => {
   
   const { data: invoice, isLoading, error } = useInvoice(id!)
   const { data: invoiceItems = [] } = useInvoiceItems(id!)
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to the invoice company to avoid cross-company mismatches
+  const { data: customers = [] } = useCustomers(invoice?.companyId)
   const { data: companies = [] } = useCompanies()
 
   const customer = customers.find(c => c.id === invoice?.customerId)

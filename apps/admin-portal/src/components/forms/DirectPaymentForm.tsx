@@ -71,7 +71,8 @@ export const DirectPaymentForm = ({
 
   // API hooks
   const { data: allCompanies = [] } = useCompanies();
-  const { data: allCustomers = [] } = useCustomers();
+  // Scope customers to selected company when set
+  const { data: allCustomers = [] } = useCustomers(companyId || undefined);
   const createPayment = useCreatePayment();
 
   // Filter customers by selected company

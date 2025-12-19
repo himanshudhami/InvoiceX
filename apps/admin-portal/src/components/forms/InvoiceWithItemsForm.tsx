@@ -48,7 +48,8 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
 
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to selected company for the bill-to dropdown
+  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
   const { data: products = [] } = useProducts()
 
@@ -84,6 +85,15 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
       setFormData(prev => ({ ...prev, invoiceNumber }))
     }
   }, [invoice])
+
+  // Clear customer if it doesn't belong to the selected company
+  useEffect(() => {
+    if (!formData.customerId || !formData.companyId) return
+    const customer = customers.find(c => c.id === formData.customerId)
+    if (customer && customer.companyId && customer.companyId !== formData.companyId) {
+      setFormData(prev => ({ ...prev, customerId: '' }))
+    }
+  }, [formData.companyId, formData.customerId, customers])
 
   // Populate form with existing invoice data
   useEffect(() => {

@@ -68,7 +68,7 @@ const PaymentsManagement = () => {
 
   const { data: invoices = [] } = useInvoices();
   const { data: companies = [] } = useCompanies();
-  const { data: customers = [] } = useCustomers();
+  const { data: customers = [] } = useCustomers(effectiveCompanyId || undefined);
   const deletePayment = useDeletePayment();
 
   // Extract items and pagination info from response

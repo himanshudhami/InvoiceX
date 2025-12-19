@@ -35,7 +35,8 @@ const QuoteView = () => {
 
   const { data: quote, isLoading, error } = useQuote(id!)
   const { data: quoteItems = [] } = useQuoteItems(id!)
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to quote company to avoid cross-company mismatches
+  const { data: customers = [] } = useCustomers(quote?.companyId)
   const { data: companies = [] } = useCompanies()
 
   const sendQuote = useSendQuote()

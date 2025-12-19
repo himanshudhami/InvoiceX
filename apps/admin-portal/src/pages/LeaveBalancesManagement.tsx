@@ -28,7 +28,7 @@ const LeaveBalancesManagement = () => {
     financialYear: selectedFinancialYear,
   })
   const { data: companies = [] } = useCompanies()
-  const { data: employees = [] } = useEmployees()
+  const { data: employees = [] } = useEmployees(selectedCompanyId || undefined)
   const { data: leaveTypes = [] } = useLeaveTypes(selectedCompanyId || undefined)
 
   const adjustBalance = useAdjustLeaveBalance()

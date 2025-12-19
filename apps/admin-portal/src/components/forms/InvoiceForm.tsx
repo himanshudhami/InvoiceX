@@ -38,7 +38,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to the selected company so "Bill To" reflects the chosen "From"
+  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
 
   const isEditing = !!invoice
@@ -83,6 +84,15 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       })
     }
   }, [invoice])
+
+  // When company changes, clear customer if it belongs to a different company
+  useEffect(() => {
+    if (!formData.customerId || !formData.companyId) return
+    const customer = customers.find(c => c.id === formData.customerId)
+    if (customer && customer.companyId && customer.companyId !== formData.companyId) {
+      setFormData(prev => ({ ...prev, customerId: '' }))
+    }
+  }, [formData.companyId, formData.customerId, customers])
 
   // Recalculate total when subtotal, tax, or discount changes
   useEffect(() => {
@@ -157,10 +167,17 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   }
 
   const handleChange = (field: keyof CreateInvoiceDto, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+    if (field === 'companyId') {
+      setFormData(prev => ({ ...prev, companyId: value as string, customerId: '' }))
+      if (errors.customerId) {
+        setErrors(prev => ({ ...prev, customerId: '' }))
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }))
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }))
+      }
     }
   }
 

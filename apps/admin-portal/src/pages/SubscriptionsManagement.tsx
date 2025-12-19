@@ -72,7 +72,7 @@ const SubscriptionsManagement = () => {
   const deleteSub = useDeleteSubscription();
   const assignSub = useAssignSubscription();
   const revokeSub = useRevokeSubscriptionAssignment();
-  const { data: employees = [] } = useEmployees();
+  const { data: employees = [] } = useEmployees(); // Could be scoped by company if needed
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
@@ -435,7 +435,6 @@ const SubscriptionsManagement = () => {
 };
 
 export default SubscriptionsManagement;
-
 
 
 

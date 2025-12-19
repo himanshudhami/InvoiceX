@@ -101,7 +101,8 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to the selected company so "Bill To" updates when company changes
+  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
   const { data: products = [] } = useProducts()
   const { data: existingItems = [] } = useInvoiceItems(invoice?.id || '')
@@ -174,6 +175,18 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       })
     }
   }, [invoice])
+
+  // Clear customer immediately when company changes to avoid cross-company selections
+  const handleCompanyChange = (companyId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      companyId,
+      customerId: '',
+    }))
+    if (errors.customerId) {
+      setErrors(prev => ({ ...prev, customerId: '' }))
+    }
+  }
 
   // Populate line items for editing
   useEffect(() => {

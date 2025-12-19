@@ -21,7 +21,12 @@ const AssetAssignmentsPage = () => {
   const { data: companies = [] } = useCompanies();
   const returnAsset = useReturnAssetAssignment();
 
-  const employeeMap = useMemo(() => new Map(employees.map(e => [e.id, e])), [employees]);
+  const filteredEmployees = useMemo(() => {
+    if (!companyFilter) return employees;
+    return employees.filter(e => e.companyId === companyFilter);
+  }, [employees, companyFilter]);
+
+  const employeeMap = useMemo(() => new Map(filteredEmployees.map(e => [e.id, e])), [filteredEmployees]);
   const companyMap = useMemo(() => new Map(companies.map(c => [c.id, c])), [companies]);
   const assetMap = useMemo(() => new Map(assetsData?.items?.map(a => [a.id, a]) || []), [assetsData]);
 
@@ -170,9 +175,6 @@ const AssetAssignmentsPage = () => {
 };
 
 export default AssetAssignmentsPage;
-
-
-
 
 
 

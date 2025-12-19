@@ -480,6 +480,7 @@ export interface InvoicesFilterParams extends PaginationParams {
   projectName?: string;
   currency?: string;
   companyId?: string;
+  customerId?: string;
 }
 
 // Quote filters for server-side paging

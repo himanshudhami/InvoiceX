@@ -28,6 +28,7 @@ const InvoiceList = () => {
       search: parseAsString.withDefault(''),
       status: parseAsString.withDefault(''),
       company: parseAsString.withDefault(''),
+      customer: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
@@ -52,6 +53,7 @@ const InvoiceList = () => {
     searchTerm: debouncedSearchTerm || undefined,
     status: urlState.status || undefined,
     companyId: effectiveCompanyId || undefined,
+    customerId: urlState.customer || undefined,
   })
 
   const deleteInvoice = useDeleteInvoice()
@@ -364,9 +366,26 @@ const InvoiceList = () => {
                 </select>
               </div>
 
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Customer</label>
+                <select
+                  value={urlState.customer}
+                  onChange={(e) => setUrlState({ customer: e.target.value, page: 1 })}
+                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px]"
+                  disabled={!effectiveCompanyId}
+                >
+                  <option value="">All Customers</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.name}{customer.companyName ? ` (${customer.companyName})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {(urlState.status || urlState.company) && (
                 <button
-                  onClick={() => setUrlState({ status: '', company: '', page: 1 })}
+                  onClick={() => setUrlState({ status: '', company: '', customer: '', page: 1 })}
                   className="text-sm px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Clear filters

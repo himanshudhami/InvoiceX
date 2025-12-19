@@ -76,7 +76,7 @@ export const TdsReceivableForm = ({ tdsReceivable, onSuccess, onCancel }: TdsRec
   const createTdsReceivable = useCreateTdsReceivable()
   const updateTdsReceivable = useUpdateTdsReceivable()
   const { data: companies = [] } = useCompanies()
-  const { data: customers = [] } = useCustomers()
+  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
 
   const isEditing = !!tdsReceivable
   const isLoading = createTdsReceivable.isPending || updateTdsReceivable.isPending

@@ -31,7 +31,7 @@ const ContractorPaymentsPage = () => {
   const [payingPayment, setPayingPayment] = useState<ContractorPayment | null>(null)
   const [paymentData, setPaymentData] = useState({ paymentReference: '', paymentMode: '', remarks: '' })
 
-  const { data: employees = [] } = useEmployees()
+  const { data: employees = [] } = useEmployees(urlState.companyId || undefined)
   const { data: companies = [] } = useCompanies()
   const deleteContractorPayment = useDeleteContractorPayment()
   const approveContractorPayment = useApproveContractorPayment()
@@ -402,7 +402,6 @@ const ContractorPaymentsPage = () => {
 }
 
 export default ContractorPaymentsPage
-
 
 
 

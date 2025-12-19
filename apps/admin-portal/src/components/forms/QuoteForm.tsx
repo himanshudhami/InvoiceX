@@ -69,7 +69,8 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
   const updateQuoteItem = useUpdateQuoteItem()
   const deleteQuoteItem = useDeleteQuoteItem()
 
-  const { data: customers = [] } = useCustomers()
+  // Scope customers to the selected company; rely on query key to refetch when company changes
+  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
   const { data: products = [] } = useProducts()
   const { data: existingQuoteItems = [] } = useQuoteItems(quote?.id || '')
@@ -182,9 +183,16 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
   }, [quoteItems, formData.discountType, formData.discountValue, formData.taxAmount])
 
   const handleInputChange = (field: keyof CreateQuoteDto, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
+    if (field === 'companyId') {
+      setFormData(prev => ({ ...prev, companyId: value, customerId: '' }))
+      if (errors.customerId) {
+        setErrors(prev => ({ ...prev, customerId: '' }))
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }))
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }))
+      }
     }
   }
 

@@ -18,7 +18,7 @@ const InvoicesManagement = () => {
   const navigate = useNavigate()
 
   const { data: invoices = [], isLoading, error, refetch } = useInvoices()
-  const { data: customers = [] } = useCustomers()
+  const { data: customers = [] } = useCustomers(selectedCompanyId || undefined)
   const { data: companies = [] } = useCompanies()
   const deleteInvoice = useDeleteInvoice()
 

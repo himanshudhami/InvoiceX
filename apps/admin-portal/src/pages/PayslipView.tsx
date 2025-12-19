@@ -13,7 +13,8 @@ const PayslipView = () => {
   const navigate = useNavigate()
 
   const { data: transaction, isLoading, error } = usePayrollTransaction(transactionId!, !!transactionId)
-  const { data: employees = [] } = useEmployees()
+  // Scope employees by transaction company to avoid cross-company lookups
+  const { data: employees = [] } = useEmployees(transaction?.companyId || undefined)
 
   const employee = employees.find((e) => e.id === transaction?.employeeId)
 
@@ -245,7 +246,6 @@ const PayslipView = () => {
 }
 
 export default PayslipView
-
 
 
 

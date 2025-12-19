@@ -226,6 +226,7 @@ const InvoicePage: FC<Props> = ({ data, pdfMode, onChange }) => {
                     selectedCustomer={selectedCustomer}
                     onCustomerSelect={handleCustomerSelect}
                     pdfMode={pdfMode}
+                    companyId={invoice.companyId}
                   />
                 ) : (
                   <Text pdfMode={pdfMode}>{invoice.clientName}</Text>

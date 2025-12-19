@@ -6,11 +6,12 @@ interface Props {
   selectedCustomer?: Customer
   onCustomerSelect: (customer: Customer) => void
   pdfMode?: boolean
+  companyId?: string
 }
 
-const CustomerSelector: FC<Props> = ({ selectedCustomer, onCustomerSelect, pdfMode }) => {
+const CustomerSelector: FC<Props> = ({ selectedCustomer, onCustomerSelect, pdfMode, companyId }) => {
   const [isOpen, setIsOpen] = useState(false)
-  const { data: customers = [], isLoading, error } = useCustomers()
+  const { data: customers = [], isLoading, error } = useCustomers(companyId)
 
   if (pdfMode) {
     return <span>{selectedCustomer?.name || 'Select Customer'}</span>

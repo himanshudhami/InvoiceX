@@ -3,6 +3,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { userApi } from '@/services/userService'
 import { User, UsersListResponse, ALL_ROLES, ROLE_LABELS } from '@/types/user'
 import type { UserRole } from '@/types/auth'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { CreateUserDialog } from '@/components/users/CreateUserDialog'
@@ -17,7 +18,6 @@ import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 const UsersPage = () => {
   const { user: currentUser } = useAuth()
   const [data, setData] = useState<UsersListResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Filter state
@@ -43,30 +43,26 @@ const UsersPage = () => {
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  // Fetch users
-  const fetchUsers = async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const result = await userApi.getUsers({
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['users', page, pageSize, debouncedSearchTerm, roleFilter, companyFilter],
+    queryFn: async () =>
+      userApi.getUsers({
         pageNumber: page,
         pageSize,
         searchTerm: debouncedSearchTerm || undefined,
         role: roleFilter || undefined,
         companyId: companyFilter || undefined,
-      })
-      setData(result)
-    } catch (err) {
-      setError('Failed to load users')
-      console.error('Error fetching users:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      }),
+    keepPreviousData: true,
+  })
 
+  // Mirror query errors into local error string for existing UI
   useEffect(() => {
-    fetchUsers()
-  }, [page, pageSize, debouncedSearchTerm, roleFilter, companyFilter])
+    if (error) setError('Failed to load users')
+    else setError(null)
+  }, [error])
 
   const handleToggleStatus = async () => {
     if (!togglingUser) return
@@ -77,7 +73,7 @@ const UsersPage = () => {
         await userApi.activateUser(togglingUser.id)
       }
       setTogglingUser(null)
-      fetchUsers()
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     } catch (err) {
       console.error('Failed to toggle user status:', err)
     }
