@@ -88,19 +88,26 @@ namespace WebApi.Controllers
         /// Get paginated Payments entities with filtering and sorting
         /// </summary>
         /// <param name="request">Pagination and filter parameters</param>
+        /// <param name="companyId">Optional company ID filter</param>
         /// <returns>Paginated list of Payments entities</returns>
         /// <response code="200">Returns the paginated list of Payments entities</response>
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<Payments>), 200)]
-        public async Task<IActionResult> GetPaged([FromQuery] PaymentsFilterRequest request)
+        public async Task<IActionResult> GetPaged([FromQuery] PaymentsFilterRequest request, [FromQuery] Guid? companyId = null)
         {
+            var filters = request.GetFilters();
+            if (companyId.HasValue)
+            {
+                filters["company_id"] = companyId.Value;
+            }
+
             var result = await _service.GetPagedAsync(
                 request.PageNumber,
                 request.PageSize,
                 request.SearchTerm,
                 request.SortBy,
                 request.SortDescending,
-                request.GetFilters());
+                filters);
             
             if (result.IsFailure)
             {

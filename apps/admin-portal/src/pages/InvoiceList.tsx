@@ -1,53 +1,67 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import { useInvoices, useDeleteInvoice, useDuplicateInvoice } from '@/features/invoices/hooks'
+import { useInvoicesPaged, useDeleteInvoice, useDuplicateInvoice } from '@/features/invoices/hooks'
 import { useCustomers } from '@/features/customers/hooks'
-import { Invoice } from '@/services/api/types'
+import { useCompanyContext } from '@/contexts/CompanyContext'
+import { Invoice, PagedResponse } from '@/services/api/types'
+import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Edit, Trash2, Copy } from 'lucide-react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  flexRender,
-  SortingState,
-  ColumnFiltersState,
-  VisibilityState,
-} from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
-import { useQueryStates, parseAsString, parseAsArrayOf, parseAsInteger } from 'nuqs'
-import { useState } from 'react'
+import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null)
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({ companyId: false })
 
-  // URL-backed state with nuqs - persists filters on refresh
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext()
+
+  // URL-backed filter state with nuqs - persists on refresh
   const [urlState, setUrlState] = useQueryStates(
     {
-      search: parseAsString.withDefault(''),
-      companyId: parseAsString.withDefault(''),
-      status: parseAsArrayOf(parseAsString).withDefault([]),
-      created: parseAsString.withDefault(''),
-      updated: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       pageSize: parseAsInteger.withDefault(100),
+      search: parseAsString.withDefault(''),
+      status: parseAsString.withDefault(''),
+      company: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
 
-  const { data: invoices = [], isLoading, error, refetch } = useInvoices()
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = urlState.company || (hasMultiCompanyAccess ? selectedCompanyId : undefined)
+
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlState.search)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(urlState.search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [urlState.search])
+
+  // Server-side paginated data
+  const { data, isLoading, error, refetch } = useInvoicesPaged({
+    pageNumber: urlState.page,
+    pageSize: urlState.pageSize,
+    searchTerm: debouncedSearchTerm || undefined,
+    status: urlState.status || undefined,
+    companyId: effectiveCompanyId || undefined,
+  })
+
   const deleteInvoice = useDeleteInvoice()
   const duplicateInvoice = useDuplicateInvoice()
   const { data: customers = [] } = useCustomers()
-  // CompanyFilterDropdown uses useCompanies internally, no need to call it here
+
+  // Extract items and pagination info from response
+  const invoices = data?.items ?? []
+  const totalCount = data?.totalCount ?? 0
+  const totalPages = data?.totalPages ?? 1
 
   const handleDelete = (invoice: Invoice) => {
     setDeletingInvoice(invoice)
@@ -102,49 +116,6 @@ const InvoiceList = () => {
     return `${currencySymbol}${amount.toFixed(2)}`
   }
 
-  const getMonthYearKey = (dateString?: string | null) => {
-    if (!dateString) return null
-    const date = new Date(dateString)
-    if (Number.isNaN(date.getTime())) return null
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const year = date.getFullYear()
-    return `${year}-${month}`
-  }
-
-  const formatMonthYearLabel = (value: string) => {
-    const [year, month] = value.split('-').map(Number)
-    if (!year || !month) return value
-    return new Date(year, month - 1, 1).toLocaleString('default', {
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const monthYearOptions = useMemo(() => {
-    const created = new Set<string>()
-    const updated = new Set<string>()
-
-    invoices.forEach((inv) => {
-      const createdKey = getMonthYearKey(inv.createdAt)
-      const updatedKey = getMonthYearKey(inv.updatedAt)
-      if (createdKey) created.add(createdKey)
-      if (updatedKey) updated.add(updatedKey)
-    })
-
-    const toOptions = (values: Set<string>) =>
-      Array.from(values)
-        .sort((a, b) => b.localeCompare(a))
-        .map((value) => ({
-          value,
-          label: formatMonthYearLabel(value),
-        }))
-
-    return {
-      created: toOptions(created),
-      updated: toOptions(updated),
-    }
-  }, [invoices])
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
   }
@@ -155,58 +126,30 @@ const InvoiceList = () => {
     return 'Partially Paid'
   }
 
-  // Toggle status filter using URL state
-  const toggleStatusFilter = (status: string) => {
-    const currentFilters = new Set(urlState.status)
-    if (currentFilters.has(status)) {
-      currentFilters.delete(status)
-    } else {
-      currentFilters.add(status)
+  // Calculate totals from current page data
+  const totals = useMemo(() => {
+    const result = {
+      subtotal: 0,
+      taxAmount: 0,
+      discountAmount: 0,
+      totalAmount: 0,
+      paidAmount: 0,
+      outstanding: 0
     }
-    setUrlState({ status: Array.from(currentFilters), page: 1 })
-  }
 
-  // Memoize statusFilters to prevent unnecessary recalculations
-  const statusFilters = useMemo(() => new Set(urlState.status), [urlState.status])
-
-  // Apply all filters manually (status, created, updated, companyId, search)
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      // Status filter
-      const invoiceStatus = (inv.status || 'draft').toLowerCase()
-      const statusMatches = statusFilters.size === 0 || statusFilters.has(invoiceStatus)
-      
-      // Date filters
-      const createdMatches =
-        !urlState.created || getMonthYearKey(inv.createdAt) === urlState.created
-      const updatedMatches =
-        !urlState.updated || getMonthYearKey(inv.updatedAt) === urlState.updated
-      
-      // Company filter
-      const companyMatches = !urlState.companyId || inv.companyId === urlState.companyId
-      
-      // Search filter
-      const searchLower = urlState.search.toLowerCase()
-      const searchMatches = !searchLower || 
-        inv.invoiceNumber?.toLowerCase().includes(searchLower) ||
-        inv.projectName?.toLowerCase().includes(searchLower) ||
-        getCustomerName(inv.customerId).toLowerCase().includes(searchLower)
-      
-      return statusMatches && createdMatches && updatedMatches && companyMatches && searchMatches
+    invoices.forEach(invoice => {
+      result.subtotal += invoice.subtotal || 0
+      result.taxAmount += invoice.taxAmount || 0
+      result.discountAmount += invoice.discountAmount || 0
+      result.totalAmount += invoice.totalAmount || 0
+      result.paidAmount += invoice.paidAmount || 0
     })
-  }, [invoices, statusFilters, urlState.created, urlState.updated, urlState.companyId, urlState.search, customers])
 
-  type InvoiceRow = Invoice & { customerName?: string }
-  const tableData: InvoiceRow[] = useMemo(
-    () =>
-      filteredInvoices.map((inv) => ({
-        ...inv,
-        customerName: getCustomerName(inv.customerId),
-      })),
-    [filteredInvoices, customers],
-  )
+    result.outstanding = result.totalAmount - result.paidAmount
+    return result
+  }, [invoices])
 
-  const columns = useMemo<ColumnDef<InvoiceRow>[]>(() => [
+  const columns = useMemo<ColumnDef<Invoice>[]>(() => [
     {
       accessorKey: 'invoiceNumber',
       header: 'Invoice',
@@ -226,10 +169,10 @@ const InvoiceList = () => {
       },
     },
     {
-      accessorKey: 'customerName',
+      accessorKey: 'customerId',
       header: 'Customer',
       cell: ({ row }) => {
-        const customerName = row.original.customerName || getCustomerName(row.original.customerId)
+        const customerName = getCustomerName(row.original.customerId)
         return <div className="text-sm text-gray-900">{customerName}</div>
       },
     },
@@ -291,11 +234,6 @@ const InvoiceList = () => {
       },
     },
     {
-      accessorKey: 'companyId',
-      header: 'Company (hidden)',
-      cell: () => null,
-    },
-    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
@@ -335,61 +273,9 @@ const InvoiceList = () => {
         )
       },
     },
-  ], [navigate, duplicateInvoice.isPending])
+  ], [navigate, duplicateInvoice.isPending, customers])
 
-  const table = useReactTable({
-    data: tableData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    // Removed getFilteredRowModel - we're doing all filtering manually in filteredInvoices
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    // Removed onColumnFiltersChange to prevent render loop - columnFilters is synced from URL state via useEffect
-    onColumnVisibilityChange: setColumnVisibility,
-    // Removed onGlobalFilterChange - search is handled manually in filteredInvoices
-    state: {
-      sorting,
-      // columnFilters kept for React Table internal use but not used for filtering
-      columnFilters,
-      columnVisibility,
-      pagination: {
-        pageIndex: urlState.page - 1,
-        pageSize: urlState.pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      const current = { pageIndex: urlState.page - 1, pageSize: urlState.pageSize }
-      const next = typeof updater === 'function' ? updater(current) : updater
-      setUrlState({ page: next.pageIndex + 1, pageSize: next.pageSize })
-    },
-    manualPagination: false,
-  })
-
-  const visibleInvoices = table.getFilteredRowModel().rows.map((row) => row.original)
-
-  const totals = useMemo(() => {
-    const result = {
-      subtotal: 0,
-      taxAmount: 0,
-      discountAmount: 0,
-      totalAmount: 0,
-      paidAmount: 0,
-      outstanding: 0
-    }
-
-    visibleInvoices.forEach(invoice => {
-      result.subtotal += invoice.subtotal || 0
-      result.taxAmount += invoice.taxAmount || 0
-      result.discountAmount += invoice.discountAmount || 0
-      result.totalAmount += invoice.totalAmount || 0
-      result.paidAmount += invoice.paidAmount || 0
-    })
-
-    result.outstanding = result.totalAmount - result.paidAmount
-
-    return result
-  }, [visibleInvoices])
+  const statusOptions = ['draft', 'sent', 'viewed', 'overdue', 'paid', 'cancelled']
 
   if (isLoading) {
     return (
@@ -428,65 +314,23 @@ const InvoiceList = () => {
         </button>
       </div>
 
-      {/* Status filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <span className="text-sm font-medium text-gray-700 mr-2">Filter by status:</span>
-        {[
-          { key: 'draft', label: 'Draft' },
-          { key: 'sent', label: 'Sent' },
-          { key: 'viewed', label: 'Viewed' },
-          { key: 'overdue', label: 'Overdue' },
-          { key: 'paid', label: 'Paid' },
-          { key: 'cancelled', label: 'Cancelled' },
-        ].map((option) => (
-          <button
-            key={option.key}
-            onClick={() => toggleStatusFilter(option.key)}
-            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-              statusFilters.has(option.key)
-                ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-
-        {statusFilters.size > 0 && (
-          <button
-            onClick={() => setUrlState({ status: [], page: 1 })}
-            className="px-3 py-1 rounded-full text-sm border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors ml-2"
-          >
-            Clear all ({statusFilters.size})
-          </button>
-        )}
-      </div>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">Total Invoices</div>
-          <div className="text-2xl font-bold text-gray-900">{visibleInvoices.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{totalCount}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Paid</div>
-          <div className="text-2xl font-bold text-green-600">
-            {visibleInvoices.filter(inv => (inv.status || '').toLowerCase() === 'paid').length}
-          </div>
+          <div className="text-sm font-medium text-gray-500">This Page Total</div>
+          <div className="text-2xl font-bold text-gray-900">{formatCurrency(totals.totalAmount)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Overdue</div>
-          <div className="text-2xl font-bold text-red-600">
-            {visibleInvoices.filter(inv =>
-              new Date(inv.dueDate) < new Date() && inv.status !== 'paid'
-            ).length}
-          </div>
+          <div className="text-sm font-medium text-gray-500">This Page Paid</div>
+          <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.paidAmount)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Total Amount</div>
-          <div className="text-2xl font-bold text-gray-900">
-            ${visibleInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0).toFixed(2)}
-          </div>
+          <div className="text-sm font-medium text-gray-500">This Page Outstanding</div>
+          <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.outstanding)}</div>
         </div>
       </div>
 
@@ -496,51 +340,35 @@ const InvoiceList = () => {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
             <div className="flex flex-wrap items-center gap-3">
               <CompanyFilterDropdown
-                value={urlState.companyId}
+                value={urlState.company}
                 onChange={(val) => {
-                  setUrlState({ companyId: val || '', page: 1 })
+                  setUrlState({ company: val || '', page: 1 })
                 }}
                 className="min-w-[180px]"
               />
 
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Created</span>
+                <label className="text-sm font-medium text-gray-700">Status</label>
                 <select
-                  value={urlState.created}
-                  onChange={(e) => setUrlState({ created: e.target.value || '', page: 1 })}
-                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[180px]"
+                  value={urlState.status}
+                  onChange={(e) => setUrlState({ status: e.target.value, page: 1 })}
+                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px]"
                 >
-                  <option value="">Any month</option>
-                  {monthYearOptions.created.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  <option value="">All Statuses</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">Updated</span>
-                <select
-                  value={urlState.updated}
-                  onChange={(e) => setUrlState({ updated: e.target.value || '', page: 1 })}
-                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[180px]"
-                >
-                  <option value="">Any month</option>
-                  {monthYearOptions.updated.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {(urlState.created || urlState.updated) && (
+              {(urlState.status || urlState.company) && (
                 <button
-                  onClick={() => setUrlState({ created: '', updated: '', page: 1 })}
+                  onClick={() => setUrlState({ status: '', company: '', page: 1 })}
                   className="text-sm px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Clear date filters
+                  Clear filters
                 </button>
               )}
             </div>
@@ -557,41 +385,29 @@ const InvoiceList = () => {
           <div className="rounded-md border overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
-                          </span>
-                          <span className="text-gray-400">
-                            {header.column.getIsSorted() === 'desc' ? '↓' :
-                             header.column.getIsSorted() === 'asc' ? '↑' :
-                             header.column.getCanSort() ? '↕' : null}
-                          </span>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                ))}
+                <tr>
+                  {columns.map((column) => (
+                    <th
+                      key={column.id || (column as any).accessorKey}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {typeof column.header === 'string' ? column.header : ''}
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                {invoices.length > 0 ? (
+                  invoices.map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                      {columns.map((column) => (
+                        <td
+                          key={`${invoice.id}-${column.id || (column as any).accessorKey}`}
+                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        >
+                          {column.cell
+                            ? (column.cell as any)({ row: { original: invoice } })
+                            : (invoice as any)[(column as any).accessorKey]}
                         </td>
                       ))}
                     </tr>
@@ -599,37 +415,11 @@ const InvoiceList = () => {
                 ) : (
                   <tr>
                     <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                      No results found.
+                      No invoices found.
                     </td>
                   </tr>
                 )}
               </tbody>
-              {/* Totals Row */}
-              {table.getFilteredRowModel().rows.length > 0 && (
-                <tfoot className="bg-gray-100 border-t-2 border-gray-300">
-                  <tr className="font-semibold">
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      Totals ({table.getFilteredRowModel().rows.length} invoices)
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900"></td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <div className="text-xs text-gray-600">Paid: {formatCurrency(totals.paidAmount)}</div>
-                      <div className="text-xs text-red-600">Outstanding: {formatCurrency(totals.outstanding)}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900"></td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      <div className="font-bold">{formatCurrency(totals.totalAmount)}</div>
-                      {totals.taxAmount > 0 && (
-                        <div className="text-xs text-gray-600">Tax: {formatCurrency(totals.taxAmount)}</div>
-                      )}
-                      {totals.discountAmount > 0 && (
-                        <div className="text-xs text-gray-600">Discount: {formatCurrency(totals.discountAmount)}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900"></td>
-                  </tr>
-                </tfoot>
-              )}
             </table>
           </div>
 
@@ -637,24 +427,24 @@ const InvoiceList = () => {
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                Page {urlState.page} of {totalPages}
               </span>
               <span className="text-sm text-gray-500">
-                ({table.getFilteredRowModel().rows.length} total rows)
+                ({totalCount} total invoices)
               </span>
               <PageSizeSelect
-                value={table.getState().pagination.pageSize}
+                value={urlState.pageSize}
                 onChange={(size) => setUrlState({ pageSize: size, page: 1 })}
               />
             </div>
 
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => setUrlState({ page: urlState.page - 1 })}
+                disabled={urlState.page <= 1}
                 className={cn(
                   "px-3 py-1 rounded-md text-sm transition-colors",
-                  table.getCanPreviousPage()
+                  urlState.page > 1
                     ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 )}
@@ -663,36 +453,35 @@ const InvoiceList = () => {
               </button>
 
               <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, table.getPageCount()) }, (_, i) => {
-                  const pageIndex = table.getState().pagination.pageIndex;
-                  const startPage = Math.max(0, pageIndex - 2);
-                  const page = startPage + i;
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const startPage = Math.max(1, urlState.page - 2)
+                  const page = startPage + i
 
-                  if (page >= table.getPageCount()) return null;
+                  if (page > totalPages) return null
 
                   return (
                     <button
                       key={page}
-                      onClick={() => setUrlState({ page: page + 1 })}
+                      onClick={() => setUrlState({ page })}
                       className={cn(
                         "w-8 h-8 rounded text-sm transition-colors",
-                        page === pageIndex
+                        page === urlState.page
                           ? "bg-primary text-primary-foreground"
                           : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                       )}
                     >
-                      {page + 1}
+                      {page}
                     </button>
-                  );
+                  )
                 })}
               </div>
 
               <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => setUrlState({ page: urlState.page + 1 })}
+                disabled={urlState.page >= totalPages}
                 className={cn(
                   "px-3 py-1 rounded-md text-sm transition-colors",
-                  table.getCanNextPage()
+                  urlState.page < totalPages
                     ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 )}

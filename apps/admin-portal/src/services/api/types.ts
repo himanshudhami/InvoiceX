@@ -473,6 +473,59 @@ export interface SalaryTransactionsFilterParams extends PaginationParams {
   companyId?: string; // Preferred field - UUID of company
 }
 
+// Invoice filters for server-side paging
+export interface InvoicesFilterParams extends PaginationParams {
+  status?: string;
+  invoiceNumber?: string;
+  projectName?: string;
+  currency?: string;
+  companyId?: string;
+}
+
+// Quote filters for server-side paging
+export interface QuotesFilterParams extends PaginationParams {
+  status?: string;
+  quoteNumber?: string;
+  projectName?: string;
+  currency?: string;
+  companyId?: string;
+}
+
+// Customer filters for server-side paging
+export interface CustomersFilterParams extends PaginationParams {
+  name?: string;
+  companyName?: string;
+  email?: string;
+  city?: string;
+  state?: string;
+  isActive?: boolean;
+  companyId?: string;
+}
+
+// Product filters for server-side paging
+export interface ProductsFilterParams extends PaginationParams {
+  name?: string;
+  category?: string;
+  type?: string;
+  isActive?: boolean;
+  companyId?: string;
+}
+
+// Payment filters for server-side paging
+export interface PaymentsFilterParams extends PaginationParams {
+  invoiceId?: string;
+  companyId?: string;
+  customerId?: string;
+  paymentType?: string;
+  incomeCategory?: string;
+  tdsApplicable?: boolean;
+  tdsSection?: string;
+  financialYear?: string;
+  currency?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
 // Employee Management Types
 export interface Employee {
   id: string;

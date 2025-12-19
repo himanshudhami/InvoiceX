@@ -1,6 +1,5 @@
 import { apiClient } from './client';
-import { Payment, IncomeSummary, TdsSummary } from './types';
-import { PaginationParams, PagedResponse } from './types';
+import { Payment, IncomeSummary, TdsSummary, PaymentsFilterParams, PagedResponse } from './types';
 
 // Payment types for classification
 export type PaymentType = 'invoice_payment' | 'advance_received' | 'direct_income' | 'refund_received';
@@ -43,24 +42,15 @@ export interface CreatePaymentDto {
 
 export interface UpdatePaymentDto extends CreatePaymentDto {}
 
-export interface PaymentFilterParams extends PaginationParams {
-  invoiceId?: string;
-  companyId?: string;
-  customerId?: string;
-  fromDate?: string;
-  toDate?: string;
-  paymentType?: PaymentType;
-  incomeCategory?: IncomeCategory;
-  tdsApplicable?: boolean;
-  tdsSection?: string;
-  financialYear?: string;
-  currency?: string;
-}
+// Re-export PaymentsFilterParams for backward compatibility
+export type { PaymentsFilterParams } from './types';
+// Alias for backward compatibility
+export type PaymentFilterParams = PaymentsFilterParams;
 
 export class PaymentService {
   private readonly endpoint = 'payments';
 
-  async getPaged(params?: PaymentFilterParams): Promise<PagedResponse<Payment>> {
+  async getPaged(params?: PaymentsFilterParams): Promise<PagedResponse<Payment>> {
     return apiClient.getPaged<Payment>(this.endpoint, params);
   }
 

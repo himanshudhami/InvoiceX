@@ -6,39 +6,35 @@ import type {
   Invoice,
   CreateInvoiceDto,
   UpdateInvoiceDto,
-  PaginationParams,
+  InvoicesFilterParams,
 } from '@/services/api/types'
 import { invoiceKeys } from './invoiceKeys'
-import { usePaginatedData } from '@/shared/utils/pagination'
 
 /**
- * Fetch all invoices
+ * Fetch all invoices (use useInvoicesPaged for better performance)
+ * @param companyId Optional company ID to filter by (for multi-company users)
+ * @deprecated Use useInvoicesPaged for server-side pagination
  */
-export const useInvoices = () => {
+export const useInvoices = (companyId?: string) => {
   return useQuery({
-    queryKey: invoiceKeys.lists(),
-    queryFn: () => invoiceService.getAll(),
+    queryKey: invoiceKeys.list(companyId),
+    queryFn: () => invoiceService.getAll(companyId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
 }
 
 /**
- * Paginated invoices with client-side pagination
+ * Fetch paginated invoices with server-side filtering
+ * This is the recommended hook for listing invoices
  */
-export const useInvoicesPaged = (params: PaginationParams = {}) => {
-  const { data: invoices = [], ...rest } = useInvoices()
-
-  const paginated = usePaginatedData<Invoice>(
-    invoices,
-    params,
-    ['invoiceNumber', 'status', 'projectName', 'notes']
-  )
-
-  return {
-    ...rest,
-    data: paginated,
-  }
+export const useInvoicesPaged = (params: InvoicesFilterParams = {}) => {
+  return useQuery({
+    queryKey: invoiceKeys.paged(params),
+    queryFn: () => invoiceService.getPaged(params),
+    keepPreviousData: true,
+    staleTime: 30 * 1000, // 30 seconds
+  })
 }
 
 /**

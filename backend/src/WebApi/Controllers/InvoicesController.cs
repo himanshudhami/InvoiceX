@@ -75,21 +75,21 @@ namespace WebApi.Controllers
         /// <summary>
         /// Get all Invoices entities for current company (or all for Admin/HR)
         /// </summary>
-        /// <param name="company">Optional company ID filter (Admin/HR only)</param>
+        /// <param name="companyId">Optional company ID filter (Admin/HR only)</param>
         /// <returns>List of Invoices entities</returns>
         /// <response code="200">Returns the list of Invoices entities</response>
         /// <response code="403">Forbidden - company ID not found</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Invoices>), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> GetAll([FromQuery] Guid? company = null)
+        public async Task<IActionResult> GetAll([FromQuery] Guid? companyId = null)
         {
             // Non-Admin/HR users require company ID in token
             if (RequiresCompanyIsolation && CurrentCompanyId == null)
                 return CompanyIdNotFoundResponse();
 
             var filters = new Dictionary<string, object>();
-            var effectiveCompanyId = GetEffectiveCompanyId(company);
+            var effectiveCompanyId = GetEffectiveCompanyId(companyId);
             if (effectiveCompanyId.HasValue)
             {
                 filters["company_id"] = effectiveCompanyId.Value;
@@ -113,14 +113,14 @@ namespace WebApi.Controllers
         /// Get paginated Invoices entities with filtering and sorting
         /// </summary>
         /// <param name="request">Pagination and filter parameters</param>
-        /// <param name="company">Optional company ID filter (Admin/HR only)</param>
+        /// <param name="companyId">Optional company ID filter (Admin/HR only)</param>
         /// <returns>Paginated list of Invoices entities</returns>
         /// <response code="200">Returns the paginated list of Invoices entities</response>
         /// <response code="403">Forbidden - company ID not found</response>
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<Invoices>), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> GetPaged([FromQuery] InvoicesFilterRequest request, [FromQuery] Guid? company = null)
+        public async Task<IActionResult> GetPaged([FromQuery] InvoicesFilterRequest request, [FromQuery] Guid? companyId = null)
         {
             // Non-Admin/HR users require company ID in token
             if (RequiresCompanyIsolation && CurrentCompanyId == null)
@@ -129,7 +129,7 @@ namespace WebApi.Controllers
             var filters = request.GetFilters();
 
             // Apply company filter based on role
-            var effectiveCompanyId = GetEffectiveCompanyId(company);
+            var effectiveCompanyId = GetEffectiveCompanyId(companyId);
             if (effectiveCompanyId.HasValue)
             {
                 filters["company_id"] = effectiveCompanyId.Value;

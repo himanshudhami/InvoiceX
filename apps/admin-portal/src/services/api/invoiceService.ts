@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Invoice, InvoiceItem, CreateInvoiceDto, UpdateInvoiceDto, PagedResponse, PaginationParams, Payment } from './types';
+import { Invoice, InvoiceItem, CreateInvoiceDto, UpdateInvoiceDto, PagedResponse, InvoicesFilterParams, Payment } from './types';
 
 export interface RecordPaymentDto {
   amount: number;
@@ -18,24 +18,11 @@ export class InvoiceService {
   private readonly itemsEndpoint = 'invoiceitems';
 
   // Invoice operations
-  async getAll(): Promise<Invoice[]> {
-    const invoices = await apiClient.get<Invoice[]>(this.endpoint);
-
-    // Fetch items for all invoices in parallel
-    const invoicesWithItems = await Promise.all(
-      invoices.map(async (invoice) => {
-        try {
-          const items = await this.getInvoiceItems(invoice.id);
-          return { ...invoice, items };
-        } catch (error) {
-          // If fetching items fails, return invoice without items
-          console.error(`Failed to fetch items for invoice ${invoice.id}:`, error);
-          return { ...invoice, items: [] };
-        }
-      })
-    );
-
-    return invoicesWithItems;
+  async getAll(companyId?: string): Promise<Invoice[]> {
+    const params = companyId ? { companyId } : undefined;
+    // Note: Items are fetched only when viewing/editing a single invoice (getById)
+    // to avoid N+1 query performance issues in list views
+    return apiClient.get<Invoice[]>(this.endpoint, params);
   }
 
   async getById(id: string): Promise<Invoice> {
@@ -51,7 +38,7 @@ export class InvoiceService {
     }
   }
 
-  async getPaged(params: PaginationParams = {}): Promise<PagedResponse<Invoice>> {
+  async getPaged(params: InvoicesFilterParams = {}): Promise<PagedResponse<Invoice>> {
     return apiClient.getPaged<Invoice>(this.endpoint, params);
   }
 

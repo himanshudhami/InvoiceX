@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Product, CreateProductDto, UpdateProductDto, PagedResponse, PaginationParams } from './types';
+import { Product, CreateProductDto, UpdateProductDto, PagedResponse, ProductsFilterParams } from './types';
 
 /**
  * Product API service following SRP - handles only product-related API calls
@@ -7,15 +7,16 @@ import { Product, CreateProductDto, UpdateProductDto, PagedResponse, PaginationP
 export class ProductService {
   private readonly endpoint = 'products';
 
-  async getAll(): Promise<Product[]> {
-    return apiClient.get<Product[]>(this.endpoint);
+  async getAll(companyId?: string): Promise<Product[]> {
+    const params = companyId ? { companyId } : undefined;
+    return apiClient.get<Product[]>(this.endpoint, params);
   }
 
   async getById(id: string): Promise<Product> {
     return apiClient.get<Product>(`${this.endpoint}/${id}`);
   }
 
-  async getPaged(params: PaginationParams = {}): Promise<PagedResponse<Product>> {
+  async getPaged(params: ProductsFilterParams = {}): Promise<PagedResponse<Product>> {
     return apiClient.getPaged<Product>(this.endpoint, params);
   }
 

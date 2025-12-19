@@ -1,17 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ColumnDef,
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  flexRender,
-  SortingState,
 } from '@tanstack/react-table';
 import { usePayments, useDeletePayment } from '@/hooks/api/usePayments';
-import { useInvoices } from '@/hooks/api/useInvoices';
+import { useInvoices } from '@/features/invoices/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
-import { useCustomers } from '@/hooks/api/useCustomers';
+import { useCustomers } from '@/features/customers/hooks';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { Payment, Invoice, Company, Customer } from '@/services/api/types';
 import { Modal } from '@/components/ui/Modal';
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect';
@@ -23,36 +18,52 @@ import { RecordPaymentModal } from '@/components/modals/RecordPaymentModal';
 import { DirectPaymentForm } from '@/components/forms/DirectPaymentForm';
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
+import { cn } from '@/lib/utils';
 
 const PaymentsManagement = () => {
   const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [showDirectPaymentForm, setShowDirectPaymentForm] = useState(false);
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
-  const [sorting, setSorting] = useState<SortingState>([]);
   const navigate = useNavigate();
 
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext();
+
   // URL-backed state with nuqs - persists filters on refresh
-  const currentYear = new Date().getFullYear();
   const [urlState, setUrlState] = useQueryStates(
     {
       search: parseAsString.withDefault(''),
-      companyId: parseAsString.withDefault(''),
+      company: parseAsString.withDefault(''),
       customerId: parseAsString.withDefault(''),
       paymentType: parseAsString.withDefault(''),
-      year: parseAsInteger.withDefault(0), // 0 means all years
       page: parseAsInteger.withDefault(1),
       pageSize: parseAsInteger.withDefault(100),
     },
     { history: 'replace' }
   );
 
-  // Generate year options (current year ± 3 years)
-  const yearOptions = Array.from({ length: 7 }, (_, i) => currentYear - 3 + i);
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = urlState.company || (hasMultiCompanyAccess ? selectedCompanyId : undefined);
 
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlState.search);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(urlState.search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [urlState.search]);
+
+  // Server-side paginated data
   const { data: paymentsData, isLoading, error, refetch } = usePayments({
     pageNumber: urlState.page,
     pageSize: urlState.pageSize,
+    searchTerm: debouncedSearchTerm || undefined,
+    companyId: effectiveCompanyId || undefined,
+    customerId: urlState.customerId || undefined,
+    paymentType: urlState.paymentType || undefined,
   });
 
   const { data: invoices = [] } = useInvoices();
@@ -60,7 +71,10 @@ const PaymentsManagement = () => {
   const { data: customers = [] } = useCustomers();
   const deletePayment = useDeletePayment();
 
-  const payments = paymentsData?.items || [];
+  // Extract items and pagination info from response
+  const payments = paymentsData?.items ?? [];
+  const totalCount = paymentsData?.totalCount ?? 0;
+  const totalPages = paymentsData?.totalPages ?? 1;
 
   const handleViewInvoice = (invoiceId?: string) => {
     if (invoiceId) {
@@ -97,12 +111,10 @@ const PaymentsManagement = () => {
   };
 
   const getCompanyName = (payment: Payment) => {
-    // First try to get from payment's companyId
     if (payment.companyId) {
       const company = companies.find((c: Company) => c.id === payment.companyId);
       if (company) return company.name;
     }
-    // Fallback to invoice's company
     if (payment.invoiceId) {
       const invoice = invoices.find((inv: Invoice) => inv.id === payment.invoiceId);
       if (invoice?.companyId) {
@@ -122,9 +134,7 @@ const PaymentsManagement = () => {
   };
 
   const getPaymentCurrency = (payment: Payment) => {
-    // First use payment's currency if available
     if (payment.currency) return payment.currency;
-    // Fallback to invoice's currency
     if (payment.invoiceId) {
       const invoice = invoices.find((inv: Invoice) => inv.id === payment.invoiceId);
       return invoice?.currency || 'INR';
@@ -145,49 +155,17 @@ const PaymentsManagement = () => {
     return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Filter payments based on URL state
-  const filteredPayments = useMemo(() => {
-    return payments.filter((payment) => {
-      // Company filter
-      const companyMatches = !urlState.companyId || payment.companyId === urlState.companyId;
-
-      // Customer filter
-      const customerMatches = !urlState.customerId || payment.customerId === urlState.customerId;
-
-      // Payment type filter
-      const typeMatches = !urlState.paymentType || payment.paymentType === urlState.paymentType;
-
-      // Year filter (0 means all years)
-      let yearMatches = true;
-      if (urlState.year && urlState.year > 0) {
-        const paymentDate = new Date(payment.paymentDate);
-        yearMatches = paymentDate.getFullYear() === urlState.year;
-      }
-
-      // Search filter
-      const searchLower = urlState.search.toLowerCase();
-      const searchMatches = !searchLower ||
-        payment.description?.toLowerCase().includes(searchLower) ||
-        payment.referenceNumber?.toLowerCase().includes(searchLower) ||
-        getCustomerName(payment).toLowerCase().includes(searchLower) ||
-        getCompanyName(payment).toLowerCase().includes(searchLower) ||
-        getInvoiceNumber(payment.invoiceId).toLowerCase().includes(searchLower);
-
-      return companyMatches && customerMatches && typeMatches && yearMatches && searchMatches;
-    });
-  }, [payments, urlState.companyId, urlState.customerId, urlState.paymentType, urlState.year, urlState.search, companies, customers, invoices]);
-
-  // Calculate totals for filtered payments
+  // Calculate totals from current page data
   const totals = useMemo(() => {
     const result = {
-      count: filteredPayments.length,
+      count: payments.length,
       grossAmount: 0,
       tdsAmount: 0,
       netAmount: 0,
       amountInInr: 0,
     };
 
-    filteredPayments.forEach((payment) => {
+    payments.forEach((payment) => {
       result.grossAmount += payment.grossAmount || payment.amount || 0;
       result.tdsAmount += payment.tdsAmount || 0;
       result.netAmount += payment.amount || 0;
@@ -195,24 +173,23 @@ const PaymentsManagement = () => {
     });
 
     return result;
-  }, [filteredPayments]);
+  }, [payments]);
 
   // Check if any filters are active
-  const hasActiveFilters = urlState.search || urlState.companyId || urlState.customerId || urlState.paymentType || urlState.year > 0;
+  const hasActiveFilters = urlState.search || urlState.company || urlState.customerId || urlState.paymentType;
 
   // Clear all filters
   const clearFilters = () => {
     setUrlState({
       search: '',
-      companyId: '',
+      company: '',
       customerId: '',
       paymentType: '',
-      year: 0,
       page: 1,
     });
   };
 
-  const columns: ColumnDef<Payment>[] = [
+  const columns = useMemo<ColumnDef<Payment>[]>(() => [
     {
       accessorKey: 'paymentDate',
       header: 'Date',
@@ -345,30 +322,7 @@ const PaymentsManagement = () => {
         </div>
       ),
     },
-  ];
-
-  // Set up react-table
-  const table = useReactTable({
-    data: filteredPayments,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    state: {
-      sorting,
-      pagination: {
-        pageIndex: urlState.page - 1,
-        pageSize: urlState.pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      const current = { pageIndex: urlState.page - 1, pageSize: urlState.pageSize };
-      const next = typeof updater === 'function' ? updater(current) : updater;
-      setUrlState({ page: next.pageIndex + 1, pageSize: next.pageSize });
-    },
-    manualPagination: false,
-  });
+  ], [invoices, companies, customers]);
 
   if (error) {
     return (
@@ -436,6 +390,26 @@ const PaymentsManagement = () => {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm font-medium text-gray-500">Total Payments</div>
+          <div className="text-2xl font-bold text-gray-900">{totalCount}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm font-medium text-gray-500">This Page Gross</div>
+          <div className="text-2xl font-bold text-gray-900">{formatINR(totals.grossAmount)}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm font-medium text-gray-500">This Page TDS</div>
+          <div className="text-2xl font-bold text-red-600">-{formatINR(totals.tdsAmount)}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm font-medium text-gray-500">This Page Net</div>
+          <div className="text-2xl font-bold text-green-600">{formatINR(totals.netAmount)}</div>
+        </div>
+      </div>
+
       {/* Filters Section */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-wrap gap-4 items-center">
@@ -453,8 +427,8 @@ const PaymentsManagement = () => {
 
           {/* Company Filter */}
           <CompanyFilterDropdown
-            value={urlState.companyId}
-            onChange={(value) => setUrlState({ companyId: value, page: 1 })}
+            value={urlState.company}
+            onChange={(value) => setUrlState({ company: value || '', page: 1 })}
           />
 
           {/* Customer Filter */}
@@ -484,20 +458,6 @@ const PaymentsManagement = () => {
             <option value="refund_received">Refund Received</option>
           </select>
 
-          {/* Year Filter */}
-          <select
-            value={urlState.year}
-            onChange={(e) => setUrlState({ year: parseInt(e.target.value) || 0, page: 1 })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value={0}>All Years</option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-
           {/* Clear Filters Button */}
           {hasActiveFilters && (
             <button
@@ -512,7 +472,7 @@ const PaymentsManagement = () => {
 
         {/* Results count */}
         <div className="mt-3 text-sm text-gray-500">
-          Showing {filteredPayments.length} of {payments.length} payments
+          Showing {payments.length} payments on this page ({totalCount} total)
           {hasActiveFilters && ' (filtered)'}
         </div>
       </div>
@@ -528,41 +488,29 @@ const PaymentsManagement = () => {
             <div className="rounded-md border overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <th
-                          key={header.id}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(header.column.columnDef.header, header.getContext())}
-                            </span>
-                            <span className="text-gray-400">
-                              {header.column.getIsSorted() === 'desc' ? '↓' :
-                               header.column.getIsSorted() === 'asc' ? '↑' :
-                               header.column.getCanSort() ? '↕' : null}
-                            </span>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  ))}
+                  <tr>
+                    {columns.map((column) => (
+                      <th
+                        key={column.id || (column as any).accessorKey}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {typeof column.header === 'string' ? column.header : ''}
+                      </th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {payments.length > 0 ? (
+                    payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                        {columns.map((column) => (
+                          <td
+                            key={`${payment.id}-${column.id || (column as any).accessorKey}`}
+                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                          >
+                            {column.cell
+                              ? (column.cell as any)({ row: { original: payment } })
+                              : (payment as any)[(column as any).accessorKey]}
                           </td>
                         ))}
                       </tr>
@@ -576,7 +524,7 @@ const PaymentsManagement = () => {
                   )}
                 </tbody>
                 {/* Totals Row */}
-                {table.getFilteredRowModel().rows.length > 0 && (
+                {payments.length > 0 && (
                   <tfoot className="bg-gray-100 border-t-2 border-gray-300">
                     <tr className="font-semibold">
                       <td className="px-6 py-4 text-sm text-gray-900">
@@ -610,28 +558,63 @@ const PaymentsManagement = () => {
             <div className="flex items-center justify-between p-4 border-t">
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+                  Page {urlState.page} of {totalPages}
                 </span>
                 <span className="text-sm text-gray-500">
-                  ({table.getFilteredRowModel().rows.length} total rows)
+                  ({totalCount} total payments)
                 </span>
                 <PageSizeSelect
-                  value={table.getState().pagination.pageSize}
+                  value={urlState.pageSize}
                   onChange={(size) => setUrlState({ pageSize: size, page: 1 })}
                 />
               </div>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setUrlState({ page: urlState.page - 1 })}
+                  disabled={urlState.page <= 1}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-sm transition-colors",
+                    urlState.page > 1
+                      ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  )}
                 >
                   Previous
                 </button>
+
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const startPage = Math.max(1, urlState.page - 2);
+                    const page = startPage + i;
+
+                    if (page > totalPages) return null;
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setUrlState({ page })}
+                        className={cn(
+                          "w-8 h-8 rounded text-sm transition-colors",
+                          page === urlState.page
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                        )}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <button
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="px-3 py-1 border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setUrlState({ page: urlState.page + 1 })}
+                  disabled={urlState.page >= totalPages}
+                  className={cn(
+                    "px-3 py-1 rounded-md text-sm transition-colors",
+                    urlState.page < totalPages
+                      ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  )}
                 >
                   Next
                 </button>
@@ -707,7 +690,3 @@ const PaymentsManagement = () => {
 };
 
 export default PaymentsManagement;
-
-
-
-

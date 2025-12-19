@@ -8,7 +8,7 @@ export class EmployeeService {
   private readonly endpoint = 'employees';
 
   async getAll(companyId?: string): Promise<Employee[]> {
-    const params = companyId ? { company: companyId } : undefined;
+    const params = companyId ? { companyId } : undefined;
     return apiClient.get<Employee[]>(this.endpoint, params);
   }
 

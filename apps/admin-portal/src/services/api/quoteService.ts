@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Quote, QuoteItem, CreateQuoteDto, UpdateQuoteDto, PagedResponse, PaginationParams } from './types';
+import { Quote, QuoteItem, CreateQuoteDto, UpdateQuoteDto, PagedResponse, QuotesFilterParams } from './types';
 
 /**
  * Quote API service following SRP - handles only quote-related API calls
@@ -9,24 +9,11 @@ export class QuoteService {
   private readonly itemsEndpoint = 'quoteitems';
 
   // Quote operations
-  async getAll(): Promise<Quote[]> {
-    const quotes = await apiClient.get<Quote[]>(this.endpoint);
-
-    // Fetch items for all quotes in parallel
-    const quotesWithItems = await Promise.all(
-      quotes.map(async (quote) => {
-        try {
-          const items = await this.getQuoteItems(quote.id);
-          return { ...quote, items };
-        } catch (error) {
-          // If fetching items fails, return quote without items
-          console.error(`Failed to fetch items for quote ${quote.id}:`, error);
-          return { ...quote, items: [] };
-        }
-      })
-    );
-
-    return quotesWithItems;
+  async getAll(companyId?: string): Promise<Quote[]> {
+    const params = companyId ? { companyId } : undefined;
+    // Note: Items are fetched only when viewing/editing a single quote (getById)
+    // to avoid N+1 query performance issues in list views
+    return apiClient.get<Quote[]>(this.endpoint, params);
   }
 
   async getById(id: string): Promise<Quote> {
@@ -42,7 +29,7 @@ export class QuoteService {
     }
   }
 
-  async getPaged(params: PaginationParams = {}): Promise<PagedResponse<Quote>> {
+  async getPaged(params: QuotesFilterParams = {}): Promise<PagedResponse<Quote>> {
     return apiClient.getPaged<Quote>(this.endpoint, params);
   }
 

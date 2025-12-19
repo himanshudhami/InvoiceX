@@ -5,47 +5,35 @@ import type {
   Customer,
   CreateCustomerDto,
   UpdateCustomerDto,
-  PaginationParams,
+  CustomersFilterParams,
 } from '@/services/api/types'
 import { customerKeys } from './customerKeys'
-import { usePaginatedData } from '@/shared/utils/pagination'
 
 /**
- * Fetch all customers
+ * Fetch all customers (use useCustomersPaged for better performance)
+ * @param companyId Optional company ID to filter by (for multi-company users)
+ * @deprecated Use useCustomersPaged for server-side pagination
  */
-export const useCustomers = () => {
+export const useCustomers = (companyId?: string) => {
   return useQuery({
-    queryKey: customerKeys.lists(),
-    queryFn: () => customerService.getAll(),
+    queryKey: customerKeys.list(companyId),
+    queryFn: () => customerService.getAll(companyId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
 }
 
 /**
- * Paginated customers with client-side pagination
+ * Fetch paginated customers with server-side filtering
+ * This is the recommended hook for listing customers
  */
-export const useCustomersPaged = (params: PaginationParams = {}) => {
-  const { data: customers = [], ...rest } = useCustomers()
-
-  const paginated = usePaginatedData<Customer>(
-    customers,
-    params,
-    ['name', 'companyName', 'email', 'phone']
-  )
-
-  return {
-    ...rest,
-    data: {
-      items: paginated.items,
-      totalCount: paginated.totalCount,
-      pageNumber: paginated.pageNumber,
-      pageSize: paginated.pageSize,
-      totalPages: paginated.pageCount,
-      hasPrevious: paginated.hasPrevious,
-      hasNext: paginated.hasNext,
-    },
-  }
+export const useCustomersPaged = (params: CustomersFilterParams = {}) => {
+  return useQuery({
+    queryKey: customerKeys.paged(params),
+    queryFn: () => customerService.getPaged(params),
+    keepPreviousData: true,
+    staleTime: 30 * 1000, // 30 seconds
+  })
 }
 
 /**

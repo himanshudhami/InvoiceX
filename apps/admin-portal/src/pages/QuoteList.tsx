@@ -1,47 +1,58 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
-import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
-import { useQuotes, useDeleteQuote, useDuplicateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useConvertQuoteToInvoice } from '@/hooks/api/useQuotes'
-import { useCustomers } from '@/hooks/api/useCustomers'
-import { useCompanies } from '@/hooks/api/useCompanies'
+import { useQuotesPaged, useDeleteQuote, useDuplicateQuote, useSendQuote, useAcceptQuote, useRejectQuote, useConvertQuoteToInvoice } from '@/features/quotes/hooks'
+import { useCustomers } from '@/features/customers/hooks'
+import { useCompanyContext } from '@/contexts/CompanyContext'
 import { Quote } from '@/services/api/types'
 import { Modal } from '@/components/ui/Modal'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Edit, Trash2, Copy, Send, CheckCircle, XCircle, FileText } from 'lucide-react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
-  SortingState,
-  ColumnFiltersState,
-  VisibilityState,
-} from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
+import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 
 const QuoteList = () => {
   const navigate = useNavigate()
   const [deletingQuote, setDeletingQuote] = useState<Quote | null>(null)
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({ companyId: false })
+
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext()
 
   // URL-backed filter state with nuqs - persists on refresh
   const [urlState, setUrlState] = useQueryStates(
     {
-      search: parseAsString.withDefault(''),
-      company: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       pageSize: parseAsInteger.withDefault(100),
+      search: parseAsString.withDefault(''),
+      status: parseAsString.withDefault(''),
+      company: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
 
-  const { data: quotes = [], isLoading, error, refetch } = useQuotes()
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = urlState.company || (hasMultiCompanyAccess ? selectedCompanyId : undefined)
+
+  // Debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlState.search)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(urlState.search)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [urlState.search])
+
+  // Server-side paginated data
+  const { data, isLoading, error, refetch } = useQuotesPaged({
+    pageNumber: urlState.page,
+    pageSize: urlState.pageSize,
+    searchTerm: debouncedSearchTerm || undefined,
+    status: urlState.status || undefined,
+    companyId: effectiveCompanyId || undefined,
+  })
+
   const deleteQuote = useDeleteQuote()
   const duplicateQuote = useDuplicateQuote()
   const sendQuote = useSendQuote()
@@ -49,10 +60,11 @@ const QuoteList = () => {
   const rejectQuote = useRejectQuote()
   const convertQuoteToInvoice = useConvertQuoteToInvoice()
   const { data: customers = [] } = useCustomers()
-  const { data: companies = [] } = useCompanies()
-  
-  // Companies is used in columnFilters for table filtering (setColumnFilters uses it)
-  void companies
+
+  // Extract items and pagination info from response
+  const quotes = data?.items ?? []
+  const totalCount = data?.totalCount ?? 0
+  const totalPages = data?.totalPages ?? 1
 
   const handleDelete = (quote: Quote) => {
     setDeletingQuote(quote)
@@ -72,7 +84,6 @@ const QuoteList = () => {
   const handleDuplicate = async (quote: Quote) => {
     try {
       const newQuote = await duplicateQuote.mutateAsync(quote.id)
-      // Navigate to edit page for the duplicated quote
       navigate(`/quotes/${newQuote.id}/edit`)
     } catch (error) {
       console.error('Failed to duplicate quote:', error)
@@ -111,13 +122,11 @@ const QuoteList = () => {
     }
   }
 
-  // Helper functions to get related entity names
   const getCustomerName = (customerId?: string) => {
     if (!customerId) return '—'
     const customer = customers.find(c => c.id === customerId)
     return customer ? `${customer.name}${customer.companyName ? ` (${customer.companyName})` : ''}` : '—'
   }
-
 
   const getStatusBadgeColor = (status?: string) => {
     switch (status?.toLowerCase()) {
@@ -161,6 +170,21 @@ const QuoteList = () => {
     return null
   }
 
+  // Calculate totals from current page data
+  const totals = useMemo(() => {
+    const result = {
+      totalAmount: 0,
+      totalDiscount: 0,
+    }
+
+    quotes.forEach(quote => {
+      result.totalAmount += quote.totalAmount || 0
+      result.totalDiscount += quote.discountAmount || 0
+    })
+
+    return result
+  }, [quotes])
+
   const columns = useMemo<ColumnDef<Quote>[]>(() => [
     {
       accessorKey: 'quoteNumber',
@@ -185,9 +209,7 @@ const QuoteList = () => {
       header: 'Customer',
       cell: ({ row }) => {
         const customerName = getCustomerName(row.original.customerId)
-        return (
-          <div className="text-sm text-gray-900">{customerName}</div>
-        )
+        return <div className="text-sm text-gray-900">{customerName}</div>
       },
     },
     {
@@ -248,11 +270,6 @@ const QuoteList = () => {
           </div>
         )
       },
-    },
-    {
-      accessorKey: 'companyId',
-      header: 'Company (hidden)',
-      cell: () => null,
     },
     {
       id: 'actions',
@@ -339,43 +356,9 @@ const QuoteList = () => {
         )
       },
     },
-  ], [])
+  ], [navigate, duplicateQuote.isPending, sendQuote.isPending, acceptQuote.isPending, rejectQuote.isPending, convertQuoteToInvoice.isPending, customers])
 
-  const table = useReactTable({
-    data: quotes,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: (value) => setUrlState({ search: value || '', page: 1 }),
-    globalFilterFn: 'includesString',
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      globalFilter: urlState.search,
-      pagination: {
-        pageIndex: urlState.page - 1,
-        pageSize: urlState.pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      const current = { pageIndex: urlState.page - 1, pageSize: urlState.pageSize }
-      const next = typeof updater === 'function' ? updater(current) : updater
-      setUrlState({ page: next.pageIndex + 1, pageSize: next.pageSize })
-    },
-  })
-
-  const totals = useMemo(() => {
-    const rows = table.getFilteredRowModel().rows
-    const totalAmount = rows.reduce((sum, r) => sum + (r.original.totalAmount || 0), 0)
-    const totalDiscount = rows.reduce((sum, r) => sum + (r.original.discountAmount || 0), 0)
-    return { count: rows.length, totalAmount, totalDiscount }
-  }, [table])
+  const statusOptions = ['draft', 'sent', 'viewed', 'accepted', 'rejected', 'expired', 'cancelled']
 
   if (isLoading) {
     return (
@@ -390,8 +373,8 @@ const QuoteList = () => {
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Failed to load quotes</div>
         <button
-          onClick={() => refetch()}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          onClick={() => refetch?.()}
+          className="px-4 py-2 border rounded-md hover:bg-gray-50"
         >
           Retry
         </button>
@@ -418,7 +401,7 @@ const QuoteList = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">Total Quotes</div>
-          <div className="text-2xl font-bold text-gray-900">{quotes.length}</div>
+          <div className="text-2xl font-bold text-gray-900">{totalCount}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">Accepted</div>
@@ -433,77 +416,87 @@ const QuoteList = () => {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500">Total Value</div>
+          <div className="text-sm font-medium text-gray-500">This Page Value</div>
           <div className="text-2xl font-bold text-gray-900">
-            ${quotes.reduce((sum, q) => sum + q.totalAmount, 0).toFixed(2)}
+            ${totals.totalAmount.toFixed(2)}
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
-          {/* Search and Add Button */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
+          {/* Search and Filters */}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+            <div className="flex flex-wrap items-center gap-3">
               <CompanyFilterDropdown
                 value={urlState.company}
                 onChange={(val) => {
                   setUrlState({ company: val || '', page: 1 })
-                  setColumnFilters((prev) => {
-                    const rest = prev.filter(f => f.id !== 'companyId')
-                    return val ? [...rest, { id: 'companyId', value: val }] : rest
-                  })
                 }}
+                className="min-w-[180px]"
               />
 
-              <input
-                placeholder="Search quotes..."
-                value={urlState.search ?? ''}
-                onChange={(event) => setUrlState({ search: event.target.value, page: 1 })}
-                className="max-w-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={urlState.status}
+                  onChange={(e) => setUrlState({ status: e.target.value, page: 1 })}
+                  className="px-3 py-2 border border-gray-200 rounded-md bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[150px]"
+                >
+                  <option value="">All Statuses</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {(urlState.status || urlState.company) && (
+                <button
+                  onClick={() => setUrlState({ status: '', company: '', page: 1 })}
+                  className="text-sm px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
+
+            <input
+              placeholder="Search quotes..."
+              value={urlState.search}
+              onChange={(event) => setUrlState({ search: event.target.value, page: 1 })}
+              className="w-full md:w-auto max-w-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
 
           {/* Table */}
           <div className="rounded-md border overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
-                          </span>
-                          <span className="text-gray-400">
-                            {header.column.getIsSorted() === 'desc' ? '↓' :
-                             header.column.getIsSorted() === 'asc' ? '↑' :
-                             header.column.getCanSort() ? '↕' : null}
-                          </span>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                ))}
+                <tr>
+                  {columns.map((column) => (
+                    <th
+                      key={column.id || (column as any).accessorKey}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {typeof column.header === 'string' ? column.header : ''}
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                {quotes.length > 0 ? (
+                  quotes.map((quote) => (
+                    <tr key={quote.id} className="hover:bg-gray-50 transition-colors">
+                      {columns.map((column) => (
+                        <td
+                          key={`${quote.id}-${column.id || (column as any).accessorKey}`}
+                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                        >
+                          {column.cell
+                            ? (column.cell as any)({ row: { original: quote } })
+                            : (quote as any)[(column as any).accessorKey]}
                         </td>
                       ))}
                     </tr>
@@ -511,7 +504,7 @@ const QuoteList = () => {
                 ) : (
                   <tr>
                     <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                      No results found.
+                      No quotes found.
                     </td>
                   </tr>
                 )}
@@ -519,37 +512,28 @@ const QuoteList = () => {
             </table>
           </div>
 
-          {/* Totals */}
-          <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-800">
-            <div className="flex flex-wrap gap-4">
-              <div>Rows: <span className="font-semibold">{totals.count}</span></div>
-              <div>Total Amount: <span className="font-semibold">{formatCurrency(totals.totalAmount)}</span></div>
-              <div>Total Discount: <span className="font-semibold text-green-700">{formatCurrency(totals.totalDiscount)}</span></div>
-            </div>
-          </div>
-
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">
-                Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                Page {urlState.page} of {totalPages}
               </span>
               <span className="text-sm text-gray-500">
-                ({table.getFilteredRowModel().rows.length} total rows)
+                ({totalCount} total quotes)
               </span>
               <PageSizeSelect
-                value={table.getState().pagination.pageSize}
+                value={urlState.pageSize}
                 onChange={(size) => setUrlState({ pageSize: size, page: 1 })}
               />
             </div>
 
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => setUrlState({ page: urlState.page - 1 })}
+                disabled={urlState.page <= 1}
                 className={cn(
                   "px-3 py-1 rounded-md text-sm transition-colors",
-                  table.getCanPreviousPage()
+                  urlState.page > 1
                     ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 )}
@@ -558,36 +542,35 @@ const QuoteList = () => {
               </button>
 
               <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, table.getPageCount()) }, (_, i) => {
-                  const pageIndex = table.getState().pagination.pageIndex;
-                  const startPage = Math.max(0, pageIndex - 2);
-                  const page = startPage + i;
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const startPage = Math.max(1, urlState.page - 2)
+                  const page = startPage + i
 
-                  if (page >= table.getPageCount()) return null;
+                  if (page > totalPages) return null
 
                   return (
                     <button
                       key={page}
-                      onClick={() => setUrlState({ page: page + 1 })}
+                      onClick={() => setUrlState({ page })}
                       className={cn(
                         "w-8 h-8 rounded text-sm transition-colors",
-                        page === pageIndex
+                        page === urlState.page
                           ? "bg-primary text-primary-foreground"
                           : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                       )}
                     >
-                      {page + 1}
+                      {page}
                     </button>
-                  );
+                  )
                 })}
               </div>
 
               <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => setUrlState({ page: urlState.page + 1 })}
+                disabled={urlState.page >= totalPages}
                 className={cn(
                   "px-3 py-1 rounded-md text-sm transition-colors",
-                  table.getCanNextPage()
+                  urlState.page < totalPages
                     ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                     : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 )}

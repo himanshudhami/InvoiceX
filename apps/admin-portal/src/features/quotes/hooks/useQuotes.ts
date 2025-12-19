@@ -6,39 +6,35 @@ import type {
   Quote,
   CreateQuoteDto,
   UpdateQuoteDto,
-  PaginationParams,
+  QuotesFilterParams,
 } from '@/services/api/types'
 import { quoteKeys } from './quoteKeys'
-import { usePaginatedData } from '@/shared/utils/pagination'
 
 /**
- * Fetch all quotes
+ * Fetch all quotes (use useQuotesPaged for better performance)
+ * @param companyId Optional company ID to filter by (for multi-company users)
+ * @deprecated Use useQuotesPaged for server-side pagination
  */
-export const useQuotes = () => {
+export const useQuotes = (companyId?: string) => {
   return useQuery({
-    queryKey: quoteKeys.lists(),
-    queryFn: () => quoteService.getAll(),
+    queryKey: quoteKeys.list(companyId),
+    queryFn: () => quoteService.getAll(companyId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
 }
 
 /**
- * Paginated quotes with client-side pagination
+ * Fetch paginated quotes with server-side filtering
+ * This is the recommended hook for listing quotes
  */
-export const useQuotesPaged = (params: PaginationParams = {}) => {
-  const { data: quotes = [], ...rest } = useQuotes()
-
-  const paginated = usePaginatedData<Quote>(
-    quotes,
-    params,
-    ['quoteNumber', 'status', 'projectName', 'notes']
-  )
-
-  return {
-    ...rest,
-    data: paginated,
-  }
+export const useQuotesPaged = (params: QuotesFilterParams = {}) => {
+  return useQuery({
+    queryKey: quoteKeys.paged(params),
+    queryFn: () => quoteService.getPaged(params),
+    keepPreviousData: true,
+    staleTime: 30 * 1000, // 30 seconds
+  })
 }
 
 /**

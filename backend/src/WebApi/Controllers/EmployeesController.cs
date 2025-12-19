@@ -111,17 +111,17 @@ namespace WebApi.Controllers
         /// <summary>
         /// Get all Employees entities
         /// </summary>
-        /// <param name="company">Optional company ID filter (Super Admin/Company Admin only)</param>
+        /// <param name="companyId">Optional company ID filter (Super Admin/Company Admin only)</param>
         /// <returns>List of Employees entities</returns>
         /// <response code="200">Returns the list of Employees entities</response>
         /// <response code="403">Forbidden - no company access or access denied to requested company</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Employees>), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> GetAll([FromQuery] Guid? company = null)
+        public async Task<IActionResult> GetAll([FromQuery] Guid? companyId = null)
         {
             // Get effective company ID with validation
-            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(companyId);
 
             if (errorMessage != null)
                 return StatusCode(403, new { error = errorMessage });
@@ -148,17 +148,17 @@ namespace WebApi.Controllers
         /// Get paginated Employees entities with filtering and sorting
         /// </summary>
         /// <param name="request">Pagination and filter parameters</param>
-        /// <param name="company">Optional company ID filter (Super Admin/Company Admin only)</param>
+        /// <param name="companyId">Optional company ID filter (Super Admin/Company Admin only)</param>
         /// <returns>Paginated list of Employees entities</returns>
         /// <response code="200">Returns the paginated list of Employees entities</response>
         /// <response code="403">Forbidden - no company access or access denied to requested company</response>
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<Employees>), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> GetPaged([FromQuery] EmployeesFilterRequest request, [FromQuery] Guid? company = null)
+        public async Task<IActionResult> GetPaged([FromQuery] EmployeesFilterRequest request, [FromQuery] Guid? companyId = null)
         {
             // Get effective company ID with validation
-            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(companyId);
 
             if (errorMessage != null)
                 return StatusCode(403, new { error = errorMessage });
@@ -250,7 +250,7 @@ namespace WebApi.Controllers
         /// Bulk create employees
         /// </summary>
         /// <param name="dto">Bulk employees payload</param>
-        /// <param name="company">Optional target company ID (Super Admin/Company Admin only)</param>
+        /// <param name="companyId">Optional target company ID (Super Admin/Company Admin only)</param>
         /// <returns>Bulk upload summary</returns>
         /// <response code="200">Bulk upload processed</response>
         /// <response code="400">Validation errors</response>
@@ -259,10 +259,10 @@ namespace WebApi.Controllers
         [ProducesResponseType(typeof(BulkEmployeesResultDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> BulkCreate([FromBody] BulkEmployeesDto dto, [FromQuery] Guid? company = null)
+        public async Task<IActionResult> BulkCreate([FromBody] BulkEmployeesDto dto, [FromQuery] Guid? companyId = null)
         {
             // Determine target company
-            var (targetCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+            var (targetCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(companyId);
 
             if (errorMessage != null)
                 return StatusCode(403, new { error = errorMessage });
@@ -434,15 +434,15 @@ namespace WebApi.Controllers
         /// </summary>
         /// <param name="employeeId">The Employee ID to check</param>
         /// <param name="excludeId">Optional ID to exclude from check (for updates)</param>
-        /// <param name="company">Optional company ID (Super Admin/Company Admin only)</param>
+        /// <param name="companyId">Optional company ID (Super Admin/Company Admin only)</param>
         /// <returns>True if unique, false otherwise</returns>
         /// <response code="200">Returns uniqueness status</response>
         [HttpGet("check-employee-id-unique")]
         [ProducesResponseType(typeof(bool), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> CheckEmployeeIdUnique([FromQuery] string employeeId, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? company = null)
+        public async Task<IActionResult> CheckEmployeeIdUnique([FromQuery] string employeeId, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? companyId = null)
         {
-            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(companyId);
 
             if (errorMessage != null)
                 return StatusCode(403, new { error = errorMessage });
@@ -469,15 +469,15 @@ namespace WebApi.Controllers
         /// </summary>
         /// <param name="email">The Email to check</param>
         /// <param name="excludeId">Optional ID to exclude from check (for updates)</param>
-        /// <param name="company">Optional company ID (Super Admin/Company Admin only)</param>
+        /// <param name="companyId">Optional company ID (Super Admin/Company Admin only)</param>
         /// <returns>True if unique, false otherwise</returns>
         /// <response code="200">Returns uniqueness status</response>
         [HttpGet("check-email-unique")]
         [ProducesResponseType(typeof(bool), 200)]
         [ProducesResponseType(403)]
-        public async Task<IActionResult> CheckEmailUnique([FromQuery] string email, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? company = null)
+        public async Task<IActionResult> CheckEmailUnique([FromQuery] string email, [FromQuery] Guid? excludeId = null, [FromQuery] Guid? companyId = null)
         {
-            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(company);
+            var (effectiveCompanyId, errorMessage) = GetEffectiveCompanyIdWithValidation(companyId);
 
             if (errorMessage != null)
                 return StatusCode(403, new { error = errorMessage });

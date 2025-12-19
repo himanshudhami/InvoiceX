@@ -5,47 +5,35 @@ import type {
   Product,
   CreateProductDto,
   UpdateProductDto,
-  PaginationParams,
+  ProductsFilterParams,
 } from '@/services/api/types'
 import { productKeys } from './productKeys'
-import { usePaginatedData } from '@/shared/utils/pagination'
 
 /**
- * Fetch all products
+ * Fetch all products (use useProductsPaged for better performance)
+ * @param companyId Optional company ID to filter by (for multi-company users)
+ * @deprecated Use useProductsPaged for server-side pagination
  */
-export const useProducts = () => {
+export const useProducts = (companyId?: string) => {
   return useQuery({
-    queryKey: productKeys.lists(),
-    queryFn: () => productService.getAll(),
+    queryKey: productKeys.list(companyId),
+    queryFn: () => productService.getAll(companyId),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
 }
 
 /**
- * Paginated products with client-side pagination
+ * Fetch paginated products with server-side filtering
+ * This is the recommended hook for listing products
  */
-export const useProductsPaged = (params: PaginationParams = {}) => {
-  const { data: products = [], ...rest } = useProducts()
-
-  const paginated = usePaginatedData<Product>(
-    products,
-    params,
-    ['name', 'description', 'sku']
-  )
-
-  return {
-    ...rest,
-    data: {
-      items: paginated.items,
-      totalCount: paginated.totalCount,
-      pageNumber: paginated.pageNumber,
-      pageSize: paginated.pageSize,
-      totalPages: paginated.pageCount,
-      hasPrevious: paginated.hasPrevious,
-      hasNext: paginated.hasNext,
-    },
-  }
+export const useProductsPaged = (params: ProductsFilterParams = {}) => {
+  return useQuery({
+    queryKey: productKeys.paged(params),
+    queryFn: () => productService.getPaged(params),
+    keepPreviousData: true,
+    staleTime: 30 * 1000, // 30 seconds
+  })
 }
 
 /**
