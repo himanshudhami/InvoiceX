@@ -7,6 +7,7 @@ import { Quote } from '@/services/api/types'
 import { Modal } from '@/components/ui/Modal'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
+import { CustomerSelect } from '@/components/ui/CustomerSelect'
 import { useNavigate } from 'react-router-dom'
 import { Eye, Edit, Trash2, Copy, Send, CheckCircle, XCircle, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ const QuoteList = () => {
       search: parseAsString.withDefault(''),
       status: parseAsString.withDefault(''),
       company: parseAsString.withDefault(''),
+      customer: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
@@ -51,6 +53,7 @@ const QuoteList = () => {
     searchTerm: debouncedSearchTerm || undefined,
     status: urlState.status || undefined,
     companyId: effectiveCompanyId || undefined,
+    customerId: urlState.customer || undefined,
   })
 
   const deleteQuote = useDeleteQuote()
@@ -436,6 +439,20 @@ const QuoteList = () => {
                 }}
                 className="min-w-[180px]"
               />
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Customer</label>
+                <CustomerSelect
+                  customers={customers}
+                  value={urlState.customer}
+                  onChange={(val) => setUrlState({ customer: val, page: 1 })}
+                  placeholder="All customers"
+                  className="min-w-[220px]"
+                  disabled={!effectiveCompanyId}
+                  showAllOption
+                  allOptionLabel="All customers"
+                />
+              </div>
 
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-700">Status</label>
