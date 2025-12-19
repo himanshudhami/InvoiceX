@@ -16,6 +16,7 @@ import { Eye, Trash2, Plus, FileText, Banknote, ChevronDown, X, Search } from 'l
 import { useNavigate } from 'react-router-dom';
 import { RecordPaymentModal } from '@/components/modals/RecordPaymentModal';
 import { DirectPaymentForm } from '@/components/forms/DirectPaymentForm';
+import { Drawer } from '@/components/ui/Drawer';
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import { cn } from '@/lib/utils';
@@ -675,15 +676,20 @@ const PaymentsManagement = () => {
         />
       )}
 
-      {/* Direct Payment Form Modal */}
-      <DirectPaymentForm
+      {/* Direct Payment Drawer */}
+      <Drawer
         isOpen={showDirectPaymentForm}
         onClose={() => setShowDirectPaymentForm(false)}
-        onSuccess={() => {
-          setShowDirectPaymentForm(false);
-          refetch();
-        }}
-      />
+        title="Record Direct Payment"
+      >
+        <DirectPaymentForm
+          onClose={() => setShowDirectPaymentForm(false)}
+          onSuccess={() => {
+            setShowDirectPaymentForm(false);
+            refetch();
+          }}
+        />
+      </Drawer>
     </div>
   );
 };

@@ -1,15 +1,17 @@
+"use client"
+
 import { useState, useEffect, useMemo } from 'react';
-import { Modal } from '@/components/ui/Modal';
 import { useCompanies } from '@/hooks/api/useCompanies';
-import { useCustomers } from '@/hooks/api/useCustomers';
+import { useCustomers } from '@/features/customers/hooks';
 import { useCreatePayment } from '@/hooks/api/usePayments';
 import { CreatePaymentDto, TDS_SECTIONS, getFinancialYear, calculateTds } from '@/services/api/paymentService';
 import { Company, Customer } from '@/services/api/types';
 import { toInr, formatINR } from '@/lib/financialUtils';
-import { Calendar, DollarSign, FileText, Building2, User, Receipt, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { CompanySelect } from '@/components/ui/CompanySelect';
+import { CustomerSelect } from '@/components/ui/CustomerSelect';
 
 interface DirectPaymentFormProps {
-  isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -42,7 +44,6 @@ const PAYMENT_METHODS = [
 ];
 
 export const DirectPaymentForm = ({
-  isOpen,
   onClose,
   onSuccess,
 }: DirectPaymentFormProps) => {
@@ -197,75 +198,124 @@ export const DirectPaymentForm = ({
   const suggestedInr = grossAmount > 0 ? toInr(grossAmount, currency) : 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Record Direct Payment" size="lg">
+    <div className="space-y-6">
+      {error && (
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-medium">Error</p>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            {error}
-          </div>
-        )}
-
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded text-sm">
-          Record payments received directly (not linked to an invoice). This is useful for advance payments,
-          direct income, or payments from India-based clients where TDS is deducted.
-        </div>
-
-        {/* Company & Customer Selection */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Building2 className="w-4 h-4 inline mr-1" />
-              Company *
-            </label>
-            <select
-              required
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company *</label>
+            <CompanySelect
+              companies={companies}
               value={companyId}
-              onChange={(e) => setCompanyId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select company</option>
-              {companies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setCompanyId(val)}
+              placeholder="Select company"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 inline mr-1" />
-              Customer/Payer *
-            </label>
-            <select
-              required
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+            <CustomerSelect
+              customers={customers}
               value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
+              onChange={(val) => setCustomerId(val)}
+              placeholder="Select customer"
               disabled={!companyId}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date *</label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Currency *</label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name} {customer.companyName ? `(${customer.companyName})` : ''}
+              {CURRENCIES.map((cur) => (
+                <option key={cur} value={cur}>
+                  {cur}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Payment Classification */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Receipt className="w-4 h-4 inline mr-1" />
-              Payment Type
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gross Amount *</label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={grossAmount}
+                onChange={(e) => setGrossAmount(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {isForeignCurrency && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (INR)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={amountInInr ?? ''}
+                onChange={(e) => setAmountInInr(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={suggestedInr > 0 ? `Suggested: ${formatINR(suggestedInr)}` : ''}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Net Amount Received *</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={tdsApplicable ? netAmount : grossAmount}
+              onChange={(e) => setNetAmount(parseFloat(e.target.value) || 0)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!tdsApplicable}
+            />
+            <p className="text-xs text-gray-500 mt-1">If TDS applies, net amount = gross - TDS.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Type *</label>
             <select
               value={paymentType}
               onChange={(e) => setPaymentType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {PAYMENT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -276,193 +326,26 @@ export const DirectPaymentForm = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Income Category
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Income Category *</label>
             <select
               value={incomeCategory}
               onChange={(e) => setIncomeCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {INCOME_CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              {INCOME_CATEGORIES.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
                 </option>
               ))}
             </select>
           </div>
-        </div>
-
-        {/* Payment Date & Currency */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              Payment Date *
-            </label>
-            <input
-              type="date"
-              required
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Currency
-            </label>
-            <select
-              value={currency}
-              onChange={(e) => {
-                setCurrency(e.target.value);
-                setAmountInInr(null);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {CURRENCIES.map((curr) => (
-                <option key={curr} value={curr}>
-                  {curr}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Gross Amount */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <DollarSign className="w-4 h-4 inline mr-1" />
-            Gross Amount ({currency}) *
-            <span className="text-xs text-gray-500 ml-2">
-              (Amount before any TDS deduction)
-            </span>
-          </label>
-          <input
-            type="number"
-            required
-            min="0.01"
-            step="0.01"
-            value={grossAmount || ''}
-            onChange={(e) => setGrossAmount(parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter gross amount"
-          />
-        </div>
-
-        {/* INR Amount for foreign currencies */}
-        {isForeignCurrency && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Amount Received in INR (&#8377;)
-              <span className="text-xs text-gray-500 ml-2">
-                (Actual amount credited to your bank)
-              </span>
-            </label>
-            <input
-              type="number"
-              required
-              min="0.01"
-              step="0.01"
-              value={amountInInr || ''}
-              onChange={(e) => setAmountInInr(parseFloat(e.target.value) || null)}
-              placeholder={`Suggested: ${formatINR(suggestedInr)}`}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {suggestedInr > 0 && amountInInr && Math.abs(amountInInr - suggestedInr) > 100 && (
-              <p className="text-xs text-yellow-600 mt-1">
-                Note: Amount differs from suggested conversion. Ensure this matches your bank statement.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* TDS Section */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <div className="flex items-center gap-2 mb-3">
-            <input
-              type="checkbox"
-              id="tdsApplicable"
-              checked={tdsApplicable}
-              onChange={(e) => setTdsApplicable(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="tdsApplicable" className="text-sm font-medium text-gray-700">
-              TDS was deducted by the payer
-            </label>
-          </div>
-
-          {tdsApplicable && (
-            <div className="space-y-3 mt-3 pt-3 border-t">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Section
-                  </label>
-                  <select
-                    value={tdsSection}
-                    onChange={(e) => setTdsSection(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select section</option>
-                    {Object.entries(TDS_SECTIONS).map(([section, info]) => (
-                      <option key={section} value={section}>
-                        {section} - {info.description} ({info.rate}%)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TDS Rate (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={tdsRate}
-                    onChange={(e) => setTdsRate(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* TDS Calculation Summary */}
-              {grossAmount > 0 && tdsRate > 0 && (
-                <div className="bg-white p-3 rounded border">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Gross Amount:</span>
-                      <span className="font-medium ml-2">{currency} {grossAmount.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">TDS ({tdsRate}%):</span>
-                      <span className="font-medium ml-2 text-red-600">- {currency} {tdsAmount.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Net Received:</span>
-                      <span className="font-medium ml-2 text-green-600">{currency} {netAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Payment Method & Reference */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Method
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {PAYMENT_METHODS.map((method) => (
                 <option key={method.value} value={method.value}>
@@ -471,82 +354,127 @@ export const DirectPaymentForm = ({
               ))}
             </select>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reference Number
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reference Number</label>
             <input
               type="text"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
-              placeholder="UTR, Cheque No., Transaction ID"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Transaction ID, UTR, etc."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Short description"
             />
           </div>
         </div>
 
-        {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <FileText className="w-4 h-4 inline mr-1" />
-            Description
-          </label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Brief description of what this payment is for"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Additional Notes
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="Any additional notes..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Additional notes (optional)"
           />
         </div>
 
-        {/* Summary */}
-        {grossAmount > 0 && (
-          <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">Payment Summary</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm text-green-700">
-              <div>Financial Year: {getFinancialYear(new Date(paymentDate))}</div>
-              <div>Net Amount: {currency} {(tdsApplicable ? netAmount : grossAmount).toLocaleString()}</div>
-              {tdsApplicable && <div>TDS Deducted: {currency} {tdsAmount.toLocaleString()}</div>}
-              {isForeignCurrency && amountInInr && <div>INR Received: {formatINR(amountInInr)}</div>}
+        <div className="flex items-center space-x-3">
+          <label className="flex items-center space-x-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={tdsApplicable}
+              onChange={(e) => setTdsApplicable(e.target.checked)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span>TDS Applicable</span>
+          </label>
+
+          {tdsApplicable && (
+            <select
+              value={tdsSection}
+              onChange={(e) => setTdsSection(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select TDS Section</option>
+              {Object.entries(TDS_SECTIONS).map(([key, value]) => (
+                <option key={key} value={key}>
+                  {key} - {value.description}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {tdsApplicable && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">TDS Rate (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={tdsRate}
+                onChange={(e) => setTdsRate(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">TDS Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={tdsAmount}
+                readOnly
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-700"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Net Amount After TDS</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={netAmount}
+                readOnly
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-700"
+              />
             </div>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t">
+        <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
             onClick={onClose}
-            disabled={createPayment.isPending}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={createPayment.isPending || grossAmount <= 0 || !companyId || !customerId}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={createPayment.isPending}
           >
-            {createPayment.isPending ? 'Recording...' : 'Record Payment'}
+            {createPayment.isPending ? 'Saving...' : 'Save Payment'}
           </button>
         </div>
       </form>
-    </Modal>
+    </div>
   );
-};
+}
