@@ -505,6 +505,7 @@ export interface CustomersFilterParams extends PaginationParams {
 
 // Product filters for server-side paging
 export interface ProductsFilterParams extends PaginationParams {
+  searchTerm?: string;
   name?: string;
   category?: string;
   type?: string;

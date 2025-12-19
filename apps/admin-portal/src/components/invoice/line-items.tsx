@@ -3,6 +3,7 @@ import { useInvoiceForm } from './form-context'
 import { Trash2, Plus, GripVertical } from 'lucide-react'
 import { formatCurrency } from '@/lib/currency'
 import { Combobox, ComboboxOption } from '@/components/ui/combobox'
+import { ProductSelect } from '@/components/ui/ProductSelect'
 
 // Common HSN/SAC codes for quick selection with GST rates
 const COMMON_HSN_SAC_CODES = [
@@ -121,18 +122,13 @@ export const LineItems = () => {
 
                   {/* Description */}
                   <div className={`${showGstFields ? 'col-span-3' : 'col-span-4'} space-y-2`}>
-                    <select
+                    <ProductSelect
+                      companyId={formData.companyId || undefined}
                       value={item.productId || ''}
-                      onChange={(e) => handleProductSelect(item.id, e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">Select product...</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} - {formatCurrency(product.unitPrice, formData.currency)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(productId) => handleProductSelect(item.id, productId)}
+                      placeholder="Select product..."
+                      className="w-full"
+                    />
                     <input
                       type="text"
                       value={item.description}
