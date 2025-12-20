@@ -52,8 +52,6 @@ interface DataTableProps<TData, TValue> {
    */
   pagination?: ServerPaginationConfig
   hidePaginationControls?: boolean
-  /** Optional footer row renderer - receives the table instance and should return a tfoot element */
-  footer?: (table: Table<TData>) => React.ReactNode
 }
 
 export function DataTable<TData, TValue>({

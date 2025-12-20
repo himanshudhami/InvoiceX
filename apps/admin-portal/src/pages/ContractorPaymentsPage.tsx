@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -15,7 +15,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { formatINR } from '@/lib/currency'
-import { Edit, Trash2, Plus, CheckCircle, DollarSign, ArrowLeft } from 'lucide-react'
+import { Edit, Trash2, Plus, CheckCircle, DollarSign, ArrowLeft, Eye } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -173,43 +173,56 @@ const ContractorPaymentsPage = () => {
       header: 'Actions',
       cell: ({ row }) => {
         const payment = row.original
+        const status = (payment.status || '').toLowerCase()
         return (
-          <div className="flex items-center gap-2">
-            {payment.status === 'pending' && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEdit(payment)}
+              title="View / Edit"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            {status === 'pending' && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => handleApprove(payment)}
                 title="Approve"
+                className="text-green-600 hover:text-green-700 hover:bg-green-50"
               >
                 <CheckCircle className="w-4 h-4" />
               </Button>
             )}
-            {payment.status === 'approved' && (
+            {status === 'approved' && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => handleMarkAsPaid(payment)}
                 title="Mark as Paid"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
               >
                 <DollarSign className="w-4 h-4" />
               </Button>
             )}
-            {payment.status !== 'paid' && (
+            {status !== 'paid' && (
               <>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => handleEdit(payment)}
                   title="Edit"
+                  className="hover:text-blue-700 hover:bg-blue-50"
                 >
                   <Edit className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => handleDelete(payment)}
                   title="Delete"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -252,21 +265,25 @@ const ContractorPaymentsPage = () => {
         </div>
       )}
 
+      <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
+        <span>{isLoading ? 'Loading contractor payments...' : `${data?.totalCount || 0} contractor payments`}</span>
+        <span className="text-gray-500">
+          Page {(data?.pageNumber || urlState.page)} of {data?.totalPages || 1}
+        </span>
+      </div>
+
       <DataTable
         columns={columns}
         data={data?.items || []}
-        isLoading={isLoading}
         searchPlaceholder="Search by contractor name, invoice number..."
-        onSearch={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
+        searchValue={urlState.searchTerm || ''}
+        onSearchChange={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
           pageIndex: (data?.pageNumber || urlState.page) - 1,
           pageSize: data?.pageSize || urlState.pageSize,
           totalCount: data?.totalCount || 0,
           onPageChange: (page) => setUrlState({ page: page + 1 }),
           onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
-        }}
-        footerInfo={() => {
-          return `${data?.totalCount || 0} contractor payments • Page ${data?.pageNumber || urlState.page} of ${data?.totalPages || 1}`
         }}
       />
 
@@ -403,4 +420,3 @@ const ContractorPaymentsPage = () => {
 }
 
 export default ContractorPaymentsPage
-

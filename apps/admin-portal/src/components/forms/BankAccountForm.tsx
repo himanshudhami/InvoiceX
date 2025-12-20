@@ -3,6 +3,7 @@ import { BankAccount, CreateBankAccountDto } from '@/services/api/types'
 import { useCreateBankAccount, useUpdateBankAccount } from '@/hooks/api/useBankAccounts'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { cn } from '@/lib/utils'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 
 interface BankAccountFormProps {
   bankAccount?: BankAccount
@@ -140,19 +141,14 @@ export const BankAccountForm = ({
         <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-1">
           Company
         </label>
-        <select
-          id="companyId"
+        <CompanySelect
+          companies={companies}
           value={formData.companyId}
-          onChange={(e) => handleChange('companyId', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="">Select a company (optional)</option>
-          {companies.map((company) => (
-            <option key={company.id} value={company.id}>
-              {company.name}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => handleChange('companyId', value)}
+          placeholder="Select a company (optional)"
+          showAllOption
+          allOptionLabel="No company"
+        />
       </div>
 
       {/* Account Name */}

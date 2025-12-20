@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { useBankAccounts, useDeleteBankAccount, useSetPrimaryBankAccount } from '@/hooks/api/useBankAccounts'
@@ -9,11 +9,13 @@ import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import { BankAccountForm } from '@/components/forms/BankAccountForm'
 import { Edit, Trash2, Star, Upload, Building2, CreditCard, Eye } from 'lucide-react'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 
 const BankAccountsManagement = () => {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<BankAccount | null>(null)
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
 
   const { data: bankAccounts = [], isLoading, error, refetch } = useBankAccounts()
   const { data: companies = [] } = useCompanies()
@@ -21,6 +23,10 @@ const BankAccountsManagement = () => {
   const setPrimaryAccount = useSetPrimaryBankAccount()
 
   const companiesMap = new Map(companies.map(c => [c.id, c.name]))
+  const filteredAccounts = useMemo(
+    () => (selectedCompanyId ? bankAccounts.filter((a) => a.companyId === selectedCompanyId) : bankAccounts),
+    [bankAccounts, selectedCompanyId]
+  )
 
   const handleEdit = (account: BankAccount) => {
     setEditingAccount(account)
@@ -288,6 +294,26 @@ const BankAccountsManagement = () => {
         </Link>
       </div>
 
+      {/* Filters / Actions */}
+      <div className="flex flex-wrap items-center gap-3 justify-between bg-white p-4 rounded-lg shadow">
+        <div className="flex items-center gap-3">
+          <CompanySelect
+            companies={companies}
+            value={selectedCompanyId}
+            onChange={setSelectedCompanyId}
+            placeholder="Filter by company"
+            showAllOption
+            className="w-64"
+          />
+        </div>
+        <button
+          onClick={() => setIsCreateDrawerOpen(true)}
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+        >
+          Add Bank Account
+        </button>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
@@ -337,10 +363,8 @@ const BankAccountsManagement = () => {
         <div className="p-6">
           <DataTable
             columns={columns}
-            data={bankAccounts}
+            data={filteredAccounts}
             searchPlaceholder="Search accounts..."
-            onAdd={() => setIsCreateDrawerOpen(true)}
-            addButtonText="Add Account"
           />
         </div>
       </div>
@@ -353,6 +377,7 @@ const BankAccountsManagement = () => {
         size="lg"
       >
         <BankAccountForm
+          defaultCompanyId={selectedCompanyId || undefined}
           onSuccess={handleFormSuccess}
           onCancel={() => setIsCreateDrawerOpen(false)}
         />
@@ -368,6 +393,7 @@ const BankAccountsManagement = () => {
         {editingAccount && (
           <BankAccountForm
             bankAccount={editingAccount}
+            defaultCompanyId={selectedCompanyId || undefined}
             onSuccess={handleFormSuccess}
             onCancel={() => setEditingAccount(null)}
           />

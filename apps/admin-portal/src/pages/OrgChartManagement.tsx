@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { useEmployees } from '@/hooks/api/useEmployees'
 import {
@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SidePanel } from '@/components/ui/SidePanel'
+import { Drawer } from '@/components/ui/Drawer'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -32,7 +32,6 @@ import {
   Loader2,
   Network,
   Crown,
-  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -152,6 +151,12 @@ export default function OrgChartManagement() {
   )
   const { data: allEmployees = [], isLoading: employeesLoading } = useEmployees()
 
+  useEffect(() => {
+    if (companies.length > 0 && !selectedCompanyId) {
+      setSelectedCompanyId(companies[0].id)
+    }
+  }, [companies, selectedCompanyId])
+
   // Filter employees by selected company for manager dropdown
   const potentialManagers = useMemo(() => {
     if (!selectedCompanyId) return []
@@ -161,11 +166,6 @@ export default function OrgChartManagement() {
   }, [allEmployees, selectedCompanyId])
 
   const updateManagerMutation = useUpdateManager()
-
-  // Set default company when loaded
-  if (companies.length > 0 && !selectedCompanyId) {
-    setSelectedCompanyId(companies[0].id)
-  }
 
   const toggleExpand = (id: string) => {
     setExpandedNodes((prev) => {
@@ -366,35 +366,24 @@ export default function OrgChartManagement() {
         </CardContent>
       </Card>
 
-      {/* Edit Manager Side Panel */}
-      <SidePanel
+      {/* Edit Manager Drawer */}
+      <Drawer
         isOpen={!!editingEmployee}
         onClose={handleClosePanel}
-        width="md"
-        header={
-          <div className="bg-gray-50 px-4 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                  <UserCircle className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Edit Manager Assignment
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {editingEmployee?.employeeName}
-                  </p>
-                </div>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleClosePanel}>
-                <X className="h-5 w-5" />
-              </Button>
+        title="Edit Manager Assignment"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 pb-2 border-b">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+              <UserCircle className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{editingEmployee?.employeeName}</h2>
+              <p className="text-sm text-gray-500">{editingEmployee?.designation || 'Employee'}</p>
             </div>
           </div>
-        }
-      >
-        <div className="p-4 space-y-6">
+
           {/* Employee Info */}
           <div>
             <Label className="text-sm font-medium text-gray-700">Employee</Label>
@@ -492,7 +481,7 @@ export default function OrgChartManagement() {
             </Button>
           </div>
         </div>
-      </SidePanel>
+      </Drawer>
     </div>
   )
 }

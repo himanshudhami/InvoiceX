@@ -8,8 +8,10 @@ import {
   useReconciliationSuggestions
 } from '@/hooks/api/useBankTransactions'
 import { useBankAccounts } from '@/hooks/api/useBankAccounts'
+import { useCompanies } from '@/hooks/api/useCompanies'
 import { BankTransaction, ReconciliationSuggestion } from '@/services/api/types'
 import { Modal } from '@/components/ui/Modal'
+import { CompanySelect } from '@/components/ui/CompanySelect'
 import {
   ArrowLeft,
   CheckCircle,
@@ -28,6 +30,7 @@ const BankTransactionsPage = () => {
   const preselectedAccountId = searchParams.get('accountId')
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>(preselectedAccountId || '')
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'reconciled' | 'unreconciled'>('all')
   const [filterType, setFilterType] = useState<'all' | 'credit' | 'debit'>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -41,6 +44,7 @@ const BankTransactionsPage = () => {
   const [reconcilingTransaction, setReconcilingTransaction] = useState<BankTransaction | null>(null)
 
   const { data: bankAccounts = [], isLoading: accountsLoading } = useBankAccounts()
+  const { data: companies = [] } = useCompanies()
   const { data: transactions = [], isLoading: transactionsLoading, refetch } = useBankTransactionsByAccount(
     selectedAccountId,
     !!selectedAccountId
@@ -50,6 +54,21 @@ const BankTransactionsPage = () => {
   const unreconcileTransaction = useUnreconcileTransaction()
 
   const selectedAccount = bankAccounts.find(a => a.id === selectedAccountId)
+  const availableCompanies = useMemo(() => {
+    const ids = new Set(bankAccounts.map((a) => a.companyId).filter(Boolean))
+    return companies.filter((c) => ids.has(c.id))
+  }, [bankAccounts, companies])
+  const filteredAccounts = useMemo(
+    () => (selectedCompanyId ? bankAccounts.filter((a) => a.companyId === selectedCompanyId) : bankAccounts),
+    [bankAccounts, selectedCompanyId]
+  )
+
+  // When an account is preselected, align the company filter to match
+  useEffect(() => {
+    if (selectedAccount && selectedAccount.companyId && selectedCompanyId !== selectedAccount.companyId) {
+      setSelectedCompanyId(selectedAccount.companyId)
+    }
+  }, [selectedAccount, selectedCompanyId])
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
@@ -128,7 +147,22 @@ const BankTransactionsPage = () => {
       {/* Account Selector */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1 min-w-[220px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+            <CompanySelect
+              companies={availableCompanies}
+              value={selectedCompanyId}
+              onChange={(value) => {
+                setSelectedCompanyId(value)
+                setSelectedAccountId('')
+              }}
+              placeholder="Filter by company"
+              showAllOption
+              allOptionLabel="All companies"
+              className="w-full"
+            />
+          </div>
+          <div className="flex-1 min-w-[280px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select Bank Account
             </label>
@@ -138,11 +172,13 @@ const BankTransactionsPage = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Choose an account...</option>
-              {bankAccounts.filter(a => a.isActive).map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.accountName} - {account.bankName} ({account.accountNumber.slice(-4)})
-                </option>
-              ))}
+              {filteredAccounts
+                .filter((a) => a.isActive)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.accountName} - {account.bankName} ({account.accountNumber.slice(-4)})
+                  </option>
+                ))}
             </select>
           </div>
           {selectedAccountId && (

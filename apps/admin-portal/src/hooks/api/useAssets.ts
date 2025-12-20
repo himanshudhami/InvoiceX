@@ -26,6 +26,15 @@ const assetAssignmentsKey = (assetId: string) => ['asset-assignments', assetId];
 const assetDocumentsKey = (assetId: string) => ['asset-documents', assetId];
 const assetMaintenanceKey = (assetId: string) => ['asset-maintenance', assetId];
 
+export const useAsset = (id: string, enabled = true) => {
+  return useQuery({
+    queryKey: ['asset', id],
+    queryFn: () => assetService.getById(id),
+    enabled: enabled && !!id,
+    staleTime: 1000 * 30,
+  });
+};
+
 export const useAssets = (params: PaginationParams = { pageNumber: 1, pageSize: 25 }) => {
   return useQuery({
     queryKey: assetsKey(params),
@@ -225,7 +234,6 @@ export const useAssetsByLoan = (loanId: string | undefined, enabled: boolean = t
     staleTime: 1000 * 30,
   });
 };
-
 
 
 

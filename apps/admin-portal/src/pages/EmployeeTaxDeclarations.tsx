@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -201,13 +201,14 @@ const EmployeeTaxDeclarations = () => {
       header: 'Actions',
       cell: ({ row }) => {
         const declaration = row.original
+        const status = (declaration.status || '').toLowerCase()
         return (
-          <div className="flex items-center gap-2">
-            {declaration.status === 'draft' && (
+          <div className="flex items-center gap-1">
+            {status === 'draft' && (
               <>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => handleEdit(declaration)}
                   title="Edit"
                 >
@@ -215,7 +216,8 @@ const EmployeeTaxDeclarations = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                   onClick={() => handleSubmit(declaration)}
                   title="Submit"
                 >
@@ -223,40 +225,44 @@ const EmployeeTaxDeclarations = () => {
                 </Button>
               </>
             )}
-            {declaration.status === 'submitted' && (
+            {status === 'submitted' && (
               <>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
                   onClick={() => handleVerify(declaration)}
                   title="Verify"
                 >
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircle className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
+                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                   onClick={() => handleReject(declaration)}
                   title="Reject"
                 >
-                  <XCircle className="w-4 h-4 text-orange-600" />
+                  <XCircle className="w-4 h-4" />
                 </Button>
               </>
             )}
-            {declaration.status === 'rejected' && (
+            {status === 'rejected' && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                 onClick={() => handleRevise(declaration)}
                 title="Revise & Resubmit"
               >
-                <RotateCcw className="w-4 h-4 text-blue-600" />
+                <RotateCcw className="w-4 h-4" />
               </Button>
             )}
-            {(declaration.status === 'draft' || declaration.status === 'submitted') && (
+            {(status === 'draft' || status === 'submitted') && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 onClick={() => handleDelete(declaration)}
                 title="Delete"
               >
@@ -268,6 +274,11 @@ const EmployeeTaxDeclarations = () => {
       },
     },
   ]
+
+  const totalCount = data?.totalCount || 0
+  const pageIndex = (data?.pageNumber || urlState.page) - 1
+  const pageSize = data?.pageSize || urlState.pageSize
+  const searchTerm = urlState.searchTerm || ''
 
   return (
     <div className="space-y-6">
@@ -300,21 +311,27 @@ const EmployeeTaxDeclarations = () => {
         </div>
       )}
 
+      <div className="flex justify-between items-center mb-3">
+        <div className="text-sm text-gray-600">
+          {isLoading ? 'Loading tax declarations...' : `${totalCount} tax declarations`}
+        </div>
+        <div className="text-sm text-gray-500">
+          Page {pageIndex + 1} of {data?.totalPages || 1}
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
         data={data?.items || []}
-        isLoading={isLoading}
         searchPlaceholder="Search by employee name, financial year..."
-        onSearch={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
+        searchValue={searchTerm}
+        onSearchChange={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
-          pageIndex: (data?.pageNumber || urlState.page) - 1,
-          pageSize: data?.pageSize || urlState.pageSize,
-          totalCount: data?.totalCount || 0,
+          pageIndex,
+          pageSize,
+          totalCount,
           onPageChange: (page) => setUrlState({ page: page + 1 }),
           onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
-        }}
-        footerInfo={() => {
-          return `${data?.totalCount || 0} tax declarations • Page ${data?.pageNumber || urlState.page} of ${data?.totalPages || 1}`
         }}
       />
 
@@ -495,7 +512,6 @@ const EmployeeTaxDeclarations = () => {
 }
 
 export default EmployeeTaxDeclarations
-
 
 
 

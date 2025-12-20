@@ -11,12 +11,12 @@ import {
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { DataTable } from '@/components/ui/DataTable'
 import { Drawer } from '@/components/ui/Drawer'
+import { AssetSidePanelContent } from '@/components/asset/AssetSidePanelContent'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AssetForm } from '@/components/forms/AssetForm'
 import { AssetBulkUploadModal } from '@/components/forms/AssetBulkUploadModal'
-import { AssetSidePanel } from '@/components/asset/AssetSidePanel'
 import { AssetSummaryDashboard } from '@/components/asset/AssetSummaryDashboard'
 import { AssetQuickFilters, AssetFilters } from '@/components/asset/AssetQuickFilters'
 import { AssignAssetModal } from '@/components/modals/AssignAssetModal'
@@ -130,11 +130,16 @@ const AssetsManagement = () => {
     setUrlState({ asset: '' })
   }
 
+  const openEditDrawer = (asset: Asset) => {
+    setEditingAsset(asset)
+    setIsDrawerOpen(true)
+  }
+
   const handleEdit = (assetId: string) => {
     const asset = assets.find((a) => a.id === assetId)
     if (asset) {
-      setEditingAsset(asset)
-      setIsDrawerOpen(true)
+      handleClosePanel()
+      openEditDrawer(asset)
     }
   }
 
@@ -158,6 +163,7 @@ const AssetsManagement = () => {
   }
 
   const handleAssignFromPanel = (assetId: string) => {
+    handleClosePanel()
     setAssigningAssetId(assetId)
   }
 
@@ -303,13 +309,23 @@ const AssetsManagement = () => {
         </div>
 
         {/* Side Panel */}
-        <AssetSidePanel
-          assetId={urlState.asset || null}
+        <Drawer
+          isOpen={!!urlState.asset}
           onClose={handleClosePanel}
-          onEdit={handleEdit}
-          onAssign={handleAssignFromPanel}
-          onDelete={handleDeleteFromPanel}
-        />
+          title={null as any}
+          size="xl"
+          showCloseButton={false}
+        >
+          {urlState.asset && (
+            <AssetSidePanelContent
+              assetId={urlState.asset}
+              onClose={handleClosePanel}
+              onEdit={handleEdit}
+              onAssign={handleAssignFromPanel}
+              onDelete={handleDeleteFromPanel}
+            />
+          )}
+        </Drawer>
       </div>
 
       {/* Create/Edit Drawer */}

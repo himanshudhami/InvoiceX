@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday, useCopyHolidaysToNextYear } from '@/hooks/api/useHolidays'
 import { useCompanies } from '@/hooks/api/useCompanies'
@@ -323,17 +323,36 @@ interface HolidayFormProps {
   updateMutation?: ReturnType<typeof useUpdateHoliday>
 }
 
+const normalizeDate = (date?: string) => (date ? new Date(date).toISOString().split('T')[0] : '')
+
 const HolidayForm = ({ holiday, companies, year, onSuccess, onCancel, createMutation, updateMutation }: HolidayFormProps) => {
   const [formData, setFormData] = useState<CreateHolidayDto>({
     companyId: holiday?.companyId || '',
     name: holiday?.name || '',
-    date: holiday?.date || '',
+    date: normalizeDate(holiday?.date),
     year: holiday?.year || year,
     isOptional: holiday?.isOptional || false,
     isFloating: holiday?.isFloating || false,
     description: holiday?.description || '',
   })
   const [companyError, setCompanyError] = useState<string>('')
+
+  // Keep form in sync when editing a different holiday
+  useEffect(() => {
+    if (holiday) {
+      const dateValue = normalizeDate(holiday.date)
+      setFormData({
+        companyId: holiday.companyId || '',
+        name: holiday.name || '',
+        date: dateValue,
+        year: holiday.year || (dateValue ? new Date(dateValue).getFullYear() : year),
+        isOptional: holiday.isOptional || false,
+        isFloating: holiday.isFloating || false,
+        description: holiday.description || '',
+      })
+      setCompanyError('')
+    }
+  }, [holiday, year])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

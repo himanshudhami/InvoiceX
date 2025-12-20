@@ -1,5 +1,5 @@
 import { FC, useState } from 'react'
-import { SidePanel } from '@/components/ui/SidePanel'
+import { Drawer } from '@/components/ui/Drawer'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -133,63 +133,67 @@ export const EmployeeSidePanel: FC<EmployeeSidePanelProps> = ({
   }
 
   return (
-    <SidePanel
+    <Drawer
       isOpen={!!employeeId}
       onClose={onClose}
-      width="xl"
-      header={renderHeader()}
+      title={null as any}
+      size="xl"
+      showCloseButton={false}
     >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        </div>
-      ) : isError || !employee ? (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <AlertCircle className="w-10 h-10 mb-3" />
-          <p>Unable to load employee details</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="px-4 pt-2 pb-0 bg-white border-b rounded-none justify-start gap-1">
-            <TabsTrigger value="overview" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="payroll" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
-              Payroll
-            </TabsTrigger>
-            <TabsTrigger value="tax" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
-              Tax
-            </TabsTrigger>
-            <TabsTrigger value="assets" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
-              Assets
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
-              Subs
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex-1 overflow-y-auto">
-            <TabsContent value="overview" className="mt-0 h-full">
-              <OverviewTab employee={employee} />
-            </TabsContent>
-            <TabsContent value="payroll" className="mt-0 h-full">
-              <PayrollTab employeeId={employee.id} />
-            </TabsContent>
-            <TabsContent value="tax" className="mt-0 h-full">
-              <TaxDeclarationsTab employeeId={employee.id} />
-            </TabsContent>
-            <TabsContent value="assets" className="mt-0 h-full">
-              <AssetsTab employeeId={employee.id} />
-            </TabsContent>
-            <TabsContent value="subscriptions" className="mt-0 h-full">
-              <SubscriptionsTab employeeId={employee.id} />
-            </TabsContent>
+      <div className="flex flex-col h-full">
+        {renderHeader()}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
           </div>
-        </Tabs>
-      )}
-    </SidePanel>
+        ) : isError || !employee ? (
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <AlertCircle className="w-10 h-10 mb-3" />
+            <p>Unable to load employee details</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <TabsList className="px-4 pt-2 pb-0 bg-white border-b rounded-none justify-start gap-1">
+              <TabsTrigger value="overview" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="payroll" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
+                Payroll
+              </TabsTrigger>
+              <TabsTrigger value="tax" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
+                Tax
+              </TabsTrigger>
+              <TabsTrigger value="assets" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
+                Assets
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" className="data-[state=active]:shadow-none data-[state=active]:bg-gray-100 rounded-t-md rounded-b-none">
+                Subs
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex-1 overflow-y-auto">
+              <TabsContent value="overview" className="mt-0 h-full">
+                <OverviewTab employee={employee} />
+              </TabsContent>
+              <TabsContent value="payroll" className="mt-0 h-full">
+                <PayrollTab employeeId={employee.id} />
+              </TabsContent>
+              <TabsContent value="tax" className="mt-0 h-full">
+                <TaxDeclarationsTab employeeId={employee.id} />
+              </TabsContent>
+              <TabsContent value="assets" className="mt-0 h-full">
+                <AssetsTab employeeId={employee.id} />
+              </TabsContent>
+              <TabsContent value="subscriptions" className="mt-0 h-full">
+                <SubscriptionsTab employeeId={employee.id} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        )}
+      </div>
+    </Drawer>
   )
 }
