@@ -20,9 +20,13 @@ import {
   AnnouncementsPage,
   HelpDeskPage,
   DocumentsPage,
+  ExpensesIndexPage,
+  SubmitExpensePage,
+  ExpenseDetailPage,
   MyTeamPage,
   PendingApprovalsPage,
   AssetApprovalsPage,
+  ExpenseApprovalsPage,
 } from '@/pages'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -108,6 +112,9 @@ export default function App() {
         <Route path="announcements" element={<AnnouncementsPage />} />
         <Route path="help" element={<HelpDeskPage />} />
         <Route path="documents" element={<DocumentsPage />} />
+        <Route path="expenses" element={<ExpensesIndexPage />} />
+        <Route path="expenses/submit" element={<SubmitExpensePage />} />
+        <Route path="expenses/:id" element={<ExpenseDetailPage />} />
 
         {/* Manager Routes - Protected by ManagerProtectedRoute */}
         <Route
@@ -131,6 +138,14 @@ export default function App() {
           element={
             <ManagerProtectedRoute>
               <AssetApprovalsPage />
+            </ManagerProtectedRoute>
+          }
+        />
+        <Route
+          path="manager/expense-approvals"
+          element={
+            <ManagerProtectedRoute>
+              <ExpenseApprovalsPage />
             </ManagerProtectedRoute>
           }
         />

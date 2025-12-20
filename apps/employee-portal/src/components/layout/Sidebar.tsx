@@ -13,6 +13,7 @@ import {
   Users,
   ClipboardCheck,
   Package,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn, getInitials } from '@repo/ui'
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { name: 'Leave', href: '/leave', icon: Calendar },
   { name: 'Payslips', href: '/payslips', icon: FileText },
   { name: 'Assets', href: '/assets', icon: Laptop },
+  { name: 'Expenses', href: '/expenses', icon: Wallet },
   { name: 'Tax Declarations', href: '/tax-declarations', icon: Receipt },
   { name: 'Documents', href: '/documents', icon: FolderOpen },
   { name: 'Announcements', href: '/announcements', icon: Megaphone },
@@ -37,7 +39,8 @@ const navItems: NavItem[] = [
 
 const managerNavItems: NavItem[] = [
   { name: 'My Team', href: '/manager/team', icon: Users },
-  { name: 'Pending Approvals', href: '/manager/approvals', icon: ClipboardCheck },
+  { name: 'Leave Approvals', href: '/manager/approvals', icon: ClipboardCheck },
+  { name: 'Expense Approvals', href: '/manager/expense-approvals', icon: Wallet },
   { name: 'Asset Approvals', href: '/manager/asset-approvals', icon: Package },
 ]
 

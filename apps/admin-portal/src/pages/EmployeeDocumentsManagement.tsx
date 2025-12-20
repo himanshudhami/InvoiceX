@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useEmployeeDocuments, useCompanyWideDocuments, usePendingDocumentRequests, useCreateEmployeeDocument, useUpdateEmployeeDocument, useDeleteEmployeeDocument, useProcessDocumentRequest } from '@/hooks/api/useEmployeeDocuments'
 import { useCompanies } from '@/hooks/api/useCompanies'
@@ -9,8 +9,9 @@ import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import { EmployeeSelect } from '@/components/ui/EmployeeSelect'
 import { CompanySelect } from '@/components/ui/CompanySelect'
-import { Edit, Trash2, FileText, Download, Clock, CheckCircle, XCircle, Building } from 'lucide-react'
+import { Edit, Trash2, FileText, Download, Clock, CheckCircle, XCircle, Building, Upload, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
+import { fileService } from '@/services/api/fileService'
 
 const DOCUMENT_TYPES = [
   { value: 'offer_letter', label: 'Offer Letter' },
@@ -33,9 +34,10 @@ const EmployeeDocumentsManagement = () => {
   const [editingDocument, setEditingDocument] = useState<EmployeeDocument | null>(null)
   const [deletingDocument, setDeletingDocument] = useState<EmployeeDocument | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('')
   const [processingRequest, setProcessingRequest] = useState<DocumentRequest | null>(null)
 
-  const { data: documents = [], isLoading, error, refetch } = useEmployeeDocuments(selectedCompanyId || undefined)
+  const { data: documents = [], isLoading, error, refetch } = useEmployeeDocuments(selectedCompanyId || undefined, selectedEmployeeId || undefined)
   const { data: companyWideDocuments = [] } = useCompanyWideDocuments(selectedCompanyId, !!selectedCompanyId)
   const { data: pendingRequests = [], refetch: refetchRequests } = usePendingDocumentRequests(selectedCompanyId, !!selectedCompanyId)
   const { data: companies = [] } = useCompanies()
@@ -286,16 +288,39 @@ const EmployeeDocumentsManagement = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Filter by Company:</label>
-        <CompanySelect
-          companies={companies}
-          value={selectedCompanyId}
-          onChange={setSelectedCompanyId}
-          showAllOption
-          allOptionLabel="All Companies"
-          className="w-[250px]"
-        />
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Company:</label>
+          <CompanySelect
+            companies={companies}
+            value={selectedCompanyId}
+            onChange={(value) => {
+              setSelectedCompanyId(value)
+              setSelectedEmployeeId('') // Reset employee when company changes
+            }}
+            showAllOption
+            allOptionLabel="All Companies"
+            className="w-[200px]"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Employee:</label>
+          <EmployeeSelect
+            employees={employees}
+            value={selectedEmployeeId}
+            onChange={setSelectedEmployeeId}
+            placeholder="All Employees"
+            className="w-[200px]"
+          />
+        </div>
+        {selectedEmployeeId && (
+          <button
+            onClick={() => setSelectedEmployeeId('')}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Clear filter
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -468,6 +493,9 @@ interface DocumentFormProps {
 }
 
 const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, createMutation, updateMutation }: DocumentFormProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [formData, setFormData] = useState<CreateEmployeeDocumentDto>({
     employeeId: document?.employeeId || '',
     companyId: document?.companyId || companies[0]?.id || '',
@@ -484,8 +512,58 @@ const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, cre
 
   const filteredEmployees = employees.filter(e => e.companyId === formData.companyId)
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file size (25MB max)
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadError('File size must be less than 25MB')
+      return
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg',
+                          'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Only PDF, PNG, JPG, DOC, and DOCX files are allowed')
+      return
+    }
+
+    setUploadError(null)
+    setIsUploading(true)
+
+    try {
+      const response = await fileService.upload(
+        file,
+        formData.companyId,
+        'employee_document'
+      )
+
+      setFormData(prev => ({
+        ...prev,
+        fileUrl: response.storagePath,
+        fileName: response.originalFilename,
+        mimeType: response.mimeType,
+        fileSize: response.fileSize,
+        title: prev.title || response.originalFilename.replace(/\.[^/.]+$/, ''), // Set title from filename if empty
+      }))
+    } catch (error: any) {
+      console.error('Upload failed:', error)
+      setUploadError(error.message || 'Failed to upload file')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.fileUrl) {
+      setUploadError('Please upload a file first')
+      return
+    }
+
     try {
       if (document && updateMutation) {
         const updateData: UpdateEmployeeDocumentDto = {
@@ -510,6 +588,13 @@ const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, cre
   }
 
   const isPending = createMutation?.isPending || updateMutation?.isPending
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return ''
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -563,6 +648,49 @@ const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, cre
         </select>
       </div>
 
+      {/* File Upload */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {document ? 'Replace File' : 'Upload File *'}
+        </label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileChange}
+          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+          className="hidden"
+        />
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+            ${formData.fileUrl ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'}`}
+        >
+          {isUploading ? (
+            <div className="flex items-center justify-center gap-2 text-blue-600">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Uploading...</span>
+            </div>
+          ) : formData.fileUrl ? (
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <FileText className="w-5 h-5" />
+              <div>
+                <p className="font-medium">{formData.fileName}</p>
+                <p className="text-sm text-gray-500">{formatFileSize(formData.fileSize)} - Click to replace</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-gray-500">
+              <Upload className="w-8 h-8" />
+              <p>Click to upload or drag and drop</p>
+              <p className="text-xs">PDF, PNG, JPG, DOC, DOCX (max 25MB)</p>
+            </div>
+          )}
+        </div>
+        {uploadError && (
+          <p className="mt-1 text-sm text-red-600">{uploadError}</p>
+        )}
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
         <input
@@ -585,38 +713,14 @@ const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, cre
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">File URL *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Financial Year</label>
         <input
-          type="url"
-          value={formData.fileUrl}
-          onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
+          type="text"
+          value={formData.financialYear}
+          onChange={(e) => setFormData({ ...formData, financialYear: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="https://..."
-          required
+          placeholder="2024-25"
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">File Name *</label>
-          <input
-            type="text"
-            value={formData.fileName}
-            onChange={(e) => setFormData({ ...formData, fileName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Financial Year</label>
-          <input
-            type="text"
-            value={formData.financialYear}
-            onChange={(e) => setFormData({ ...formData, financialYear: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            placeholder="2024-25"
-          />
-        </div>
       </div>
 
       <div className="flex justify-end space-x-3 pt-4 border-t">
@@ -629,10 +733,10 @@ const DocumentForm = ({ document, companies, employees, onSuccess, onCancel, cre
         </button>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isUploading || (!document && !formData.fileUrl)}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
-          {isPending ? 'Saving...' : document ? 'Update' : 'Upload'}
+          {isPending ? 'Saving...' : document ? 'Update' : 'Upload Document'}
         </button>
       </div>
     </form>

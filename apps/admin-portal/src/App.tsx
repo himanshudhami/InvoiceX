@@ -76,6 +76,11 @@ const AnnouncementsManagement = lazy(() => import('./pages/AnnouncementsManageme
 const SupportTicketsManagement = lazy(() => import('./pages/SupportTicketsManagement'))
 const EmployeeDocumentsManagement = lazy(() => import('./pages/EmployeeDocumentsManagement'))
 
+// Document & Expense Management
+const DocumentCategoriesManagement = lazy(() => import('./pages/DocumentCategoriesManagement'))
+const ExpenseCategoriesManagement = lazy(() => import('./pages/ExpenseCategoriesManagement'))
+const ExpenseClaimsManagement = lazy(() => import('./pages/ExpenseClaimsManagement'))
+
 // Administration
 const Users = lazy(() => import('./pages/Users'))
 
@@ -254,6 +259,11 @@ function AppRoutes() {
               <Route path="/announcements" element={<AnnouncementsManagement />} />
               <Route path="/support-tickets" element={<SupportTicketsManagement />} />
               <Route path="/employee-documents" element={<EmployeeDocumentsManagement />} />
+
+              {/* Document & Expense Management Routes */}
+              <Route path="/document-categories" element={<DocumentCategoriesManagement />} />
+              <Route path="/expense-categories" element={<ExpenseCategoriesManagement />} />
+              <Route path="/expense-claims" element={<ExpenseClaimsManagement />} />
 
               {/* Administration Routes */}
               <Route path="/users" element={<Users />} />

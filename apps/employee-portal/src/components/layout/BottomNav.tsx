@@ -16,6 +16,7 @@ import {
   Users,
   ClipboardCheck,
   Package,
+  Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/utils/cn'
@@ -67,6 +68,7 @@ interface MoreMenuItem {
 }
 
 const moreMenuItems: MoreMenuItem[] = [
+  { to: '/expenses', icon: Wallet, label: 'Expenses' },
   { to: '/tax-declarations', icon: Receipt, label: 'Tax Declarations' },
   { to: '/documents', icon: FolderOpen, label: 'Documents' },
   { to: '/announcements', icon: Megaphone, label: 'Announcements' },
@@ -76,7 +78,8 @@ const moreMenuItems: MoreMenuItem[] = [
 
 const managerMenuItems: MoreMenuItem[] = [
   { to: '/manager/team', icon: Users, label: 'My Team' },
-  { to: '/manager/approvals', icon: ClipboardCheck, label: 'Pending Approvals' },
+  { to: '/manager/approvals', icon: ClipboardCheck, label: 'Leave Approvals' },
+  { to: '/manager/expense-approvals', icon: Wallet, label: 'Expense Approvals' },
   { to: '/manager/asset-approvals', icon: Package, label: 'Asset Approvals' },
 ]
 
