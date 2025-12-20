@@ -8,6 +8,8 @@ import type {
   ApprovalRequestDetail,
   ApproveRequestDto,
   RejectRequestDto,
+  AssetRequestSummary,
+  AssetRequestDetail,
 } from '@/types'
 
 export const managerApi = {
@@ -67,6 +69,29 @@ export const managerApi = {
     const response = await apiClient.post<ApprovalRequestDetail>(
       `/portal/manager/approvals/${requestId}/reject`,
       dto
+    )
+    return response.data
+  },
+
+  // Asset Request Approvals (filtered by activity type)
+  getPendingAssetApprovals: async (): Promise<PendingApproval[]> => {
+    const allPending = await managerApi.getPendingApprovals()
+    return allPending.filter((approval) => approval.activityType === 'asset_request')
+  },
+
+  // Get team's asset requests (for display in manager view)
+  getTeamAssetRequests: async (status?: string): Promise<AssetRequestSummary[]> => {
+    const params = status ? { status } : {}
+    const response = await apiClient.get<AssetRequestSummary[]>('/portal/manager/team/asset-requests', {
+      params,
+    })
+    return response.data
+  },
+
+  // Get asset request details by activity ID (for approval context)
+  getAssetRequestDetails: async (activityId: string): Promise<AssetRequestDetail> => {
+    const response = await apiClient.get<AssetRequestDetail>(
+      `/portal/manager/activities/asset-request/${activityId}`
     )
     return response.data
   },

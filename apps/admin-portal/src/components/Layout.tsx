@@ -32,6 +32,7 @@ import {
   GitBranch,
   Network,
   Calculator,
+  PackageSearch,
 } from 'lucide-react'
 
 interface Props {
@@ -90,6 +91,7 @@ const Layout: FC<Props> = ({ children }) => {
       icon: Laptop,
       items: [
         { name: 'Assets', href: '/assets', icon: Laptop },
+        { name: 'Asset Requests', href: '/asset-requests', icon: PackageSearch },
         { name: 'Subscriptions', href: '/subscriptions', icon: CircleDollarSign },
       ],
     },

@@ -1835,3 +1835,103 @@ export interface LeaveCalendarEntry {
   leaveType?: string;
   isOptional?: boolean;
 }
+
+// Asset Request types
+export type AssetRequestStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'fulfilled' | 'cancelled';
+export type AssetRequestPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+export interface AssetRequestSummary {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode?: string;
+  assetType: string;
+  category: string;
+  title: string;
+  priority: AssetRequestPriority;
+  status: AssetRequestStatus;
+  quantity: number;
+  estimatedBudget?: number;
+  requestedAt: string;
+  approvedAt?: string;
+  fulfilledAt?: string;
+}
+
+export interface AssetRequestDetail extends AssetRequestSummary {
+  companyId: string;
+  department?: string;
+  description?: string;
+  justification?: string;
+  specifications?: string;
+  requestedByDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  rejectionReason?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  assignedAssetId?: string;
+  assignedAssetName?: string;
+  fulfilledBy?: string;
+  fulfilledByName?: string;
+  fulfillmentNotes?: string;
+  canEdit: boolean;
+  canCancel: boolean;
+  canFulfill: boolean;
+  approvalRequestId?: string;
+  hasApprovalWorkflow: boolean;
+  currentApprovalStep?: number;
+  totalApprovalSteps?: number;
+}
+
+export interface AssetRequestStats {
+  totalRequests: number;
+  pendingRequests: number;
+  approvedRequests: number;
+  rejectedRequests: number;
+  fulfilledRequests: number;
+  unfulfilledApproved: number;
+}
+
+export interface CreateAssetRequestDto {
+  assetType: string;
+  category: string;
+  title: string;
+  description?: string;
+  justification?: string;
+  specifications?: string;
+  priority?: AssetRequestPriority;
+  quantity?: number;
+  estimatedBudget?: number;
+  requestedByDate?: string;
+}
+
+export interface UpdateAssetRequestDto extends Partial<CreateAssetRequestDto> {}
+
+export interface ApproveAssetRequestDto {
+  comments?: string;
+}
+
+export interface RejectAssetRequestDto {
+  reason: string;
+}
+
+export interface CancelAssetRequestDto {
+  reason?: string;
+}
+
+export interface FulfillAssetRequestDto {
+  assetId: string;
+  notes?: string;
+}
+
+export interface AssetRequestFilterParams extends PaginationParams {
+  companyId?: string;
+  employeeId?: string;
+  status?: string;
+  priority?: string;
+  category?: string;
+  fromDate?: string;
+  toDate?: string;
+}

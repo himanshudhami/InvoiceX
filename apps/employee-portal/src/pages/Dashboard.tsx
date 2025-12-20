@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Calendar,
@@ -11,6 +11,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { portalApi } from '@/api'
+import { leaveApi } from '@/api/leave'
 import { useAuth } from '@/context/AuthContext'
 import {
   Badge,
@@ -23,6 +24,7 @@ import { formatDate, formatCurrency, formatDays, getMonthName, getInitials } fro
 import type { PortalDashboard, LeaveBalanceSummary, PayslipSummary, Holiday } from '@/types'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const { user } = useAuth()
 
   const { data: dashboard, isLoading } = useQuery<PortalDashboard>({
@@ -30,15 +32,38 @@ export function DashboardPage() {
     queryFn: portalApi.getDashboard,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+  const { data: leaveDashboard } = useQuery({
+    queryKey: ['portal-leave-dashboard'],
+    queryFn: leaveApi.getDashboard,
+    staleTime: 1000 * 60 * 3,
+  })
+  const { data: myPayslips } = useQuery({
+    queryKey: ['portal-payslips'],
+    queryFn: () => portalApi.getMyPayslips(),
+    staleTime: 1000 * 60 * 3,
+  })
+  const { data: myAssets } = useQuery({
+    queryKey: ['portal-assets'],
+    queryFn: portalApi.getMyAssets,
+    staleTime: 1000 * 60 * 3,
+  })
 
   if (isLoading) {
     return <PageLoader />
   }
 
-  const firstName = dashboard?.employee?.firstName || user?.employeeName?.split(' ')[0] || 'Employee'
-  const fullName = dashboard?.employee
+  const profileName = (dashboard as any)?.profile?.employeeName as string | undefined
+  const profileFirstName = profileName?.split(' ')[0]
+  const firstName = profileFirstName || dashboard?.employee?.firstName || user?.employeeName?.split(' ')[0] || 'Employee'
+  const fullName = profileName
+    ? profileName
+    : dashboard?.employee
     ? `${dashboard.employee.firstName} ${dashboard.employee.lastName}`
     : user?.employeeName || 'User'
+
+  const leavePending = leaveDashboard?.pendingApplications?.length ?? dashboard?.pendingLeaveApplications ?? 0
+  const assetsCount = dashboard?.assignedAssets ?? myAssets?.length ?? 0
+  const payslipCount = dashboard?.recentPayslips?.length ?? myPayslips?.length ?? 0
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -79,21 +104,24 @@ export function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <QuickStat
           label="Leave Pending"
-          value={dashboard?.pendingLeaveApplications?.toString() || '0'}
+          value={leavePending.toString()}
           color="primary"
           icon={<Calendar size={18} className="text-primary-600" />}
+          onClick={() => navigate('/leave')}
         />
         <QuickStat
           label="Assets"
-          value={dashboard?.assignedAssets?.toString() || '0'}
+          value={assetsCount.toString()}
           color="success"
           icon={<Laptop size={18} className="text-green-600" />}
+          onClick={() => navigate('/assets')}
         />
         <QuickStat
           label="Payslips"
-          value={dashboard?.recentPayslips?.length?.toString() || '0'}
+          value={payslipCount.toString()}
           color="warning"
           icon={<FileText size={18} className="text-yellow-600" />}
+          onClick={() => navigate('/payslips')}
         />
       </div>
 

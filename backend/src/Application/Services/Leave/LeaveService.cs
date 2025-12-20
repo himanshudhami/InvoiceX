@@ -779,11 +779,12 @@ namespace Application.Services.Leave
             if (application == null)
                 return Error.NotFound("Leave application not found");
 
-            application.Status = status;
+            // Use the dedicated UpdateStatusAsync method which properly updates status
+            await _applicationRepository.UpdateStatusAsync(applicationId, status, null, reason);
 
+            // Handle balance updates based on status
             if (status == "approved")
             {
-                application.ApprovedAt = DateTime.UtcNow;
                 // Deduct leave balance (increment taken days)
                 var financialYear = GetFinancialYearForDate(application.FromDate);
                 await _balanceRepository.IncrementTakenAsync(
@@ -792,12 +793,6 @@ namespace Application.Services.Leave
                     financialYear,
                     application.TotalDays);
             }
-            else if (status == "rejected")
-            {
-                application.RejectionReason = reason;
-            }
-
-            await _applicationRepository.UpdateAsync(application);
 
             return Result.Success();
         }

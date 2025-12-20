@@ -10,7 +10,7 @@ namespace WebApi.Controllers
     /// Controller for managing employee asset requests
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/asset-requests")]
     [Produces("application/json")]
     [Authorize(Policy = "AdminHrOnly")]
     public class AssetRequestsController : ControllerBase

@@ -82,6 +82,7 @@ interface QuickStatProps {
   color?: 'primary' | 'success' | 'warning' | 'error'
   icon?: React.ReactNode
   className?: string
+  onClick?: () => void
 }
 
 const colorClasses = {
@@ -97,14 +98,25 @@ export function QuickStat({
   color = 'primary',
   icon,
   className,
+  onClick,
 }: QuickStatProps) {
   return (
     <div
       className={cn(
         'flex items-center gap-3 p-3 rounded-xl',
         colorClasses[color],
+        onClick ? 'cursor-pointer transition hover:opacity-90 active:opacity-80' : '',
         className
       )}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onClick()
+        }
+      }}
     >
       {icon && <div className="flex-shrink-0">{icon}</div>}
       <div className="min-w-0">

@@ -1,6 +1,8 @@
 using Application.DTOs.Approval;
+using Application.DTOs.AssetRequest;
 using Application.DTOs.Hierarchy;
 using Application.DTOs.Leave;
+using Application.Interfaces;
 using Application.Interfaces.Approval;
 using Application.Interfaces.Hierarchy;
 using Application.Interfaces.Leave;
@@ -23,15 +25,18 @@ namespace WebApi.Controllers.Portal
         private readonly IApprovalWorkflowService _approvalService;
         private readonly IEmployeeHierarchyService _hierarchyService;
         private readonly ILeaveService _leaveService;
+        private readonly IAssetRequestService _assetRequestService;
 
         public ManagerPortalController(
             IApprovalWorkflowService approvalService,
             IEmployeeHierarchyService hierarchyService,
-            ILeaveService leaveService)
+            ILeaveService leaveService,
+            IAssetRequestService assetRequestService)
         {
             _approvalService = approvalService ?? throw new ArgumentNullException(nameof(approvalService));
             _hierarchyService = hierarchyService ?? throw new ArgumentNullException(nameof(hierarchyService));
             _leaveService = leaveService ?? throw new ArgumentNullException(nameof(leaveService));
+            _assetRequestService = assetRequestService ?? throw new ArgumentNullException(nameof(assetRequestService));
         }
 
         private Guid? CurrentEmployeeId
@@ -229,17 +234,8 @@ namespace WebApi.Controllers.Portal
             if (CurrentEmployeeId == null)
                 return StatusCode(403, new { error = "Your account is not linked to an employee record" });
 
+            // The workflow service automatically updates the activity status via registered handlers
             var result = await _approvalService.ApproveAsync(requestId, CurrentEmployeeId.Value, dto);
-
-            if (result.IsSuccess && result.Value!.Status.Equals("approved", StringComparison.OrdinalIgnoreCase))
-            {
-                // Update the activity status based on activity type
-                if (result.Value.ActivityType == "leave")
-                {
-                    await _leaveService.UpdateLeaveStatusAsync(result.Value.ActivityId, "approved");
-                }
-            }
-
             return HandleResult(result);
         }
 
@@ -260,17 +256,8 @@ namespace WebApi.Controllers.Portal
             if (CurrentEmployeeId == null)
                 return StatusCode(403, new { error = "Your account is not linked to an employee record" });
 
+            // The workflow service automatically updates the activity status via registered handlers
             var result = await _approvalService.RejectAsync(requestId, CurrentEmployeeId.Value, dto);
-
-            if (result.IsSuccess && result.Value!.Status.Equals("rejected", StringComparison.OrdinalIgnoreCase))
-            {
-                // Update the activity status based on activity type
-                if (result.Value.ActivityType == "leave")
-                {
-                    await _leaveService.UpdateLeaveStatusAsync(result.Value.ActivityId, "rejected", dto.Reason);
-                }
-            }
-
             return HandleResult(result);
         }
 
@@ -292,6 +279,73 @@ namespace WebApi.Controllers.Portal
 
             var result = await _leaveService.GetTeamLeaveApplicationsAsync(CurrentEmployeeId.Value, status);
             return HandleResult(result);
+        }
+
+        // ==================== Team Asset Request Management ====================
+
+        /// <summary>
+        /// Get team's asset requests (direct reports)
+        /// </summary>
+        /// <param name="status">Optional filter by status</param>
+        /// <returns>List of team asset requests</returns>
+        [HttpGet("team/asset-requests")]
+        [ProducesResponseType(typeof(IEnumerable<AssetRequestSummaryDto>), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> GetTeamAssetRequests([FromQuery] string? status = null)
+        {
+            if (CurrentEmployeeId == null || CurrentCompanyId == null)
+                return StatusCode(403, new { error = "Your account is not linked to an employee record" });
+
+            // Get all subordinates first
+            var subordinatesResult = await _hierarchyService.GetAllSubordinatesAsync(CurrentEmployeeId.Value);
+            if (!subordinatesResult.IsSuccess)
+                return HandleResult(subordinatesResult);
+
+            var subordinateIds = subordinatesResult.Value!.Select(s => s.Id).ToList();
+
+            // Get asset requests for subordinates
+            var result = await _assetRequestService.GetByCompanyAsync(CurrentCompanyId.Value, status);
+            if (!result.IsSuccess)
+                return HandleResult(result);
+
+            // Filter to only show requests from direct/indirect reports
+            var filteredRequests = result.Value!.Where(r => subordinateIds.Contains(r.EmployeeId)).ToList();
+            return Ok(filteredRequests);
+        }
+
+        /// <summary>
+        /// Get asset request details by ID (for approval context)
+        /// </summary>
+        /// <param name="id">Asset request ID</param>
+        /// <returns>Asset request details</returns>
+        [HttpGet("activities/asset-request/{id}")]
+        [ProducesResponseType(typeof(AssetRequestDetailDto), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetAssetRequestDetails(Guid id)
+        {
+            if (CurrentEmployeeId == null)
+                return StatusCode(403, new { error = "Your account is not linked to an employee record" });
+
+            // Get the asset request
+            var result = await _assetRequestService.GetByIdAsync(id);
+            if (!result.IsSuccess)
+                return HandleResult(result);
+
+            // Verify the manager has access (is the approver or is in the hierarchy)
+            var subordinatesResult = await _hierarchyService.GetAllSubordinatesAsync(CurrentEmployeeId.Value);
+            if (subordinatesResult.IsSuccess)
+            {
+                var subordinateIds = subordinatesResult.Value!.Select(s => s.Id).ToList();
+                if (!subordinateIds.Contains(result.Value!.EmployeeId))
+                {
+                    return StatusCode(403, new { error = "You do not have access to this asset request" });
+                }
+            }
+
+            return Ok(result.Value);
         }
     }
 

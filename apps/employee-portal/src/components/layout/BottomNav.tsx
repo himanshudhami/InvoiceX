@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Users,
   ClipboardCheck,
+  Package,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/utils/cn'
@@ -76,6 +77,7 @@ const moreMenuItems: MoreMenuItem[] = [
 const managerMenuItems: MoreMenuItem[] = [
   { to: '/manager/team', icon: Users, label: 'My Team' },
   { to: '/manager/approvals', icon: ClipboardCheck, label: 'Pending Approvals' },
+  { to: '/manager/asset-approvals', icon: Package, label: 'Asset Approvals' },
 ]
 
 export function BottomNav() {

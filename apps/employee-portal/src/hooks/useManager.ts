@@ -9,6 +9,7 @@ import type {
   ApprovalRequestDetail,
   ApproveRequestDto,
   RejectRequestDto,
+  AssetRequestSummary,
 } from '@/types'
 
 // Query keys
@@ -18,8 +19,10 @@ export const managerKeys = {
   team: () => [...managerKeys.all, 'team'] as const,
   teamAll: () => [...managerKeys.all, 'team', 'all'] as const,
   teamLeaves: (status?: string) => [...managerKeys.all, 'team', 'leaves', status] as const,
+  teamAssetRequests: (status?: string) => [...managerKeys.all, 'team', 'asset-requests', status] as const,
   approvals: () => [...managerKeys.all, 'approvals'] as const,
   pendingApprovals: () => [...managerKeys.approvals(), 'pending'] as const,
+  pendingAssetApprovals: () => [...managerKeys.approvals(), 'pending', 'asset'] as const,
   pendingCount: () => [...managerKeys.approvals(), 'count'] as const,
   approvalDetail: (requestId: string) => [...managerKeys.approvals(), requestId] as const,
 }
@@ -54,11 +57,25 @@ export function useTeamLeaves(status?: string) {
   })
 }
 
+export function useTeamAssetRequests(status?: string) {
+  return useQuery<AssetRequestSummary[]>({
+    queryKey: managerKeys.teamAssetRequests(status),
+    queryFn: () => managerApi.getTeamAssetRequests(status),
+  })
+}
+
 // Approval hooks
 export function usePendingApprovals() {
   return useQuery<PendingApproval[]>({
     queryKey: managerKeys.pendingApprovals(),
     queryFn: managerApi.getPendingApprovals,
+  })
+}
+
+export function usePendingAssetApprovals() {
+  return useQuery<PendingApproval[]>({
+    queryKey: managerKeys.pendingAssetApprovals(),
+    queryFn: managerApi.getPendingAssetApprovals,
   })
 }
 
@@ -85,9 +102,11 @@ export function useApprove() {
       managerApi.approve(requestId, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: managerKeys.pendingApprovals() })
+      queryClient.invalidateQueries({ queryKey: managerKeys.pendingAssetApprovals() })
       queryClient.invalidateQueries({ queryKey: managerKeys.pendingCount() })
       queryClient.invalidateQueries({ queryKey: managerKeys.dashboard() })
       queryClient.invalidateQueries({ queryKey: managerKeys.teamLeaves() })
+      queryClient.invalidateQueries({ queryKey: managerKeys.teamAssetRequests() })
     },
   })
 }
@@ -100,9 +119,11 @@ export function useReject() {
       managerApi.reject(requestId, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: managerKeys.pendingApprovals() })
+      queryClient.invalidateQueries({ queryKey: managerKeys.pendingAssetApprovals() })
       queryClient.invalidateQueries({ queryKey: managerKeys.pendingCount() })
       queryClient.invalidateQueries({ queryKey: managerKeys.dashboard() })
       queryClient.invalidateQueries({ queryKey: managerKeys.teamLeaves() })
+      queryClient.invalidateQueries({ queryKey: managerKeys.teamAssetRequests() })
     },
   })
 }

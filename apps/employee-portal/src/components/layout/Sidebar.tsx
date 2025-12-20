@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Users,
   ClipboardCheck,
+  Package,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { cn, getInitials } from '@repo/ui'
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
 const managerNavItems: NavItem[] = [
   { name: 'My Team', href: '/manager/team', icon: Users },
   { name: 'Pending Approvals', href: '/manager/approvals', icon: ClipboardCheck },
+  { name: 'Asset Approvals', href: '/manager/asset-approvals', icon: Package },
 ]
 
 export function Sidebar() {

@@ -274,6 +274,46 @@ namespace Application.Services
             return Result.Success();
         }
 
+        /// <inheritdoc />
+        public async Task<Result> UpdateStatusAsync(Guid requestId, string status, string? reason = null)
+        {
+            var request = await _repository.GetByIdAsync(requestId);
+            if (request == null)
+                return Error.NotFound("Asset request not found");
+
+            // Map string status to the appropriate status constant
+            var newStatus = status.ToLowerInvariant() switch
+            {
+                "approved" => AssetRequestStatus.Approved,
+                "rejected" => AssetRequestStatus.Rejected,
+                "in_progress" => AssetRequestStatus.InProgress,
+                "pending" => AssetRequestStatus.Pending,
+                "fulfilled" => AssetRequestStatus.Fulfilled,
+                "cancelled" => AssetRequestStatus.Cancelled,
+                _ => status
+            };
+
+            // Update status with reason if rejected
+            if (newStatus == AssetRequestStatus.Rejected || newStatus == AssetRequestStatus.Cancelled)
+            {
+                await _repository.UpdateStatusAsync(requestId, newStatus, null, reason);
+            }
+            else if (newStatus == AssetRequestStatus.Approved)
+            {
+                await _repository.UpdateStatusAsync(requestId, newStatus, null);
+            }
+            else
+            {
+                await _repository.UpdateStatusAsync(requestId, newStatus, null);
+            }
+
+            _logger?.LogInformation(
+                "Asset request {RequestId} status updated to {Status}{Reason}",
+                requestId, newStatus, reason != null ? $" with reason: {reason}" : "");
+
+            return Result.Success();
+        }
+
         // ==================== Mapping Methods ====================
 
         private async Task<AssetRequestDetailDto> MapToDetailDtoAsync(Core.Entities.AssetRequest request)

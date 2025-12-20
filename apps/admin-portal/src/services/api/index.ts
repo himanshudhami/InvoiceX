@@ -20,3 +20,4 @@ export * from './payrollService';
 export * from './bankAccountService';
 export * from './bankTransactionService';
 export * from './tdsReceivableService';
+export * from './assetRequestService';

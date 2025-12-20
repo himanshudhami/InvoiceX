@@ -5,6 +5,7 @@ using Core.Common;
 using Core.Entities.Approval;
 using Core.Interfaces;
 using Core.Interfaces.Approval;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Approval
 {
@@ -14,17 +15,23 @@ namespace Application.Services.Approval
         private readonly IApprovalTemplateRepository _templateRepository;
         private readonly IEmployeesRepository _employeesRepository;
         private readonly IApproverResolverFactory _resolverFactory;
+        private readonly IActivityStatusHandlerRegistry _handlerRegistry;
+        private readonly ILogger<ApprovalWorkflowService>? _logger;
 
         public ApprovalWorkflowService(
             IApprovalWorkflowRepository workflowRepository,
             IApprovalTemplateRepository templateRepository,
             IEmployeesRepository employeesRepository,
-            IApproverResolverFactory resolverFactory)
+            IApproverResolverFactory resolverFactory,
+            IActivityStatusHandlerRegistry handlerRegistry,
+            ILogger<ApprovalWorkflowService>? logger = null)
         {
             _workflowRepository = workflowRepository ?? throw new ArgumentNullException(nameof(workflowRepository));
             _templateRepository = templateRepository ?? throw new ArgumentNullException(nameof(templateRepository));
             _employeesRepository = employeesRepository ?? throw new ArgumentNullException(nameof(employeesRepository));
             _resolverFactory = resolverFactory ?? throw new ArgumentNullException(nameof(resolverFactory));
+            _handlerRegistry = handlerRegistry ?? throw new ArgumentNullException(nameof(handlerRegistry));
+            _logger = logger;
         }
 
         public async Task<Result<ApprovalRequestDetailDto>> StartWorkflowAsync(IApprovableActivity activity)
@@ -173,7 +180,30 @@ namespace Application.Services.Approval
                 request.CompletedAt = DateTime.UtcNow;
                 await _workflowRepository.UpdateAsync(request);
 
-                // Note: The activity's OnApprovedAsync should be called by the service layer that owns the activity
+                // Call the activity status handler to update the underlying entity
+                var handler = _handlerRegistry.GetHandler(request.ActivityType);
+                if (handler != null)
+                {
+                    var handlerResult = await handler.OnApprovedAsync(request.ActivityId, approverId);
+                    if (handlerResult.IsFailure)
+                    {
+                        _logger?.LogWarning(
+                            "Failed to update activity status for {ActivityType} {ActivityId}: {Error}",
+                            request.ActivityType, request.ActivityId, handlerResult.Error?.Message);
+                    }
+                    else
+                    {
+                        _logger?.LogInformation(
+                            "Activity {ActivityType} {ActivityId} status updated to approved",
+                            request.ActivityType, request.ActivityId);
+                    }
+                }
+                else
+                {
+                    _logger?.LogWarning(
+                        "No status handler registered for activity type '{ActivityType}'",
+                        request.ActivityType);
+                }
             }
 
             return await GetRequestStatusAsync(requestId);
@@ -219,7 +249,30 @@ namespace Application.Services.Approval
             request.CompletedAt = DateTime.UtcNow;
             await _workflowRepository.UpdateAsync(request);
 
-            // Note: The activity's OnRejectedAsync should be called by the service layer that owns the activity
+            // Call the activity status handler to update the underlying entity
+            var handler = _handlerRegistry.GetHandler(request.ActivityType);
+            if (handler != null)
+            {
+                var handlerResult = await handler.OnRejectedAsync(request.ActivityId, approverId, dto.Reason);
+                if (handlerResult.IsFailure)
+                {
+                    _logger?.LogWarning(
+                        "Failed to update activity status for {ActivityType} {ActivityId}: {Error}",
+                        request.ActivityType, request.ActivityId, handlerResult.Error?.Message);
+                }
+                else
+                {
+                    _logger?.LogInformation(
+                        "Activity {ActivityType} {ActivityId} status updated to rejected",
+                        request.ActivityType, request.ActivityId);
+                }
+            }
+            else
+            {
+                _logger?.LogWarning(
+                    "No status handler registered for activity type '{ActivityType}'",
+                    request.ActivityType);
+            }
 
             return await GetRequestStatusAsync(requestId);
         }

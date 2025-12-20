@@ -68,6 +68,9 @@ const LeaveBalancesManagement = lazy(() => import('./pages/LeaveBalancesManageme
 const LeaveApplicationsManagement = lazy(() => import('./pages/LeaveApplicationsManagement'))
 const HolidaysManagement = lazy(() => import('./pages/HolidaysManagement'))
 
+// Asset Requests
+const AssetRequestsManagement = lazy(() => import('./pages/AssetRequestsManagement'))
+
 // Employee Portal Features (Admin Management)
 const AnnouncementsManagement = lazy(() => import('./pages/AnnouncementsManagement'))
 const SupportTicketsManagement = lazy(() => import('./pages/SupportTicketsManagement'))
@@ -243,6 +246,9 @@ function AppRoutes() {
               <Route path="/leave/balances" element={<LeaveBalancesManagement />} />
               <Route path="/leave/applications" element={<LeaveApplicationsManagement />} />
               <Route path="/leave/holidays" element={<HolidaysManagement />} />
+
+              {/* Asset Requests */}
+              <Route path="/asset-requests" element={<AssetRequestsManagement />} />
 
               {/* Employee Portal Management Routes */}
               <Route path="/announcements" element={<AnnouncementsManagement />} />

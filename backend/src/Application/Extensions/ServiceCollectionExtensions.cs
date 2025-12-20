@@ -151,6 +151,16 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Core.Abstractions.IApproverResolverFactory,
                               Application.Services.Approval.ApproverResolverFactory>();
 
+            // Activity status handlers (for workflow completion callbacks)
+            services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandler,
+                              Application.Services.Approval.Handlers.LeaveStatusHandler>();
+            services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandler,
+                              Application.Services.Approval.Handlers.AssetRequestStatusHandler>();
+
+            // Activity status handler registry
+            services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandlerRegistry,
+                              Application.Services.Approval.ActivityStatusHandlerRegistry>();
+
             // Asset request service
             services.AddScoped<Application.Interfaces.IAssetRequestService,
                               Application.Services.AssetRequestService>();

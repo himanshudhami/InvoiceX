@@ -9,25 +9,25 @@ import {
   ChevronDown,
   ChevronUp,
   AlertCircle,
+  Laptop,
   Package,
   Tag,
   MessageSquare,
-  Laptop,
   IndianRupee,
   Calendar,
 } from 'lucide-react'
-import { usePendingApprovals, useApprovalDetail, useApprove, useReject } from '@/hooks'
+import { usePendingAssetApprovals, useApprovalDetail, useApprove, useReject } from '@/hooks'
 import { managerApi } from '@/api'
 import { PageHeader, EmptyState } from '@/components/layout'
 import { Card, Badge, Button, PageLoader, getStatusBadgeVariant, Textarea } from '@/components/ui'
 import { formatDate } from '@/utils/format'
 import type { PendingApproval, ApprovalRequestStep, AssetRequestDetail } from '@/types'
 
-export function PendingApprovalsPage() {
+export function AssetApprovalsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedRequestId = searchParams.get('request')
 
-  const { data: pendingApprovals, isLoading } = usePendingApprovals()
+  const { data: pendingApprovals, isLoading } = usePendingAssetApprovals()
 
   if (isLoading) {
     return <PageLoader />
@@ -37,14 +37,14 @@ export function PendingApprovalsPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Pending Approvals" />
+      <PageHeader title="Asset Request Approvals" showBack />
 
       <div className="px-4 pb-4">
         {approvals.length === 0 ? (
           <EmptyState
-            icon={<CheckCircle2 className="text-gray-400" size={48} />}
-            title="All Caught Up!"
-            description="You have no pending approvals at the moment."
+            icon={<Package className="text-gray-400" size={48} />}
+            title="No Pending Asset Requests"
+            description="You have no asset requests waiting for approval."
           />
         ) : (
           <div className="space-y-3">
@@ -80,21 +80,24 @@ function ApprovalCard({
 }) {
   return (
     <Card className="overflow-hidden">
-      {/* Header */}
       <button
         onClick={onToggle}
         className="w-full p-4 flex items-start justify-between text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100">
-            <Clock className="w-5 h-5 text-yellow-600" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100">
+            <Laptop className="w-5 h-5 text-blue-600" />
           </div>
           <div>
             <h3 className="font-medium text-gray-900">{approval.requestorName}</h3>
             <p className="text-sm text-gray-500">{approval.activityTitle}</p>
             <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-              <span className="capitalize">{approval.activityType}</span>
-              <span>•</span>
+              {approval.requestorDepartment && (
+                <>
+                  <span>{approval.requestorDepartment}</span>
+                  <span>•</span>
+                </>
+              )}
               <span>Step {approval.stepOrder} of {approval.totalSteps}</span>
             </div>
           </div>
@@ -109,7 +112,6 @@ function ApprovalCard({
         </div>
       </button>
 
-      {/* Expanded Details */}
       {isExpanded && (
         <ApprovalDetailView requestId={approval.requestId} />
       )}
@@ -141,14 +143,14 @@ function ApprovalDetailView({ requestId }: { requestId: string }) {
   const approveMutation = useApprove()
   const rejectMutation = useReject()
 
-  // Fetch asset request details if this is an asset_request type
+  // Fetch asset request details using the activityId
   const { data: assetRequest, isLoading: isLoadingAsset } = useQuery<AssetRequestDetail>({
     queryKey: ['manager-asset-request', detail?.activityId],
     queryFn: () => managerApi.getAssetRequestDetails(detail!.activityId),
     enabled: !!detail?.activityId && detail?.activityType === 'asset_request',
   })
 
-  if (isLoading) {
+  if (isLoading || isLoadingAsset) {
     return (
       <div className="p-4 border-t border-gray-100 flex justify-center">
         <Clock className="animate-spin text-gray-400" size={24} />
@@ -186,12 +188,10 @@ function ApprovalDetailView({ requestId }: { requestId: string }) {
     )
   }
 
-  const isAssetRequest = detail.activityType === 'asset_request'
-
   return (
     <div className="border-t border-gray-100 p-4 space-y-4 bg-gray-50">
-      {/* Asset Request Details (when activity type is asset_request) */}
-      {isAssetRequest && assetRequest && (
+      {/* Asset Request Details */}
+      {assetRequest && (
         <div className="bg-white rounded-lg p-3 space-y-3">
           <div className="flex items-center gap-2">
             <Package size={16} className="text-blue-500" />
@@ -280,15 +280,7 @@ function ApprovalDetailView({ requestId }: { requestId: string }) {
         </div>
       )}
 
-      {/* Loading state for asset details */}
-      {isAssetRequest && isLoadingAsset && (
-        <div className="bg-white rounded-lg p-3 flex items-center justify-center">
-          <Clock className="animate-spin text-gray-400 mr-2" size={16} />
-          <span className="text-sm text-gray-500">Loading asset details...</span>
-        </div>
-      )}
-
-      {/* Activity Details */}
+      {/* Request Info */}
       <div className="bg-white rounded-lg p-3 space-y-2">
         <div className="flex items-center gap-2">
           <FileText size={16} className="text-gray-400" />
@@ -300,16 +292,12 @@ function ApprovalDetailView({ requestId }: { requestId: string }) {
             <p className="font-medium">{detail.requestorName}</p>
           </div>
           <div>
-            <span className="text-gray-500">Type:</span>
-            <p className="font-medium capitalize">{detail.activityType.replace('_', ' ')}</p>
-          </div>
-          <div>
             <span className="text-gray-500">Submitted:</span>
             <p className="font-medium">{formatDate(detail.createdAt)}</p>
           </div>
-          <div>
+          <div className="col-span-2">
             <span className="text-gray-500">Status:</span>
-            <Badge variant={getStatusBadgeVariant(detail.status as any)} className="mt-1">
+            <Badge variant={getStatusBadgeVariant(detail.status as any)} className="ml-2">
               {detail.status}
             </Badge>
           </div>

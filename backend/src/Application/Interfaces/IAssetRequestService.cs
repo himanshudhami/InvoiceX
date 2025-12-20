@@ -77,5 +77,13 @@ namespace Application.Interfaces
         /// Deletes an asset request
         /// </summary>
         Task<Result> DeleteAsync(Guid requestId);
+
+        /// <summary>
+        /// Updates the status of an asset request (called by workflow approval system)
+        /// </summary>
+        /// <param name="requestId">The asset request ID</param>
+        /// <param name="status">New status (approved/rejected)</param>
+        /// <param name="reason">Optional rejection reason</param>
+        Task<Result> UpdateStatusAsync(Guid requestId, string status, string? reason = null);
     }
 }

@@ -10,6 +10,8 @@ import {
   PayslipsPage,
   PayslipDetailPage,
   AssetsPage,
+  ApplyAssetRequestPage,
+  AssetRequestDetailPage,
   LeaveIndexPage,
   ApplyLeavePage,
   LeaveApplicationDetailPage,
@@ -20,6 +22,7 @@ import {
   DocumentsPage,
   MyTeamPage,
   PendingApprovalsPage,
+  AssetApprovalsPage,
 } from '@/pages'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -95,6 +98,8 @@ export default function App() {
         <Route path="payslips" element={<PayslipsPage />} />
         <Route path="payslips/:id" element={<PayslipDetailPage />} />
         <Route path="assets" element={<AssetsPage />} />
+        <Route path="assets/apply" element={<ApplyAssetRequestPage />} />
+        <Route path="assets/requests/:id" element={<AssetRequestDetailPage />} />
         <Route path="leave" element={<LeaveIndexPage />} />
         <Route path="leave/apply" element={<ApplyLeavePage />} />
         <Route path="leave/applications/:id" element={<LeaveApplicationDetailPage />} />
@@ -118,6 +123,14 @@ export default function App() {
           element={
             <ManagerProtectedRoute>
               <PendingApprovalsPage />
+            </ManagerProtectedRoute>
+          }
+        />
+        <Route
+          path="manager/asset-approvals"
+          element={
+            <ManagerProtectedRoute>
+              <AssetApprovalsPage />
             </ManagerProtectedRoute>
           }
         />
