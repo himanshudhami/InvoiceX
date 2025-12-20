@@ -6,14 +6,13 @@ namespace Application.Services.Payroll;
 /// <summary>
 /// Service for Tax Deducted at Source (TDS) calculations
 /// Supports both Old and New tax regimes for Indian income tax
-/// Tax parameters are loaded from database for configurability
+/// Tax parameters are loaded from ITaxRateProvider (supports both Rule Packs and Legacy tables)
 /// </summary>
 public class TdsCalculationService
 {
-    private readonly ITaxSlabRepository _taxSlabRepository;
-    private readonly ITaxParameterRepository _taxParameterRepository;
+    private readonly ITaxRateProvider _taxRateProvider;
 
-    // Default fallback values (used if DB parameters not found)
+    // Default fallback values (used if provider returns no data)
     private const decimal DEFAULT_STANDARD_DEDUCTION_NEW = 75000m;
     private const decimal DEFAULT_STANDARD_DEDUCTION_OLD = 50000m;
     private const decimal DEFAULT_CESS_RATE = 4m;
@@ -22,13 +21,27 @@ public class TdsCalculationService
     private const decimal DEFAULT_REBATE_MAX_NEW = 25000m;
     private const decimal DEFAULT_REBATE_MAX_OLD = 12500m;
 
-    public TdsCalculationService(
-        ITaxSlabRepository taxSlabRepository,
-        ITaxParameterRepository taxParameterRepository)
+    /// <summary>
+    /// Create TdsCalculationService with ITaxRateProvider (recommended)
+    /// </summary>
+    public TdsCalculationService(ITaxRateProvider taxRateProvider)
     {
-        _taxSlabRepository = taxSlabRepository ?? throw new ArgumentNullException(nameof(taxSlabRepository));
-        _taxParameterRepository = taxParameterRepository ?? throw new ArgumentNullException(nameof(taxParameterRepository));
+        _taxRateProvider = taxRateProvider ?? throw new ArgumentNullException(nameof(taxRateProvider));
     }
+
+    /// <summary>
+    /// Get the active rule pack ID for the given financial year (for audit logging)
+    /// Returns null if using legacy provider
+    /// </summary>
+    public async Task<Guid?> GetActiveRulePackIdAsync(string financialYear)
+    {
+        return await _taxRateProvider.GetActiveRulePackIdAsync(financialYear);
+    }
+
+    /// <summary>
+    /// Get the tax rate provider name for logging
+    /// </summary>
+    public string ProviderName => _taxRateProvider.ProviderName;
 
     /// <summary>
     /// Calculate TDS for an employee based on projected annual income
@@ -67,8 +80,8 @@ public class TdsCalculationService
         // Total gross income
         result.TotalGrossIncome = annualGrossIncome + otherIncome + previousEmployerIncome;
 
-        // Fetch tax parameters from database
-        var taxParams = await _taxParameterRepository.GetAllParametersForRegimeAsync(taxRegime, financialYear);
+        // Fetch tax parameters from provider (Rule Packs or Legacy)
+        var taxParams = await _taxRateProvider.GetTaxParametersAsync(taxRegime, financialYear);
 
         // Calculate deductions based on regime
         if (taxRegime == "new")
@@ -89,9 +102,16 @@ public class TdsCalculationService
         // Determine taxpayer category for senior citizen slabs (Old Regime only)
         var taxCategory = DetermineTaxCategory(dateOfBirth, financialYear);
 
-        // Get tax slabs and calculate tax (uses category-based lookup)
-        var taxSlabs = await _taxSlabRepository.GetByRegimeYearAndCategoryAsync(taxRegime, financialYear, taxCategory);
-        result.TaxSlabs = CalculateTaxBySlabs(result.TaxableIncome, taxSlabs.ToList());
+        // Get tax slabs from provider (uses category-based lookup)
+        var taxSlabInfos = await _taxRateProvider.GetTaxSlabsAsync(taxRegime, financialYear, taxCategory);
+        var taxSlabs = taxSlabInfos.Select(s => new Core.Entities.Payroll.TaxSlab
+        {
+            MinIncome = s.MinIncome,
+            MaxIncome = s.MaxIncome,
+            Rate = s.Rate
+        }).ToList();
+
+        result.TaxSlabs = CalculateTaxBySlabs(result.TaxableIncome, taxSlabs);
         result.TaxOnIncome = result.TaxSlabs.Sum(s => s.TaxAmount);
 
         // Apply Section 87A rebate (parameterized)
@@ -443,11 +463,73 @@ public class TdsCalculationService
     /// Section 194C: Contractors/sub-contractors (2% for individuals, 1% for transporters)
     /// Section 194J: Professional/technical services (10%)
     /// No PAN: 20% higher rate applies if PAN is not provided (Section 206AA)
+    /// Now uses ITaxRateProvider for FY-versioned rates.
     /// </summary>
     /// <param name="grossAmount">Gross payment amount</param>
     /// <param name="section">TDS section: '194C' or '194J'</param>
     /// <param name="contractorPan">Contractor's PAN number (null/empty triggers 20% higher rate)</param>
-    /// <returns>Tuple of (TDS amount, effective TDS rate)</returns>
+    /// <param name="payeeType">Type of payee: "individual", "company", etc.</param>
+    /// <param name="transactionDate">Transaction date for FY determination</param>
+    /// <returns>Tuple of (TDS amount, effective TDS rate, threshold amount, is exempt)</returns>
+    public async Task<ContractorTdsResult> CalculateContractorTdsWithSectionAsync(
+        decimal grossAmount,
+        string section = "194J",
+        string? contractorPan = null,
+        string payeeType = "individual",
+        DateTime? transactionDate = null)
+    {
+        var date = transactionDate ?? DateTime.Today;
+        var hasPan = !string.IsNullOrWhiteSpace(contractorPan);
+
+        // Try to get rate from provider (Rule Packs or Legacy)
+        var tdsRateInfo = await _taxRateProvider.GetTdsRateAsync(section, payeeType, hasPan, date);
+
+        if (tdsRateInfo != null)
+        {
+            var isExempt = tdsRateInfo.ThresholdAmount.HasValue && grossAmount <= tdsRateInfo.ThresholdAmount.Value;
+            var tdsAmount = isExempt
+                ? 0m
+                : Math.Round(grossAmount * tdsRateInfo.Rate / 100, 0, MidpointRounding.AwayFromZero);
+
+            return new ContractorTdsResult
+            {
+                TdsAmount = tdsAmount,
+                EffectiveRate = isExempt ? 0m : tdsRateInfo.Rate,
+                ThresholdAmount = tdsRateInfo.ThresholdAmount,
+                IsExempt = isExempt,
+                SectionCode = section,
+                RulePackId = await _taxRateProvider.GetActiveRulePackIdAsync(GetFinancialYear(date))
+            };
+        }
+
+        // Fallback to hardcoded rates
+        var baseRate = section.ToUpperInvariant() switch
+        {
+            "194C" => payeeType.ToLower() == "individual" || payeeType.ToLower() == "huf" ? 1.0m : 2.0m,
+            "194J" => 10.0m,
+            "194H" => 2.0m, // Updated for FY 2025-26
+            _ => 10.0m
+        };
+
+        var effectiveRate = hasPan ? baseRate : 20.0m;
+        var amount = Math.Round(grossAmount * effectiveRate / 100, 0, MidpointRounding.AwayFromZero);
+
+        return new ContractorTdsResult
+        {
+            TdsAmount = amount,
+            EffectiveRate = effectiveRate,
+            ThresholdAmount = null,
+            IsExempt = false,
+            SectionCode = section,
+            RulePackId = null
+        };
+    }
+
+    /// <summary>
+    /// Synchronous version for backward compatibility (uses hardcoded rates)
+    /// Deprecated: Use CalculateContractorTdsWithSectionAsync instead
+    /// </summary>
+    [Obsolete("Use CalculateContractorTdsWithSectionAsync for FY-versioned rates")]
     public (decimal TdsAmount, decimal EffectiveRate) CalculateContractorTdsWithSection(
         decimal grossAmount,
         string section = "194J",
@@ -467,6 +549,12 @@ public class TdsCalculationService
         var tdsAmount = Math.Round(grossAmount * effectiveRate / 100, 0, MidpointRounding.AwayFromZero);
 
         return (tdsAmount, effectiveRate);
+    }
+
+    private static string GetFinancialYear(DateTime date)
+    {
+        var year = date.Month >= 4 ? date.Year : date.Year - 1;
+        return $"{year}-{(year + 1) % 100:D2}";
     }
 
     /// <summary>
@@ -499,4 +587,17 @@ public static class OldRegimeDeductionsExtensions
                deductions.Section80gDonations +
                deductions.Section80ttaAllowed;
     }
+}
+
+/// <summary>
+/// Result of contractor TDS calculation with Rule Pack tracking
+/// </summary>
+public class ContractorTdsResult
+{
+    public decimal TdsAmount { get; set; }
+    public decimal EffectiveRate { get; set; }
+    public decimal? ThresholdAmount { get; set; }
+    public bool IsExempt { get; set; }
+    public string SectionCode { get; set; } = string.Empty;
+    public Guid? RulePackId { get; set; }
 }

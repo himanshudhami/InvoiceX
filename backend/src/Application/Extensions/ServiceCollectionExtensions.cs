@@ -74,6 +74,10 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.ITdsReceivableService,
                               Application.Services.TdsReceivableService>();
 
+            // Payment allocation service
+            services.AddScoped<Application.Interfaces.IPaymentAllocationService,
+                              Application.Services.PaymentAllocationService>();
+
             // Payroll calculation services
             services.AddScoped<Application.Services.Payroll.PfCalculationService>();
             services.AddScoped<Application.Services.Payroll.EsiCalculationService>();
@@ -180,6 +184,10 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
                               Application.Services.Expense.ExpenseCategoryService>();
             services.AddScoped<Application.Interfaces.Expense.IExpenseClaimService,
                               Application.Services.Expense.ExpenseClaimService>();
+
+            // General Ledger services
+            services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService,
+                              Application.Services.Ledger.AutoPostingService>();
 
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();

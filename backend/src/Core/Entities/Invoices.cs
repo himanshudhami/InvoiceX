@@ -44,11 +44,35 @@ namespace Core.Entities
         public string? EInvoiceAckNumber { get; set; }
         public DateTime? EInvoiceAckDate { get; set; }
         public string? EInvoiceQrCode { get; set; }
+        public string? EInvoiceSignedJson { get; set; }
+        public string? EInvoiceStatus { get; set; } = "not_applicable"; // not_applicable, pending, generated, cancelled, failed
+        public DateTime? EInvoiceCancelDate { get; set; }
+        public string? EInvoiceCancelReason { get; set; }
+
+        // E-way bill
+        public string? EwayBillNumber { get; set; }
+        public DateTime? EwayBillDate { get; set; }
+        public DateTime? EwayBillValidUntil { get; set; }
+
+        // Export-specific fields
+        public string? ExportType { get; set; } // EXPWP, EXPWOP
+        public string? PortCode { get; set; }
+        public string? ShippingBillNumber { get; set; }
+        public DateOnly? ShippingBillDate { get; set; }
+        public decimal ExportDuty { get; set; }
+        public string? ForeignCurrency { get; set; }
+        public decimal? ExchangeRate { get; set; }
+        public decimal? ForeignCurrencyAmount { get; set; }
+
+        // SEZ-specific fields
+        public string? SezCategory { get; set; } // SEZWP, SEZWOP
+
+        // B2C specific
+        public bool B2cLarge { get; set; } // TRUE if B2C > 2.5L
 
         // Shipping details
         public string? ShippingAddress { get; set; }
         public string? TransporterName { get; set; }
         public string? VehicleNumber { get; set; }
-        public string? EwayBillNumber { get; set; }
     }
 }

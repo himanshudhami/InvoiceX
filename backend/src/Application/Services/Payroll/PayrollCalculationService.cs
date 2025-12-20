@@ -13,6 +13,16 @@ public class PayrollCalculationResult
 {
     public PayrollTransaction Transaction { get; set; } = null!;
     public List<PayrollCalculationLine> CalculationLines { get; set; } = new();
+
+    /// <summary>
+    /// The Tax Rule Pack ID used for TDS calculation (if using Rule Packs)
+    /// </summary>
+    public Guid? RulePackId { get; set; }
+
+    /// <summary>
+    /// The Tax Rate Provider name used (e.g., "Hybrid(RulePack->Legacy)", "Legacy")
+    /// </summary>
+    public string? TaxRateProviderName { get; set; }
 }
 
 /// <summary>
@@ -526,6 +536,11 @@ public class PayrollCalculationService
 
         result.Transaction = transaction;
         result.CalculationLines = lines;
+
+        // Track which tax rate provider/rule pack was used for TDS calculation
+        var financialYear = GetFinancialYear(payrollMonth, payrollYear);
+        result.RulePackId = await _tdsService.GetActiveRulePackIdAsync(financialYear);
+        result.TaxRateProviderName = _tdsService.ProviderName;
 
         return result;
     }

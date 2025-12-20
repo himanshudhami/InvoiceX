@@ -69,6 +69,14 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.ITdsReceivableRepository>(sp =>
                 new Infrastructure.Data.TdsReceivableRepository(connectionString));
 
+            // Payment allocation repository
+            services.AddScoped<Core.Interfaces.IPaymentAllocationRepository>(sp =>
+                new Infrastructure.Data.PaymentAllocationRepository(connectionString));
+
+            // Bank transaction match repository
+            services.AddScoped<Core.Interfaces.IBankTransactionMatchRepository>(sp =>
+                new Infrastructure.Data.BankTransactionMatchRepository(connectionString));
+
             // Payroll repositories
             services.AddScoped<Core.Interfaces.Payroll.ITaxSlabRepository>(sp =>
                 new Infrastructure.Data.Payroll.TaxSlabRepository(connectionString));
@@ -167,6 +175,81 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
 
             // File storage service (local implementation - will be replaced with S3 in production)
             services.AddScoped<Core.Interfaces.FileStorage.IFileStorageService, Infrastructure.FileStorage.LocalFileStorageService>();
+
+            // General Ledger repositories
+            services.AddScoped<Core.Interfaces.Ledger.IChartOfAccountRepository>(sp =>
+                new Infrastructure.Data.Ledger.ChartOfAccountRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Ledger.IJournalEntryRepository>(sp =>
+                new Infrastructure.Data.Ledger.JournalEntryRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Ledger.IPostingRuleRepository>(sp =>
+                new Infrastructure.Data.Ledger.PostingRuleRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Ledger.ILedgerReportRepository>(sp =>
+                new Infrastructure.Data.Ledger.LedgerReportRepository(connectionString));
+
+            // Trial Balance service (uses repository pattern - SQL in repository, logic in service)
+            services.AddScoped<Application.Interfaces.Ledger.ITrialBalanceService>(sp =>
+                new Application.Services.Ledger.TrialBalanceService(
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.ILedgerReportRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.TrialBalanceService>>()
+                ));
+
+            // Auto-Posting service
+            services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService>(sp =>
+                new Application.Services.Ledger.AutoPostingService(
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IPostingRuleRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IInvoicesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IPaymentsRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
+                ));
+
+            // E-Invoice repositories
+            services.AddScoped<Core.Interfaces.EInvoice.IEInvoiceCredentialsRepository>(sp =>
+                new Infrastructure.Data.EInvoice.EInvoiceCredentialsRepository(connectionString));
+            services.AddScoped<Core.Interfaces.EInvoice.IEInvoiceAuditLogRepository>(sp =>
+                new Infrastructure.Data.EInvoice.EInvoiceAuditLogRepository(connectionString));
+            services.AddScoped<Core.Interfaces.EInvoice.IEInvoiceQueueRepository>(sp =>
+                new Infrastructure.Data.EInvoice.EInvoiceQueueRepository(connectionString));
+
+            // E-Invoice GSP clients (using AddHttpClient for proper HttpClient DI)
+            services.AddHttpClient<Infrastructure.EInvoice.ClearTaxGspClient>();
+            services.AddScoped<Core.Interfaces.EInvoice.IEInvoiceGspClient, Infrastructure.EInvoice.ClearTaxGspClient>();
+
+            // E-Invoice GSP client factory
+            services.AddScoped<Application.Services.EInvoice.IEInvoiceGspClientFactory, Infrastructure.EInvoice.EInvoiceGspClientFactory>();
+
+            // E-Invoice service
+            services.AddScoped<Application.Services.EInvoice.EInvoiceService>();
+
+            // Tax Rule Pack repository and service
+            services.AddScoped<Core.Interfaces.ITaxRulePackRepository>(sp =>
+                new Infrastructure.Data.TaxRulePackRepository(connectionString));
+            services.AddScoped<Application.Services.TaxRulePackService>();
+
+            // Tax Rate Providers (for integrating Rule Packs with TDS calculations)
+            // Register individual providers
+            services.AddScoped<Infrastructure.Data.Payroll.TaxRulePackTaxRateProvider>(sp =>
+                new Infrastructure.Data.Payroll.TaxRulePackTaxRateProvider(
+                    sp.GetRequiredService<Core.Interfaces.ITaxRulePackRepository>()));
+
+            services.AddScoped<Infrastructure.Data.Payroll.LegacyTaxRateProvider>(sp =>
+                new Infrastructure.Data.Payroll.LegacyTaxRateProvider(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ITaxSlabRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ITaxParameterRepository>()));
+
+            // Register HybridTaxRateProvider as the default ITaxRateProvider
+            // This tries Rule Packs first, then falls back to Legacy tables
+            services.AddScoped<Core.Interfaces.Payroll.ITaxRateProvider>(sp =>
+                new Infrastructure.Data.Payroll.HybridTaxRateProvider(
+                    sp.GetRequiredService<Infrastructure.Data.Payroll.TaxRulePackTaxRateProvider>(),
+                    sp.GetRequiredService<Infrastructure.Data.Payroll.LegacyTaxRateProvider>(),
+                    sp.GetService<Microsoft.Extensions.Logging.ILogger<Infrastructure.Data.Payroll.HybridTaxRateProvider>>(),
+                    preferRulePacks: true));
+
+            // Register factory for cases where caller wants to choose provider
+            services.AddScoped<Infrastructure.Data.Payroll.TaxRateProviderFactory>();
 
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
