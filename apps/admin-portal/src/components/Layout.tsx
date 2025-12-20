@@ -3,6 +3,7 @@ import { ThemeSwitcher } from './ThemeSwitcher'
 import { HeaderCompanySelector } from './HeaderCompanySelector'
 import { NavGroup, SingleNavItem } from './ui/NavGroup'
 import { useSidebarState } from '@/hooks/useSidebarState'
+import { useSidebarCollapse } from '@/hooks/useSidebarCollapse'
 import {
   LayoutDashboard,
   FileText,
@@ -33,7 +34,10 @@ import {
   Network,
   Calculator,
   PackageSearch,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Props {
   children: ReactNode
@@ -41,6 +45,7 @@ interface Props {
 
 const Layout: FC<Props> = ({ children }) => {
   const { expandedGroups, toggleGroup } = useSidebarState()
+  const { isCollapsed, toggle: toggleSidebar } = useSidebarCollapse()
 
   const navigationGroups = [
     {
@@ -133,14 +138,41 @@ const Layout: FC<Props> = ({ children }) => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <nav className="fixed w-64 h-full bg-white border-r border-gray-200 shadow-sm overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+      <nav
+        className={cn(
+          'fixed h-full bg-white border-r border-gray-200 shadow-sm overflow-y-auto transition-all duration-300 ease-in-out',
+          isCollapsed ? 'w-16' : 'w-64'
+        )}
+      >
+        <div className={cn('border-b border-gray-200 dark:border-gray-700', isCollapsed ? 'p-4' : 'p-6')}>
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Invoice System</h2>
-              <ThemeSwitcher />
+              {!isCollapsed && (
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Invoice System</h2>
+              )}
+              <div className="flex items-center gap-2">
+                {isCollapsed && (
+                  <button
+                    onClick={toggleSidebar}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="Expand sidebar"
+                  >
+                    <PanelLeftOpen className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  </button>
+                )}
+                <ThemeSwitcher />
+                {!isCollapsed && (
+                  <button
+                    onClick={toggleSidebar}
+                    className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    aria-label="Collapse sidebar"
+                  >
+                    <PanelLeftClose className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  </button>
+                )}
+              </div>
             </div>
-            <HeaderCompanySelector />
+            {!isCollapsed && <HeaderCompanySelector />}
           </div>
         </div>
         <div className="py-2">
@@ -151,6 +183,7 @@ const Layout: FC<Props> = ({ children }) => {
                 name={item.name}
                 href={item.href}
                 icon={item.icon}
+                isCollapsed={isCollapsed}
               />
             ) : (
               <NavGroup
@@ -159,14 +192,27 @@ const Layout: FC<Props> = ({ children }) => {
                 icon={item.icon}
                 items={item.items}
                 isExpanded={expandedGroups.has(item.name)}
-                onToggle={() => toggleGroup(item.name)}
+                onToggle={() => {
+                  if (isCollapsed) {
+                    // When collapsed, just expand the sidebar
+                    toggleSidebar()
+                  } else {
+                    toggleGroup(item.name)
+                  }
+                }}
+                isCollapsed={isCollapsed}
               />
             )
           )}
         </div>
       </nav>
 
-      <main className="flex-1 ml-64">
+      <main
+        className={cn(
+          'flex-1 transition-all duration-300 ease-in-out',
+          isCollapsed ? 'ml-16' : 'ml-64'
+        )}
+      >
         <div className="w-full px-4 py-6 md:px-6 lg:px-8">
           {children}
         </div>

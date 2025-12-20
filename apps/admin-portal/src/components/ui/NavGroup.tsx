@@ -15,6 +15,7 @@ interface NavGroupProps {
   items: NavItem[]
   isExpanded: boolean
   onToggle: () => void
+  isCollapsed?: boolean
 }
 
 export const NavGroup: FC<NavGroupProps> = ({
@@ -23,6 +24,7 @@ export const NavGroup: FC<NavGroupProps> = ({
   items,
   isExpanded,
   onToggle,
+  isCollapsed = false,
 }) => {
   const location = useLocation()
 
@@ -32,6 +34,25 @@ export const NavGroup: FC<NavGroupProps> = ({
     }
     return location.pathname.startsWith(item.href)
   })
+
+  if (isCollapsed) {
+    return (
+      <div className="py-1">
+        <button
+          onClick={onToggle}
+          className={cn(
+            'flex w-full items-center justify-center py-2.5 text-sm font-medium transition-colors',
+            isChildActive
+              ? 'text-primary bg-primary/5'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          )}
+          title={name}
+        >
+          <Icon className="h-5 w-5" />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="py-1">
@@ -96,14 +117,32 @@ interface SingleNavItemProps {
   name: string
   href: string
   icon: LucideIcon
+  isCollapsed?: boolean
 }
 
-export const SingleNavItem: FC<SingleNavItemProps> = ({ name, href, icon: Icon }) => {
+export const SingleNavItem: FC<SingleNavItemProps> = ({ name, href, icon: Icon, isCollapsed = false }) => {
   const location = useLocation()
   const isActive =
     href === '/dashboard'
       ? location.pathname === href
       : location.pathname.startsWith(href)
+
+  if (isCollapsed) {
+    return (
+      <Link
+        to={href}
+        className={cn(
+          'flex items-center justify-center py-3 text-sm font-medium transition-colors',
+          isActive
+            ? 'bg-primary/10 text-primary border-r-2 border-primary'
+            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+        )}
+        title={name}
+      >
+        <Icon className="h-5 w-5" />
+      </Link>
+    )
+  }
 
   return (
     <Link
