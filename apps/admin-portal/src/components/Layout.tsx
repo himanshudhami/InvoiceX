@@ -36,6 +36,14 @@ import {
   PackageSearch,
   PanelLeftClose,
   PanelLeftOpen,
+  BookOpen,
+  BookText,
+  Scale,
+  TrendingUp,
+  PieChart,
+  ScrollText,
+  FileCheck,
+  BookMarked,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -115,6 +123,19 @@ const Layout: FC<Props> = ({ children }) => {
     },
     {
       type: 'group' as const,
+      name: 'Accounting',
+      icon: BookOpen,
+      items: [
+        { name: 'Chart of Accounts', href: '/ledger/accounts', icon: BookText },
+        { name: 'Journal Entries', href: '/ledger/journals', icon: FileText },
+        { name: 'Trial Balance', href: '/ledger/trial-balance', icon: Scale },
+        { name: 'Income Statement', href: '/ledger/income-statement', icon: TrendingUp },
+        { name: 'Balance Sheet', href: '/ledger/balance-sheet', icon: PieChart },
+        { name: 'Account Ledger', href: '/ledger/account-ledger', icon: ScrollText },
+      ],
+    },
+    {
+      type: 'group' as const,
       name: 'Employee Portal',
       icon: UserCircle,
       items: [
@@ -131,6 +152,8 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Users', href: '/users', icon: UserCog },
         { name: 'Organization Chart', href: '/org-chart', icon: Network },
         { name: 'Approval Workflows', href: '/workflows', icon: GitBranch },
+        { name: 'E-Invoice Settings', href: '/einvoice/settings', icon: FileCheck },
+        { name: 'Tax Rule Packs', href: '/tax-rule-packs', icon: BookMarked },
         { name: 'Settings', href: '/settings', icon: Settings },
       ],
     },

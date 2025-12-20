@@ -84,10 +84,24 @@ const ExpenseClaimsManagement = lazy(() => import('./pages/ExpenseClaimsManageme
 // Administration
 const Users = lazy(() => import('./pages/Users'))
 
+// General Ledger
+const ChartOfAccountsManagement = lazy(() => import('./pages/ChartOfAccountsManagement'))
+const JournalEntriesManagement = lazy(() => import('./pages/JournalEntriesManagement'))
+const TrialBalanceReport = lazy(() => import('./pages/TrialBalanceReport'))
+const IncomeStatementReport = lazy(() => import('./pages/IncomeStatementReport'))
+const BalanceSheetReport = lazy(() => import('./pages/BalanceSheetReport'))
+const AccountLedgerReport = lazy(() => import('./pages/AccountLedgerReport'))
+
 // Approval Workflows
 const WorkflowTemplatesManagement = lazy(() => import('./pages/WorkflowTemplatesManagement'))
 const WorkflowTemplateEditor = lazy(() => import('./pages/WorkflowTemplateEditor'))
 const OrgChartManagement = lazy(() => import('./pages/OrgChartManagement'))
+
+// E-Invoice
+const EInvoiceSettings = lazy(() => import('./pages/EInvoiceSettings'))
+
+// Tax Rule Packs
+const TaxRulePacksManagement = lazy(() => import('./pages/TaxRulePacksManagement'))
 
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
@@ -246,6 +260,14 @@ function AppRoutes() {
               {/* Tax Compliance Routes */}
               <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />
 
+              {/* General Ledger Routes */}
+              <Route path="/ledger/accounts" element={<ChartOfAccountsManagement />} />
+              <Route path="/ledger/journals" element={<JournalEntriesManagement />} />
+              <Route path="/ledger/trial-balance" element={<TrialBalanceReport />} />
+              <Route path="/ledger/income-statement" element={<IncomeStatementReport />} />
+              <Route path="/ledger/balance-sheet" element={<BalanceSheetReport />} />
+              <Route path="/ledger/account-ledger" element={<AccountLedgerReport />} />
+
               {/* Leave Management Routes */}
               <Route path="/leave/types" element={<LeaveTypesManagement />} />
               <Route path="/leave/balances" element={<LeaveBalancesManagement />} />
@@ -274,6 +296,12 @@ function AppRoutes() {
 
               {/* Organization Chart */}
               <Route path="/org-chart" element={<OrgChartManagement />} />
+
+              {/* E-Invoice Settings */}
+              <Route path="/einvoice/settings" element={<EInvoiceSettings />} />
+
+              {/* Tax Rule Packs */}
+              <Route path="/tax-rule-packs" element={<TaxRulePacksManagement />} />
             </Route>
 
             {/* Catch-all redirect */}

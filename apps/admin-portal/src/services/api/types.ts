@@ -120,10 +120,27 @@ export interface Invoice {
   totalCess?: number;            // Total Cess amount
   // E-invoicing fields
   eInvoiceApplicable?: boolean;  // Whether e-invoicing is applicable
-  eInvoiceIrn?: string;          // Invoice Reference Number from e-invoice portal
+  eInvoiceIrn?: string;          // Invoice Reference Number from e-invoice portal (legacy)
   eInvoiceAckNumber?: string;    // Acknowledgement number from e-invoice portal
   eInvoiceAckDate?: string;      // Acknowledgement date from e-invoice portal
-  eInvoiceQrCode?: string;       // QR code data for e-invoice
+  eInvoiceQrCode?: string;       // QR code data for e-invoice (legacy)
+  // New E-invoice fields (IRP integration)
+  irn?: string;                  // Invoice Reference Number
+  irnGeneratedAt?: string;       // When IRN was generated
+  irnCancelledAt?: string;       // When IRN was cancelled
+  qrCodeData?: string;           // QR code base64 data from IRP
+  eInvoiceSignedJson?: string;   // Signed invoice JSON from IRP
+  eInvoiceStatus?: string;       // 'not_applicable' | 'pending' | 'generated' | 'cancelled' | 'error'
+  // Export-specific fields
+  exportType?: string;           // 'EXPWP' | 'EXPWOP' (with/without payment)
+  portCode?: string;             // Port of export code
+  shippingBillNumber?: string;   // Shipping bill number
+  shippingBillDate?: string;     // Shipping bill date
+  foreignCurrency?: string;      // Foreign currency code (USD, EUR, etc.)
+  exchangeRate?: number;         // Exchange rate to INR
+  countryOfDestination?: string; // Destination country code
+  // SEZ-specific fields
+  sezCategory?: string;          // 'SEZWP' | 'SEZWOP'
   // Shipping details
   shippingAddress?: string;      // Shipping/delivery address
   transporterName?: string;      // Name of transporter
@@ -1934,4 +1951,458 @@ export interface AssetRequestFilterParams extends PaginationParams {
   category?: string;
   fromDate?: string;
   toDate?: string;
+}
+
+// ==================== General Ledger Types ====================
+
+export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+export type NormalBalance = 'debit' | 'credit';
+export type JournalEntryStatus = 'draft' | 'posted' | 'reversed';
+export type JournalEntryType = 'manual' | 'auto_post' | 'reversal' | 'opening' | 'closing';
+
+export interface ChartOfAccount {
+  id: string;
+  companyId?: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  accountSubtype?: string;
+  parentAccountId?: string;
+  scheduleReference?: string;
+  gstTreatment?: string;
+  isControlAccount: boolean;
+  isSystemAccount: boolean;
+  normalBalance: NormalBalance;
+  openingBalance: number;
+  currentBalance: number;
+  depthLevel: number;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateChartOfAccountDto {
+  companyId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  accountSubtype?: string;
+  parentAccountId?: string;
+  scheduleReference?: string;
+  gstTreatment?: string;
+  isControlAccount?: boolean;
+  normalBalance: NormalBalance;
+  openingBalance?: number;
+}
+
+export interface UpdateChartOfAccountDto {
+  accountName?: string;
+  accountSubtype?: string;
+  scheduleReference?: string;
+  gstTreatment?: string;
+  isActive?: boolean;
+}
+
+export interface JournalEntry {
+  id: string;
+  companyId: string;
+  journalNumber: string;
+  journalDate: string;
+  financialYear: string;
+  periodMonth: number;
+  entryType: JournalEntryType;
+  sourceType?: string;
+  sourceId?: string;
+  sourceNumber?: string;
+  description: string;
+  totalDebit: number;
+  totalCredit: number;
+  status: JournalEntryStatus;
+  postedAt?: string;
+  postedBy?: string;
+  isReversed: boolean;
+  reversalOfId?: string;
+  rulePackVersion?: string;
+  ruleCode?: string;
+  createdAt?: string;
+  lines?: JournalEntryLine[];
+}
+
+export interface JournalEntryLine {
+  id: string;
+  journalEntryId: string;
+  accountId: string;
+  accountCode?: string;
+  accountName?: string;
+  debitAmount: number;
+  creditAmount: number;
+  currency: string;
+  exchangeRate: number;
+  subledgerType?: string;
+  subledgerId?: string;
+  description?: string;
+  lineNumber: number;
+}
+
+export interface CreateJournalEntryDto {
+  companyId: string;
+  journalDate: string;
+  description: string;
+  lines: CreateJournalEntryLineDto[];
+}
+
+export interface CreateJournalEntryLineDto {
+  accountId: string;
+  debitAmount: number;
+  creditAmount: number;
+  description?: string;
+  subledgerType?: string;
+  subledgerId?: string;
+}
+
+export interface PostingRule {
+  id: string;
+  companyId?: string;
+  ruleCode: string;
+  ruleName: string;
+  sourceType: string;
+  triggerEvent: string;
+  conditionsJson?: string;
+  postingTemplate: string;
+  financialYear?: string;
+  effectiveFrom: string;
+  isActive: boolean;
+  priority: number;
+  createdAt?: string;
+}
+
+// Trial Balance Report
+export interface TrialBalanceRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  depthLevel: number;
+  openingBalance: number;
+  debits: number;
+  credits: number;
+  closingBalance: number;
+  debitBalance: number;
+  creditBalance: number;
+}
+
+export interface TrialBalanceReport {
+  companyId: string;
+  asOfDate: string;
+  financialYear: string;
+  rows: TrialBalanceRow[];
+  totalDebits: number;
+  totalCredits: number;
+  isBalanced: boolean;
+}
+
+// Income Statement Report
+export interface IncomeStatementRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+}
+
+export interface IncomeStatementSection {
+  sectionName: string;
+  rows: IncomeStatementRow[];
+  sectionTotal: number;
+}
+
+export interface IncomeStatementReport {
+  companyId: string;
+  fromDate: string;
+  toDate: string;
+  incomeSections: IncomeStatementSection[];
+  expenseSections: IncomeStatementSection[];
+  totalIncome: number;
+  totalExpenses: number;
+  netIncome: number;
+}
+
+// Balance Sheet Report
+export interface BalanceSheetRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+}
+
+export interface BalanceSheetSection {
+  sectionName: string;
+  rows: BalanceSheetRow[];
+  sectionTotal: number;
+}
+
+export interface BalanceSheetReport {
+  companyId: string;
+  asOfDate: string;
+  assetSections: BalanceSheetSection[];
+  liabilitySections: BalanceSheetSection[];
+  equitySections: BalanceSheetSection[];
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  isBalanced: boolean;
+}
+
+// Account Ledger Report
+export interface AccountLedgerEntry {
+  date: string;
+  journalNumber: string;
+  journalEntryId: string;
+  description: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface AccountLedgerReport {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  fromDate: string;
+  toDate: string;
+  openingBalance: number;
+  entries: AccountLedgerEntry[];
+  closingBalance: number;
+}
+
+// Filter Params
+export interface ChartOfAccountsFilterParams extends PaginationParams {
+  companyId?: string;
+  accountType?: AccountType;
+  isActive?: boolean;
+  searchTerm?: string;
+}
+
+export interface JournalEntriesFilterParams extends PaginationParams {
+  companyId?: string;
+  status?: JournalEntryStatus;
+  entryType?: JournalEntryType;
+  fromDate?: string;
+  toDate?: string;
+  financialYear?: string;
+  searchTerm?: string;
+}
+
+// ==================== E-Invoice Types ====================
+
+export interface EInvoiceCredentials {
+  id: string;
+  companyId: string;
+  gspProvider: 'cleartax' | 'iris' | 'nic_direct';
+  environment: 'sandbox' | 'production';
+  clientId?: string;
+  username?: string;
+  autoGenerateIrn: boolean;
+  autoCancelOnVoid: boolean;
+  generateEwayBill: boolean;
+  einvoiceThreshold: number;
+  isActive: boolean;
+  tokenExpiry?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveEInvoiceCredentialsDto {
+  companyId: string;
+  gspProvider: string;
+  environment?: string;
+  clientId?: string;
+  clientSecret?: string;
+  username?: string;
+  password?: string;
+  autoGenerateIrn: boolean;
+  autoCancelOnVoid: boolean;
+  generateEwayBill: boolean;
+  einvoiceThreshold?: number;
+  isActive: boolean;
+}
+
+export interface EInvoiceGenerationResult {
+  success: boolean;
+  irn?: string;
+  ackNumber?: string;
+  ackDate?: string;
+  qrCode?: string;
+  ewayBillNumber?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface EInvoiceAuditLog {
+  id: string;
+  companyId: string;
+  invoiceId?: string;
+  actionType: string;
+  requestTimestamp: string;
+  responseStatus?: string;
+  irn?: string;
+  ackNumber?: string;
+  ackDate?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  gspProvider?: string;
+  environment?: string;
+  responseTimeMs?: number;
+  createdAt: string;
+}
+
+export interface EInvoiceQueueItem {
+  id: string;
+  companyId: string;
+  invoiceId: string;
+  actionType: string;
+  priority: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  retryCount: number;
+  maxRetries: number;
+  nextRetryAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ==================== Tax Rule Pack Types ====================
+
+export interface TaxRulePack {
+  id: string;
+  packCode: string;
+  packName: string;
+  financialYear: string;
+  version: number;
+  sourceNotification?: string;
+  description?: string;
+  status: 'draft' | 'active' | 'superseded';
+  incomeTaxSlabs?: Record<string, unknown>;
+  standardDeductions?: Record<string, unknown>;
+  rebateThresholds?: Record<string, unknown>;
+  cessRates?: Record<string, unknown>;
+  surchargeRates?: Record<string, unknown>;
+  tdsRates?: Record<string, unknown>;
+  pfEsiRates?: Record<string, unknown>;
+  professionalTaxConfig?: Record<string, unknown>;
+  gstRates?: Record<string, unknown>;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  activatedAt?: string;
+  activatedBy?: string;
+}
+
+export interface CreateTaxRulePackDto {
+  packCode: string;
+  packName: string;
+  financialYear: string;
+  sourceNotification?: string;
+  description?: string;
+}
+
+export interface TdsSectionRate {
+  id: string;
+  rulePackId: string;
+  sectionCode: string;
+  sectionName?: string;
+  rateIndividual: number;
+  rateCompany: number;
+  rateNoPan: number;
+  thresholdAmount?: number;
+  thresholdType?: string;
+  payeeTypes?: string[];
+  isActive: boolean;
+  notes?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  createdAt: string;
+}
+
+export interface TdsCalculationRequest {
+  sectionCode: string;
+  payeeType?: string;
+  amount: number;
+  hasPan?: boolean;
+  transactionDate?: string;
+}
+
+export interface TdsCalculationResult {
+  success: boolean;
+  sectionCode: string;
+  payeeType: string;
+  grossAmount: number;
+  applicableRate: number;
+  tdsAmount: number;
+  netAmount: number;
+  thresholdApplied: boolean;
+  message?: string;
+  financialYear?: string;
+  rulePackVersion?: number;
+}
+
+export interface IncomeTaxCalculationRequest {
+  taxableIncome: number;
+  regime?: 'new' | 'old';
+  ageCategory?: 'general' | 'senior' | 'super_senior';
+  financialYear: string;
+}
+
+export interface IncomeTaxCalculationResult {
+  success: boolean;
+  regime: string;
+  ageCategory?: string;
+  grossIncome: number;
+  taxableIncome: number;
+  baseTax: number;
+  rebate: number;
+  surcharge: number;
+  cess: number;
+  totalTax: number;
+  effectiveRate: number;
+  slabBreakdown: IncomeTaxSlabBreakdown[];
+  message?: string;
+  financialYear?: string;
+  rulePackVersion?: number;
+}
+
+export interface IncomeTaxSlabBreakdown {
+  slabMin: number;
+  slabMax?: number;
+  rate: number;
+  taxableAmount: number;
+  taxAmount: number;
+}
+
+export interface PfEsiRates {
+  employeePfRate: number;
+  employerPfRate: number;
+  pfWageCeiling: number;
+  employeeEsiRate: number;
+  employerEsiRate: number;
+  esiWageCeiling: number;
+  effectiveFrom?: string;
+}
+
+export interface RulePackUsageLog {
+  id: string;
+  rulePackId: string;
+  companyId?: string;
+  computationType: string;
+  computationId: string;
+  computationDate?: string;
+  inputAmount?: number;
+  computedTax?: number;
+  effectiveRate?: number;
+  computedAt: string;
+  computedBy?: string;
 }

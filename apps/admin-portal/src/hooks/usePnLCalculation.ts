@@ -111,23 +111,22 @@ export const usePnLCalculation = (
     toDate
   );
 
-  // Fetch payments for all invoices to get actual INR amounts
+  // Fetch ALL payments for the company (not just paid invoices)
+  // This is critical for accurate P&L calculation:
+  // - Cash basis: All payments received = income
+  // - Accrual basis: Need payments for INR conversion and TDS tracking
+  // - Also includes direct payments not linked to invoices
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['payments', 'all', companyId],
+    queryKey: ['payments', 'by-company', companyId],
     queryFn: async () => {
-      // Fetch payments for all paid invoices
-      const paidInvoices = invoices.filter(inv => inv.status?.toLowerCase() === 'paid');
-      const paymentPromises = paidInvoices.map(async (inv) => {
-        try {
-          return await paymentService.getByInvoiceId(inv.id);
-        } catch {
-          return [];
-        }
-      });
-      const paymentArrays = await Promise.all(paymentPromises);
-      return paymentArrays.flat();
+      if (!companyId) {
+        // If no company specified, fetch all payments
+        const result = await paymentService.getPaged({ pageNumber: 1, pageSize: 1000 });
+        return result.items || [];
+      }
+      // Fetch all payments for this company (includes partial and direct payments)
+      return await paymentService.getByCompanyId(companyId);
     },
-    enabled: !invoicesLoading && invoices.length > 0,
     staleTime: 1000 * 30,
   });
 

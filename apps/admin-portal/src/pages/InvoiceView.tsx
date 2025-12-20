@@ -5,7 +5,7 @@ import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { format } from 'date-fns'
 import { formatCurrency } from '@/lib/currency'
-import { 
+import {
   ArrowLeft,
   Download,
   Mail,
@@ -16,7 +16,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  FileCheck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TemplateSelectModal } from '@/components/modals/TemplateSelectModal'
@@ -28,6 +29,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
+import { IrnGenerationButton } from '@/components/invoice/IrnGenerationButton'
+import { QrCodeDisplay } from '@/components/invoice/QrCodeDisplay'
 
 const InvoiceView = () => {
   const { id } = useParams<{ id: string }>()
@@ -158,7 +162,7 @@ const InvoiceView = () => {
               </Button>
               <div className="flex items-center space-x-3">
                 <div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap gap-2">
                     <h1 className="text-lg font-medium text-gray-900">
                       Invoice #{invoice.invoiceNumber}
                     </h1>
@@ -166,6 +170,12 @@ const InvoiceView = () => {
                       {statusBadge.icon}
                       {statusBadge.label}
                     </span>
+                    {invoice.invoiceType && invoice.invoiceType !== 'standard' && (
+                      <EInvoiceStatusBadge
+                        status={invoice.eInvoiceStatus}
+                        irn={invoice.irn}
+                      />
+                    )}
                   </div>
                   <p className="text-sm text-gray-500">
                     {customer?.name || 'Unknown Customer'}
@@ -189,7 +199,19 @@ const InvoiceView = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              
+
+              {/* E-Invoice IRN Button - only show for applicable invoices */}
+              {invoice.invoiceType && invoice.invoiceType !== 'standard' && invoice.status !== 'draft' && (
+                <IrnGenerationButton
+                  invoiceId={invoice.id}
+                  invoiceNumber={invoice.invoiceNumber}
+                  eInvoiceStatus={invoice.eInvoiceStatus}
+                  irn={invoice.irn}
+                  size="sm"
+                  variant="outline"
+                />
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon">
@@ -457,6 +479,17 @@ const InvoiceView = () => {
                   )}
                 </p>
               </div>
+
+              {/* E-Invoice QR Code */}
+              {invoice.irn && invoice.qrCodeData && (
+                <QrCodeDisplay
+                  qrCodeData={invoice.qrCodeData}
+                  irn={invoice.irn}
+                  signedInvoice={invoice.eInvoiceSignedJson}
+                  invoiceNumber={invoice.invoiceNumber}
+                  size="sm"
+                />
+              )}
 
               {/* Invoice Details */}
               <div className="space-y-3">

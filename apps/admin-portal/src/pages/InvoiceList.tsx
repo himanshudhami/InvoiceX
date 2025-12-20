@@ -10,9 +10,10 @@ import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { CustomerSelect } from '@/components/ui/CustomerSelect'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Edit, Trash2, Copy } from 'lucide-react'
+import { Eye, Edit, Trash2, Copy, FileCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
+import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
@@ -195,6 +196,23 @@ const InvoiceList = () => {
               {getPaymentStatus(invoice.totalAmount, invoice.paidAmount)}
             </div>
           </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'eInvoiceStatus',
+      header: 'E-Invoice',
+      cell: ({ row }) => {
+        const invoice = row.original
+        // Only show for non-standard invoice types (B2B, Export, SEZ, etc.)
+        if (!invoice.invoiceType || invoice.invoiceType === 'standard') {
+          return <span className="text-xs text-gray-400">N/A</span>
+        }
+        return (
+          <EInvoiceStatusBadge
+            status={invoice.eInvoiceStatus}
+            irn={invoice.irn}
+          />
         )
       },
     },

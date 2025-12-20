@@ -21,3 +21,5 @@ export * from './bankAccountService';
 export * from './bankTransactionService';
 export * from './tdsReceivableService';
 export * from './assetRequestService';
+export * from './taxRulePackService';
+export * from './eInvoiceService';
