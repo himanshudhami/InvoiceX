@@ -12,7 +12,7 @@ namespace Infrastructure.Data
     {
         private readonly string _connectionString;
 
-        // All columns for SELECT queries
+        // All columns for SELECT queries (payments table)
         private static readonly string[] AllColumns = new[]
         {
             "id", "invoice_id", "company_id", "customer_id",
@@ -23,6 +23,12 @@ namespace Infrastructure.Data
             "financial_year",
             "created_at", "updated_at"
         };
+
+        // SQL for selecting payments with invoice_number from JOIN
+        private const string SelectWithInvoiceNumber = @"
+            SELECT p.*, i.invoice_number
+            FROM payments p
+            LEFT JOIN invoices i ON p.invoice_id = i.id";
 
         // Searchable columns for full-text search
         private static readonly string[] SearchableColumns = new[]
@@ -39,7 +45,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<Payments>(
-                "SELECT * FROM payments WHERE id = @id",
+                SelectWithInvoiceNumber + " WHERE p.id = @id",
                 new { id });
         }
 
@@ -47,7 +53,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Payments>(
-                "SELECT * FROM payments ORDER BY payment_date DESC");
+                SelectWithInvoiceNumber + " ORDER BY p.payment_date DESC");
         }
 
         public async Task<(IEnumerable<Payments> Items, int TotalCount)> GetPagedAsync(
@@ -60,18 +66,55 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
-            var builder = SqlQueryBuilder
-                .From("payments", AllColumns)
-                .SearchAcross(SearchableColumns, searchTerm)
-                .ApplyFilters(filters)
-                .Paginate(pageNumber, pageSize);
+            var conditions = new List<string>();
+            var parameters = new DynamicParameters();
 
+            // Apply filters
+            if (filters != null)
+            {
+                foreach (var filter in filters)
+                {
+                    var paramName = filter.Key.Replace(".", "_");
+                    conditions.Add($"p.{filter.Key} = @{paramName}");
+                    parameters.Add(paramName, filter.Value);
+                }
+            }
+
+            // Apply search term
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var searchConditions = SearchableColumns.Select(col => $"p.{col} ILIKE @searchTerm");
+                conditions.Add($"({string.Join(" OR ", searchConditions)})");
+                parameters.Add("searchTerm", $"%{searchTerm}%");
+            }
+
+            var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+            // Validate and set sort column
             var allowedSet = new HashSet<string>(AllColumns, StringComparer.OrdinalIgnoreCase);
             var orderBy = !string.IsNullOrWhiteSpace(sortBy) && allowedSet.Contains(sortBy!) ? sortBy! : "payment_date";
-            builder.OrderBy(orderBy, sortDescending);
+            var sortDirection = sortDescending ? "DESC" : "ASC";
 
-            var (dataSql, parameters) = builder.BuildSelect();
-            var (countSql, _) = builder.BuildCount();
+            // Calculate offset
+            var offset = (pageNumber - 1) * pageSize;
+
+            // Build data query with JOIN
+            var dataSql = $@"
+                SELECT p.*, i.invoice_number
+                FROM payments p
+                LEFT JOIN invoices i ON p.invoice_id = i.id
+                {whereClause}
+                ORDER BY p.{orderBy} {sortDirection}
+                LIMIT @pageSize OFFSET @offset";
+
+            // Build count query
+            var countSql = $@"
+                SELECT COUNT(*)
+                FROM payments p
+                {whereClause}";
+
+            parameters.Add("pageSize", pageSize);
+            parameters.Add("offset", offset);
 
             using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, parameters);
             var items = await multi.ReadAsync<Payments>();
@@ -149,7 +192,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Payments>(
-                "SELECT * FROM payments WHERE invoice_id = @invoiceId ORDER BY payment_date DESC",
+                SelectWithInvoiceNumber + " WHERE p.invoice_id = @invoiceId ORDER BY p.payment_date DESC",
                 new { invoiceId });
         }
 
@@ -160,7 +203,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Payments>(
-                "SELECT * FROM payments WHERE company_id = @companyId ORDER BY payment_date DESC",
+                SelectWithInvoiceNumber + " WHERE p.company_id = @companyId ORDER BY p.payment_date DESC",
                 new { companyId });
         }
 
@@ -171,7 +214,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Payments>(
-                "SELECT * FROM payments WHERE customer_id = @customerId ORDER BY payment_date DESC",
+                SelectWithInvoiceNumber + " WHERE p.customer_id = @customerId ORDER BY p.payment_date DESC",
                 new { customerId });
         }
 
@@ -181,12 +224,12 @@ namespace Infrastructure.Data
         public async Task<IEnumerable<Payments>> GetByFinancialYearAsync(string financialYear, Guid? companyId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            var sql = "SELECT * FROM payments WHERE financial_year = @financialYear";
+            var sql = SelectWithInvoiceNumber + " WHERE p.financial_year = @financialYear";
             if (companyId.HasValue)
             {
-                sql += " AND company_id = @companyId";
+                sql += " AND p.company_id = @companyId";
             }
-            sql += " ORDER BY payment_date DESC";
+            sql += " ORDER BY p.payment_date DESC";
 
             return await connection.QueryAsync<Payments>(sql, new { financialYear, companyId });
         }

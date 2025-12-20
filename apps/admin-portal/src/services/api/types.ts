@@ -1211,6 +1211,8 @@ export interface Payment {
   invoiceId?: string;
   companyId?: string;
   customerId?: string;
+  // Computed/Joined fields
+  invoiceNumber?: string;  // Populated from JOIN with invoices table
   // Payment details
   paymentDate: string;
   amount: number;

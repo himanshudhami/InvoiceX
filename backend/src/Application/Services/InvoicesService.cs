@@ -259,8 +259,26 @@ namespace Application.Services
             if (invoice == null)
                 return Error.NotFound($"Invoice with ID {invoiceId} not found");
 
-            // Set invoice ID in payment DTO
+            // Enrich payment DTO with invoice data
             paymentDto.InvoiceId = invoiceId;
+            paymentDto.CompanyId = invoice.CompanyId;
+            paymentDto.CustomerId = invoice.CustomerId;
+            paymentDto.Currency = invoice.Currency;
+            paymentDto.PaymentType = "invoice_payment";
+
+            // Set description with invoice reference if not provided
+            if (string.IsNullOrEmpty(paymentDto.Description))
+            {
+                paymentDto.Description = $"Payment for invoice {invoice.InvoiceNumber}";
+            }
+
+            // Determine income category based on currency (export vs domestic)
+            if (string.IsNullOrEmpty(paymentDto.IncomeCategory))
+            {
+                paymentDto.IncomeCategory = invoice.Currency?.ToUpperInvariant() != "INR"
+                    ? "export_services"
+                    : "domestic_services";
+            }
 
             // Create payment directly using repository (to avoid circular dependency)
             var paymentEntity = _mapper.Map<Payments>(paymentDto);

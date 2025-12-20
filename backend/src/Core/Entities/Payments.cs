@@ -104,6 +104,13 @@ namespace Core.Entities
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
+        // ==================== Computed/Joined Properties ====================
+
+        /// <summary>
+        /// Invoice number (populated from JOIN query, not stored in payments table)
+        /// </summary>
+        public string? InvoiceNumber { get; set; }
+
         // ==================== Navigation Properties ====================
 
         public Invoices? Invoice { get; set; }
