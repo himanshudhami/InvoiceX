@@ -37,6 +37,7 @@ public class EmployeeDocumentSummaryDto
     public int? FileSize { get; set; }
     public string? FinancialYear { get; set; }
     public bool IsCompanyWide { get; set; }
+    public string? EmployeeName { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -45,7 +46,6 @@ public class EmployeeDocumentDetailDto : EmployeeDocumentSummaryDto
     public string? Description { get; set; }
     public string FileUrl { get; set; } = string.Empty;
     public string? MimeType { get; set; }
-    public string? EmployeeName { get; set; }
 }
 
 // Document Request DTOs

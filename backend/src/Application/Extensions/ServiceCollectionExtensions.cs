@@ -156,6 +156,8 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
                               Application.Services.Approval.Handlers.LeaveStatusHandler>();
             services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandler,
                               Application.Services.Approval.Handlers.AssetRequestStatusHandler>();
+            services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandler,
+                              Application.Services.Approval.Handlers.ExpenseStatusHandler>();
 
             // Activity status handler registry
             services.AddScoped<Application.Interfaces.Approval.IActivityStatusHandlerRegistry,
@@ -164,6 +166,20 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             // Asset request service
             services.AddScoped<Application.Interfaces.IAssetRequestService,
                               Application.Services.AssetRequestService>();
+
+            // File upload service
+            services.AddScoped<Application.Interfaces.IFileUploadService,
+                              Application.Services.FileStorage.FileUploadService>();
+
+            // Document category service
+            services.AddScoped<Application.Interfaces.Document.IDocumentCategoryService,
+                              Application.Services.Document.DocumentCategoryService>();
+
+            // Expense services
+            services.AddScoped<Application.Interfaces.Expense.IExpenseCategoryService,
+                              Application.Services.Expense.ExpenseCategoryService>();
+            services.AddScoped<Application.Interfaces.Expense.IExpenseClaimService,
+                              Application.Services.Expense.ExpenseClaimService>();
 
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();

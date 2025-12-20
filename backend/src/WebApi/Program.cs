@@ -50,6 +50,26 @@ try
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
             ClockSkew = TimeSpan.Zero // No tolerance for token expiration
         };
+
+        // Allow token from query string for file downloads (when opening in new tab)
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Check if this is a file download request
+                var path = context.Request.Path;
+                if (path.StartsWithSegments("/api/files/download"))
+                {
+                    // Try to get token from query string
+                    var token = context.Request.Query["token"].FirstOrDefault();
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        context.Token = token;
+                    }
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
     // Add Authorization Policies

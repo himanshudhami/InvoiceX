@@ -147,6 +147,27 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.IAssetRequestRepository>(sp =>
                 new Infrastructure.Data.AssetRequestRepository(connectionString));
 
+            // Document category repository
+            services.AddScoped<Core.Interfaces.Document.IDocumentCategoryRepository>(sp =>
+                new Infrastructure.Data.Document.DocumentCategoryRepository(connectionString));
+
+            // Expense repositories
+            services.AddScoped<Core.Interfaces.Expense.IExpenseCategoryRepository>(sp =>
+                new Infrastructure.Data.Expense.ExpenseCategoryRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Expense.IExpenseClaimRepository>(sp =>
+                new Infrastructure.Data.Expense.ExpenseClaimRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Expense.IExpenseAttachmentRepository>(sp =>
+                new Infrastructure.Data.Expense.ExpenseAttachmentRepository(connectionString));
+
+            // File storage repositories
+            services.AddScoped<Core.Interfaces.FileStorage.IFileStorageRepository>(sp =>
+                new Infrastructure.Data.FileStorage.FileStorageRepository(connectionString));
+            services.AddScoped<Core.Interfaces.FileStorage.IDocumentAuditLogRepository>(sp =>
+                new Infrastructure.Data.FileStorage.DocumentAuditLogRepository(connectionString));
+
+            // File storage service (local implementation - will be replaced with S3 in production)
+            services.AddScoped<Core.Interfaces.FileStorage.IFileStorageService, Infrastructure.FileStorage.LocalFileStorageService>();
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();
