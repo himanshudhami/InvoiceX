@@ -271,6 +271,105 @@ export interface MyAsset {
   condition: string
 }
 
+// ==================== Asset Request Types ====================
+
+export type AssetRequestStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'fulfilled' | 'cancelled'
+export type AssetRequestPriority = 'low' | 'normal' | 'high' | 'urgent'
+
+export interface AssetRequestSummary {
+  id: string
+  employeeId: string
+  employeeName: string
+  employeeCode: string | null
+  assetType: string
+  category: string
+  title: string
+  priority: AssetRequestPriority
+  status: AssetRequestStatus
+  quantity: number
+  estimatedBudget: number | null
+  requestedAt: string
+  approvedAt: string | null
+  fulfilledAt: string | null
+}
+
+export interface AssetRequestDetail extends AssetRequestSummary {
+  companyId: string
+  department: string | null
+  description: string | null
+  justification: string | null
+  specifications: string | null
+  requestedByDate: string | null
+  createdAt: string
+  updatedAt: string
+  // Approval info
+  approvedBy: string | null
+  approvedByName: string | null
+  rejectionReason: string | null
+  cancelledAt: string | null
+  cancellationReason: string | null
+  // Fulfillment info
+  assignedAssetId: string | null
+  assignedAssetName: string | null
+  fulfilledBy: string | null
+  fulfilledByName: string | null
+  fulfillmentNotes: string | null
+  // Computed
+  canEdit: boolean
+  canCancel: boolean
+  canFulfill: boolean
+  // Approval workflow info
+  approvalRequestId: string | null
+  hasApprovalWorkflow: boolean
+  currentApprovalStep: number | null
+  totalApprovalSteps: number | null
+}
+
+export interface CreateAssetRequest {
+  assetType: string
+  category: string
+  title: string
+  description?: string
+  justification?: string
+  specifications?: string
+  priority?: AssetRequestPriority
+  quantity?: number
+  estimatedBudget?: number
+  requestedByDate?: string
+}
+
+export interface UpdateAssetRequest {
+  assetType?: string
+  category?: string
+  title?: string
+  description?: string
+  justification?: string
+  specifications?: string
+  priority?: AssetRequestPriority
+  quantity?: number
+  estimatedBudget?: number
+  requestedByDate?: string
+}
+
+export interface AssetRequestStats {
+  totalRequests: number
+  pendingRequests: number
+  approvedRequests: number
+  rejectedRequests: number
+  fulfilledRequests: number
+  unfulfilledApproved: number
+}
+
+export interface AssetCategory {
+  value: string
+  label: string
+}
+
+export interface AssetPriority {
+  value: AssetRequestPriority
+  label: string
+}
+
 // ==================== Tax Declaration Types ====================
 
 export interface TaxDeclarationSummary {
