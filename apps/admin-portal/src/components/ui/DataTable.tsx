@@ -32,6 +32,17 @@ interface DataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void
   onAdd?: () => void
   addButtonText?: string
+  /** Hide the default toolbar entirely and render your own via renderToolbar */
+  showToolbar?: boolean
+  /** Provide a custom toolbar; receive the table instance */
+  renderToolbar?: (table: Table<TData>) => React.ReactNode
+  /** Render a uniform footer; receives the table instance */
+  footer?: (table: Table<TData>) => React.ReactNode
+  /** Optional totals row helper: label text and key/value pairs to render */
+  totalsFooter?: {
+    label?: string
+    values: { label: string; value: React.ReactNode }[]
+  }
   /** For client-side tables: override initial page size */
   pageSizeOverride?: number
   /**
@@ -54,10 +65,13 @@ export function DataTable<TData, TValue>({
   onSearchChange,
   onAdd,
   addButtonText = "Add New",
+  showToolbar = true,
+  renderToolbar,
+  footer,
+  totalsFooter,
   pageSizeOverride,
   pagination,
   hidePaginationControls = false,
-  footer
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -113,32 +127,40 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <input
-            placeholder={searchPlaceholder}
-            value={searchValue ?? globalFilter ?? ''}
-            onChange={(event) => {
-              const val = event.target.value
-              // Only update globalFilter for client-side filtering if searchValue is not provided
-              if (searchValue === undefined) {
-              setGlobalFilter(val)
-              }
-              // Always call onSearchChange for server-side search
-              onSearchChange?.(val)
-            }}
-            className="max-w-sm px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        {onAdd && (
-          <button
-            onClick={onAdd}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
-          >
-            {addButtonText}
-          </button>
-        )}
-      </div>
+      {showToolbar && (
+        renderToolbar ? (
+          <div className="flex items-center justify-between">
+            {renderToolbar(table)}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <input
+                placeholder={searchPlaceholder}
+                value={searchValue ?? globalFilter ?? ''}
+                onChange={(event) => {
+                  const val = event.target.value
+                  // Only update globalFilter for client-side filtering if searchValue is not provided
+                  if (searchValue === undefined) {
+                    setGlobalFilter(val)
+                  }
+                  // Always call onSearchChange for server-side search
+                  onSearchChange?.(val)
+                }}
+                className="max-w-sm px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            {onAdd && (
+              <button
+                onClick={onAdd}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+              >
+                {addButtonText}
+              </button>
+            )}
+          </div>
+        )
+      )}
 
       {/* Table */}
       <div className="rounded-md border overflow-hidden">
@@ -193,6 +215,23 @@ export function DataTable<TData, TValue>({
             )}
           </tbody>
           {footer && footer(table)}
+          {totalsFooter && (
+            <tfoot className="bg-gray-50 text-sm font-medium text-gray-800">
+              <tr>
+                <td className="px-6 py-3" colSpan={Math.max(1, columns.length - totalsFooter.values.length)}>
+                  {totalsFooter.label ?? 'Totals'}
+                </td>
+                {totalsFooter.values.map((item, idx) => (
+                  <td key={idx} className="px-6 py-3 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-gray-500">{item.label}</span>
+                      <span>{item.value}</span>
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
         </div>
       </div>

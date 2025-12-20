@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -75,6 +75,25 @@ const EmployeeSalaryStructures = () => {
     setViewingHistory(employeeId)
   }
 
+  const totals = useMemo(() => {
+    const items = data?.items || []
+    return items.reduce(
+      (acc, item) => {
+        acc.count += 1
+        acc.annualCtc += item.annualCtc || 0
+        acc.monthlyGross += item.monthlyGross || 0
+        return acc
+      },
+      { count: 0, annualCtc: 0, monthlyGross: 0 }
+    )
+  }, [data?.items])
+
+  const actionClasses = {
+    view: 'text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors',
+    edit: 'text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors',
+    delete: 'text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors',
+  }
+
   const columns: ColumnDef<EmployeeSalaryStructure>[] = [
     {
       accessorKey: 'employeeName',
@@ -126,30 +145,27 @@ const EmployeeSalaryStructures = () => {
         const structure = row.original
         return (
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
+              className={actionClasses.view}
               onClick={() => handleViewHistory(structure.employeeId)}
               title="View history"
             >
               <History className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            </button>
+            <button
+              className={actionClasses.edit}
               onClick={() => handleEdit(structure)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            </button>
+            <button
+              className={actionClasses.delete}
               onClick={() => handleDelete(structure)}
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         )
       },
@@ -198,6 +214,27 @@ const EmployeeSalaryStructures = () => {
           totalCount: data?.totalCount || 0,
           onPageChange: (pageIndex) => setUrlState({ page: pageIndex + 1 }),
           onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
+        }}
+        footer={() => {
+          const colCount = columns.length
+          return (
+            <tfoot className="bg-gray-100 border-t-2 border-gray-300 text-sm font-semibold text-gray-900">
+              <tr>
+                <td className="px-6 py-4">
+                  Totals ({totals.count} structures)
+                </td>
+                <td className="px-6 py-4 text-blue-700">
+                  {formatINR(totals.annualCtc)}
+                </td>
+                <td className="px-6 py-4 text-green-700">
+                  {formatINR(totals.monthlyGross)}
+                </td>
+                {Array.from({ length: colCount - 3 }).map((_, idx) => (
+                  <td key={idx} className="px-6 py-4"></td>
+                ))}
+              </tr>
+            </tfoot>
+          )
         }}
       />
 
@@ -264,8 +301,3 @@ const EmployeeSalaryStructures = () => {
 }
 
 export default EmployeeSalaryStructures
-
-
-
-
-

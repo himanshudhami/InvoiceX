@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useLeaveTypes, useCreateLeaveType, useUpdateLeaveType, useDeleteLeaveType, useToggleLeaveTypeActive } from '@/hooks/api/useLeaveTypes'
 import { useCompanies } from '@/hooks/api/useCompanies'
@@ -24,6 +24,7 @@ const LeaveTypesManagement = () => {
 
   const handleEdit = (leaveType: LeaveType) => {
     setEditingLeaveType(leaveType)
+    setSelectedCompanyId(leaveType.companyId || '')
   }
 
   const handleDelete = (leaveType: LeaveType) => {
@@ -260,6 +261,7 @@ const LeaveTypesManagement = () => {
       >
         <LeaveTypeForm
           companies={companies}
+          selectedCompanyId={selectedCompanyId || undefined}
           onSuccess={handleFormSuccess}
           onCancel={() => setIsCreateDrawerOpen(false)}
           createMutation={createLeaveType}
@@ -276,6 +278,7 @@ const LeaveTypesManagement = () => {
           <LeaveTypeForm
             leaveType={editingLeaveType}
             companies={companies}
+            selectedCompanyId={selectedCompanyId || undefined}
             onSuccess={handleFormSuccess}
             onCancel={() => setEditingLeaveType(null)}
             updateMutation={updateLeaveType}
@@ -321,15 +324,16 @@ const LeaveTypesManagement = () => {
 interface LeaveTypeFormProps {
   leaveType?: LeaveType
   companies: { id: string; name: string }[]
+  selectedCompanyId?: string
   onSuccess: () => void
   onCancel: () => void
   createMutation?: ReturnType<typeof useCreateLeaveType>
   updateMutation?: ReturnType<typeof useUpdateLeaveType>
 }
 
-const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutation, updateMutation }: LeaveTypeFormProps) => {
+const LeaveTypeForm = ({ leaveType, companies, selectedCompanyId, onSuccess, onCancel, createMutation, updateMutation }: LeaveTypeFormProps) => {
   const [formData, setFormData] = useState<CreateLeaveTypeDto>({
-    companyId: leaveType?.companyId || '',
+    companyId: leaveType?.companyId || selectedCompanyId || '',
     name: leaveType?.name || '',
     code: leaveType?.code || '',
     description: leaveType?.description || '',
@@ -345,6 +349,44 @@ const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutati
     isActive: leaveType?.isActive ?? true,
   })
   const [companyError, setCompanyError] = useState<string>('')
+
+  useEffect(() => {
+    if (leaveType) {
+      setFormData({
+        companyId: leaveType.companyId || selectedCompanyId || '',
+        name: leaveType.name || '',
+        code: leaveType.code || '',
+        description: leaveType.description || '',
+        daysPerYear: leaveType.daysPerYear || 12,
+        carryForwardAllowed: leaveType.carryForwardAllowed || false,
+        maxCarryForwardDays: leaveType.maxCarryForwardDays || 0,
+        encashmentAllowed: leaveType.encashmentAllowed || false,
+        maxEncashmentDays: leaveType.maxEncashmentDays || 0,
+        isPaidLeave: leaveType.isPaidLeave ?? true,
+        requiresApproval: leaveType.requiresApproval ?? true,
+        minDaysNotice: leaveType.minDaysNotice || 1,
+        maxConsecutiveDays: leaveType.maxConsecutiveDays || 30,
+        isActive: leaveType.isActive ?? true,
+      })
+    } else {
+      setFormData({
+        companyId: selectedCompanyId || '',
+        name: '',
+        code: '',
+        description: '',
+        daysPerYear: 12,
+        carryForwardAllowed: false,
+        maxCarryForwardDays: 0,
+        encashmentAllowed: false,
+        maxEncashmentDays: 0,
+        isPaidLeave: true,
+        requiresApproval: true,
+        minDaysNotice: 1,
+        maxConsecutiveDays: 30,
+        isActive: true,
+      })
+    }
+  }, [leaveType, selectedCompanyId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -383,6 +425,7 @@ const LeaveTypeForm = ({ leaveType, companies, onSuccess, onCancel, createMutati
           }}
           placeholder="Select company..."
           error={companyError}
+          disabled={!!leaveType}
         />
       </div>
 

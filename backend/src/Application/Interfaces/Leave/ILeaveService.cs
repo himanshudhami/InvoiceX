@@ -15,6 +15,7 @@ namespace Application.Interfaces.Leave
         Task<Result<LeaveTypeDto>> CreateLeaveTypeAsync(Guid companyId, CreateLeaveTypeDto dto, string? createdBy = null);
         Task<Result<LeaveTypeDto>> UpdateLeaveTypeAsync(Guid id, UpdateLeaveTypeDto dto, string? updatedBy = null);
         Task<Result> DeleteLeaveTypeAsync(Guid id);
+        Task<Result<LeaveTypeDto>> ToggleLeaveTypeActiveAsync(Guid id);
 
         // ==================== Leave Balances ====================
 

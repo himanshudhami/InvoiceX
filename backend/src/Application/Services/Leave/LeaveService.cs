@@ -126,6 +126,18 @@ namespace Application.Services.Leave
             return Result.Success();
         }
 
+        public async Task<Result<LeaveTypeDto>> ToggleLeaveTypeActiveAsync(Guid id)
+        {
+            var entity = await _leaveTypeRepository.GetByIdAsync(id);
+            if (entity == null)
+                return Error.NotFound("Leave type not found");
+
+            entity.IsActive = !entity.IsActive;
+            await _leaveTypeRepository.UpdateAsync(entity);
+
+            return Result<LeaveTypeDto>.Success(MapToLeaveTypeDto(entity));
+        }
+
         // ==================== Leave Balances ====================
 
         public async Task<Result<IEnumerable<LeaveBalanceDto>>> GetCompanyBalancesAsync(Guid companyId, string financialYear)
@@ -812,6 +824,7 @@ namespace Application.Services.Leave
             return new LeaveTypeDto
             {
                 Id = entity.Id,
+                CompanyId = entity.CompanyId,
                 Name = entity.Name,
                 Code = entity.Code,
                 Description = entity.Description,

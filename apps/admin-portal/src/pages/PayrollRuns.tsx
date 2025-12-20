@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import { usePayrollRuns, useApprovePayrollRun, useMarkPayrollAsPaid } from '@/features/payroll/hooks'
@@ -11,7 +11,6 @@ import { formatINR } from '@/lib/currency'
 import { Eye, CheckCircle, DollarSign, Users, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
-import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import { Button } from '@/components/ui/button'
 
 const PayrollRuns = () => {
@@ -109,6 +108,25 @@ const PayrollRuns = () => {
     return format(date, 'MMM yyyy')
   }
 
+  const totals = useMemo(() => {
+    const items = data?.items || []
+    return items.reduce(
+      (acc, run) => {
+        acc.count += 1
+        acc.gross += run.totalGrossSalary || 0
+        acc.net += run.totalNetSalary || 0
+        return acc
+      },
+      { count: 0, gross: 0, net: 0 }
+    )
+  }, [data?.items])
+
+  const actionClasses = {
+    view: 'text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors',
+    approve: 'text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors',
+    pay: 'text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50 transition-colors',
+  }
+
   const columns: ColumnDef<PayrollRun>[] = [
     {
       accessorKey: 'monthYear',
@@ -160,18 +178,30 @@ const PayrollRuns = () => {
         const run = row.original
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => handleView(run)}>
+            <button
+              className={actionClasses.view}
+              onClick={() => handleView(run)}
+              title="View"
+            >
               <Eye className="w-4 h-4" />
-            </Button>
+            </button>
             {run.status === 'computed' && (
-              <Button variant="ghost" size="sm" onClick={() => handleApprove(run)}>
+              <button
+                className={actionClasses.approve}
+                onClick={() => handleApprove(run)}
+                title="Approve"
+              >
                 <CheckCircle className="w-4 h-4" />
-              </Button>
+              </button>
             )}
             {run.status === 'approved' && (
-              <Button variant="ghost" size="sm" onClick={() => handleMarkAsPaid(run)}>
+              <button
+                className={actionClasses.pay}
+                onClick={() => handleMarkAsPaid(run)}
+                title="Mark as Paid"
+              >
                 <DollarSign className="w-4 h-4" />
-              </Button>
+              </button>
             )}
           </div>
         )
@@ -216,16 +246,30 @@ const PayrollRuns = () => {
         searchPlaceholder="Search by month, year, company..."
         onSearch={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
-          pageIndex: (data?.pageNumber || urlState.page) - 1,
-          pageSize: data?.pageSize || urlState.pageSize,
-          totalCount: data?.totalCount || 0,
-          onPageChange: (page) => setUrlState({ page: page + 1 }),
-          onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
-        }}
-        footerInfo={() => {
-          return `${data?.totalCount || 0} payroll runs • Page ${data?.pageNumber || urlState.page} of ${data?.totalPages || 1}`
-        }}
-      />
+      pageIndex: (data?.pageNumber || urlState.page) - 1,
+      pageSize: data?.pageSize || urlState.pageSize,
+      totalCount: data?.totalCount || 0,
+      onPageChange: (page) => setUrlState({ page: page + 1 }),
+      onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
+    }}
+    footer={() => (
+      <tfoot className="bg-gray-100 border-t-2 border-gray-300 text-sm font-semibold text-gray-900">
+        <tr>
+          <td className="px-6 py-4">
+            Totals ({totals.count} runs)
+          </td>
+          <td className="px-6 py-4" colSpan={3}></td>
+          <td className="px-6 py-4 text-blue-700">
+            {formatINR(totals.gross)}
+          </td>
+          <td className="px-6 py-4 text-green-700">
+            {formatINR(totals.net)}
+          </td>
+          <td className="px-6 py-4" colSpan={2}></td>
+        </tr>
+      </tfoot>
+    )}
+  />
 
       {/* Approve Modal */}
       <Modal
@@ -328,7 +372,3 @@ const PayrollRuns = () => {
 }
 
 export default PayrollRuns
-
-
-
-

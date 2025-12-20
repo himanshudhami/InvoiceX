@@ -170,5 +170,32 @@ namespace WebApi.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Toggle active status for a leave type
+        /// </summary>
+        /// <param name="id">Leave type ID</param>
+        /// <returns>Updated leave type</returns>
+        /// <response code="200">Leave type status toggled</response>
+        /// <response code="404">Leave type not found</response>
+        [HttpPost("{id}/toggle-active")]
+        [ProducesResponseType(typeof(LeaveTypeDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ToggleActive(Guid id)
+        {
+            var result = await _leaveService.ToggleLeaveTypeActiveAsync(id);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
     }
 }
