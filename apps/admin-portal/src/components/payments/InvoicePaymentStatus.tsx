@@ -1,17 +1,19 @@
 "use client"
 
 import { useInvoicePaymentStatus, useAllocationsByInvoice } from '@/hooks/api/usePaymentAllocations';
-import { formatINR } from '@/lib/financialUtils';
+import { formatCurrency } from '@/lib/currency';
 import { Check, AlertCircle, Clock, DollarSign } from 'lucide-react';
 
 interface InvoicePaymentStatusProps {
   invoiceId: string;
   showDetails?: boolean;
+  currency?: string;
 }
 
 export const InvoicePaymentStatus = ({
   invoiceId,
   showDetails = false,
+  currency = 'INR',
 }: InvoicePaymentStatusProps) => {
   const { data: status, isLoading: statusLoading } = useInvoicePaymentStatus(invoiceId);
   const { data: allocations = [], isLoading: allocationsLoading } = useAllocationsByInvoice(
@@ -76,11 +78,11 @@ export const InvoicePaymentStatus = ({
       {/* Payment Summary */}
       <div className="flex items-center gap-4 text-xs text-gray-600">
         <span>
-          Paid: <strong className="text-green-600">{formatINR(status.totalPaid)}</strong>
+          Paid: <strong className="text-green-600">{formatCurrency(status.totalPaid, currency)}</strong>
         </span>
         {status.balanceDue > 0.01 && (
           <span>
-            Due: <strong className="text-red-600">{formatINR(status.balanceDue)}</strong>
+            Due: <strong className="text-red-600">{formatCurrency(status.balanceDue, currency)}</strong>
           </span>
         )}
         {status.paymentCount > 0 && (
@@ -106,7 +108,7 @@ export const InvoicePaymentStatus = ({
                   </span>
                 )}
               </div>
-              <span className="font-medium text-gray-900">{formatINR(alloc.allocatedAmount)}</span>
+              <span className="font-medium text-gray-900">{formatCurrency(alloc.allocatedAmount, currency)}</span>
             </div>
           ))}
         </div>

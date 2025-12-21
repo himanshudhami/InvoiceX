@@ -32,6 +32,7 @@ import {
 import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 import { IrnGenerationButton } from '@/components/invoice/IrnGenerationButton'
 import { QrCodeDisplay } from '@/components/invoice/QrCodeDisplay'
+import { InvoicePaymentStatus } from '@/components/payments/InvoicePaymentStatus'
 
 const InvoiceView = () => {
   const { id } = useParams<{ id: string }>()
@@ -523,22 +524,17 @@ const InvoiceView = () => {
                 )}
               </div>
 
-              {/* Payment History */}
-              {invoice.paidAmount !== undefined && invoice.paidAmount > 0 && (
-                <div className="pt-4 border-t">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                    Payment History
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Amount Paid</span>
-                      <span className="text-green-600 font-medium">
-                        {formatCurrency(invoice.paidAmount || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Payment Status & Allocations */}
+              <div className="pt-4 border-t">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Payment Status
+                </p>
+                <InvoicePaymentStatus
+                  invoiceId={invoice.id}
+                  showDetails={true}
+                  currency={invoice.currency}
+                />
+              </div>
 
               {/* Customer Info */}
               <div className="pt-4 border-t">

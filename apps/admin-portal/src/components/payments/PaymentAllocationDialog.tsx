@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { usePaymentAllocationSummary, useBulkAllocatePayment } from '@/hooks/api/usePaymentAllocations';
 import { useCompanyInvoicePaymentStatus } from '@/hooks/api/usePaymentAllocations';
 import { Payment, Invoice } from '@/services/api/types';
-import { formatINR } from '@/lib/financialUtils';
+import { formatCurrency } from '@/lib/currency';
 import { AlertCircle, Check, FileText, Plus, Trash2 } from 'lucide-react';
 import { ALLOCATION_TYPE_LABELS, AllocationTypeEnum } from '@/services/api/paymentAllocationService';
 
@@ -161,24 +161,24 @@ export const PaymentAllocationDialog = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-gray-500">Total Amount</span>
-              <p className="font-semibold">{formatINR(payment.amount)}</p>
+              <p className="font-semibold">{formatCurrency(payment.amount, payment.currency)}</p>
             </div>
             <div>
               <span className="text-gray-500">Already Allocated</span>
               <p className="font-semibold text-blue-600">
-                {formatINR(payment.amount - unallocatedAmount)}
+                {formatCurrency(payment.amount - unallocatedAmount, payment.currency)}
               </p>
             </div>
             <div>
               <span className="text-gray-500">Unallocated</span>
               <p className="font-semibold text-green-600">
-                {formatINR(unallocatedAmount)}
+                {formatCurrency(unallocatedAmount, payment.currency)}
               </p>
             </div>
             <div>
               <span className="text-gray-500">This Allocation</span>
               <p className="font-semibold text-orange-600">
-                {formatINR(currentAllocationTotal)}
+                {formatCurrency(currentAllocationTotal, payment.currency)}
               </p>
             </div>
           </div>
@@ -195,7 +195,7 @@ export const PaymentAllocationDialog = ({
                     <Check className="h-4 w-4 text-green-500" />
                     <span>{alloc.invoiceNumber || 'Direct Allocation'}</span>
                   </div>
-                  <span className="font-medium">{formatINR(alloc.allocatedAmount)}</span>
+                  <span className="font-medium">{formatCurrency(alloc.allocatedAmount, payment.currency)}</span>
                 </div>
               ))}
             </div>
@@ -208,7 +208,7 @@ export const PaymentAllocationDialog = ({
             <h3 className="text-sm font-medium text-gray-700">New Allocations</h3>
             {unallocatedAmount - currentAllocationTotal > 0 && availableInvoices.length > 0 && (
               <span className="text-xs text-gray-500">
-                Remaining: {formatINR(unallocatedAmount - currentAllocationTotal)}
+                Remaining: {formatCurrency(unallocatedAmount - currentAllocationTotal, payment.currency)}
               </span>
             )}
           </div>
@@ -227,7 +227,7 @@ export const PaymentAllocationDialog = ({
                         <FileText className="h-4 w-4 text-blue-500" />
                         <span className="font-medium text-sm">{alloc.invoiceNumber}</span>
                         <span className="text-xs text-gray-500">
-                          (Total: {formatINR(alloc.invoiceTotal)} | Due: {formatINR(alloc.balanceDue)})
+                          (Total: {formatCurrency(alloc.invoiceTotal, payment.currency)} | Due: {formatCurrency(alloc.balanceDue, payment.currency)})
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -289,7 +289,7 @@ export const PaymentAllocationDialog = ({
                     <div>
                       <span className="font-medium">{inv.invoiceNumber}</span>
                       <span className="text-gray-500 ml-2">
-                        Due: {formatINR(inv.balanceDue)} of {formatINR(inv.invoiceTotal)}
+                        Due: {formatCurrency(inv.balanceDue, payment.currency)} of {formatCurrency(inv.invoiceTotal, payment.currency)}
                       </span>
                       <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
                         inv.status === 'partial'
@@ -329,7 +329,7 @@ export const PaymentAllocationDialog = ({
             disabled={allocations.length === 0 || bulkAllocate.isPending}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {bulkAllocate.isPending ? 'Saving...' : `Allocate ${formatINR(currentAllocationTotal)}`}
+            {bulkAllocate.isPending ? 'Saving...' : `Allocate ${formatCurrency(currentAllocationTotal, payment.currency)}`}
           </button>
         </div>
       </div>

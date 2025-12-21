@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect';
 import { formatINR } from '@/lib/financialUtils';
 import { formatCurrency } from '@/lib/currency';
-import { Eye, Trash2, Plus, FileText, Banknote, ChevronDown, X, Search } from 'lucide-react';
+import { Eye, Trash2, Plus, FileText, Banknote, ChevronDown, X, Search, Split } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RecordPaymentModal } from '@/components/modals/RecordPaymentModal';
 import { DirectPaymentForm } from '@/components/forms/DirectPaymentForm';
@@ -21,12 +21,14 @@ import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import { cn } from '@/lib/utils';
 import { CustomerSelect } from '@/components/ui/CustomerSelect';
+import { PaymentAllocationDialog } from '@/components/payments/PaymentAllocationDialog';
 
 const PaymentsManagement = () => {
   const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [showDirectPaymentForm, setShowDirectPaymentForm] = useState(false);
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
+  const [allocatingPayment, setAllocatingPayment] = useState<Payment | null>(null);
   const navigate = useNavigate();
 
   // Get selected company from context (for multi-company users)
@@ -315,6 +317,16 @@ const PaymentsManagement = () => {
               title="View Invoice"
             >
               <Eye className="w-4 h-4" />
+            </button>
+          )}
+          {/* Allocate button - for payments that can be allocated to invoices */}
+          {row.original.companyId && (
+            <button
+              onClick={() => setAllocatingPayment(row.original)}
+              className="text-green-600 hover:text-green-800"
+              title="Allocate to Invoices"
+            >
+              <Split className="w-4 h-4" />
             </button>
           )}
           <button
@@ -693,6 +705,19 @@ const PaymentsManagement = () => {
           }}
         />
       </Drawer>
+
+      {/* Payment Allocation Dialog */}
+      {allocatingPayment && (
+        <PaymentAllocationDialog
+          isOpen={!!allocatingPayment}
+          onClose={() => setAllocatingPayment(null)}
+          payment={allocatingPayment}
+          onSuccess={() => {
+            setAllocatingPayment(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 };

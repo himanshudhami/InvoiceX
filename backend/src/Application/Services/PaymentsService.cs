@@ -21,6 +21,7 @@ namespace Application.Services
     {
         private readonly IPaymentsRepository _repository;
         private readonly IInvoicesRepository _invoicesRepository;
+        private readonly IPaymentAllocationRepository _allocationRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreatePaymentsDto> _createValidator;
         private readonly IValidator<UpdatePaymentsDto> _updateValidator;
@@ -28,12 +29,14 @@ namespace Application.Services
         public PaymentsService(
             IPaymentsRepository repository,
             IInvoicesRepository invoicesRepository,
+            IPaymentAllocationRepository allocationRepository,
             IMapper mapper,
             IValidator<CreatePaymentsDto> createValidator,
             IValidator<UpdatePaymentsDto> updateValidator)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _invoicesRepository = invoicesRepository ?? throw new ArgumentNullException(nameof(invoicesRepository));
+            _allocationRepository = allocationRepository ?? throw new ArgumentNullException(nameof(allocationRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -155,6 +158,50 @@ namespace Application.Services
             }
 
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Auto-create payment allocation when payment is linked to an invoice
+            if (createdEntity.InvoiceId.HasValue && createdEntity.CompanyId.HasValue)
+            {
+                var allocation = new PaymentAllocation
+                {
+                    Id = Guid.NewGuid(),
+                    CompanyId = createdEntity.CompanyId.Value,
+                    PaymentId = createdEntity.Id,
+                    InvoiceId = createdEntity.InvoiceId.Value,
+                    AllocatedAmount = createdEntity.GrossAmount ?? createdEntity.Amount,
+                    Currency = createdEntity.Currency ?? "INR",
+                    AmountInInr = createdEntity.AmountInInr,
+                    AllocationDate = createdEntity.PaymentDate,
+                    AllocationType = "invoice_settlement",
+                    Notes = $"Auto-allocated from payment {createdEntity.ReferenceNumber ?? createdEntity.Id.ToString()}",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _allocationRepository.AddAsync(allocation);
+
+                // Also update invoice's paidAmount to keep it in sync
+                var invoice = await _invoicesRepository.GetByIdAsync(createdEntity.InvoiceId.Value);
+                if (invoice != null)
+                {
+                    var paymentAmount = createdEntity.GrossAmount ?? createdEntity.Amount;
+                    invoice.PaidAmount = (invoice.PaidAmount ?? 0) + paymentAmount;
+
+                    // Update status based on paid amount
+                    if (invoice.PaidAmount >= invoice.TotalAmount)
+                    {
+                        invoice.Status = "paid";
+                        invoice.PaidAt = DateTime.UtcNow;
+                    }
+                    else if (invoice.PaidAmount > 0)
+                    {
+                        invoice.Status = "partially_paid";
+                    }
+
+                    invoice.UpdatedAt = DateTime.UtcNow;
+                    await _invoicesRepository.UpdateAsync(invoice);
+                }
+            }
+
             return Result<Payments>.Success(createdEntity);
         }
 

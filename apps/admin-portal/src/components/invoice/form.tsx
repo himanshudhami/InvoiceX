@@ -104,7 +104,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   // Scope customers to the selected company so "Bill To" updates when company changes
   const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
-  const { data: products = [] } = useProducts()
+  const { data: products = [] } = useProducts(formData.companyId || undefined)
   const { data: existingItems = [] } = useInvoiceItems(invoice?.id || '')
 
   const isEditing = !!invoice

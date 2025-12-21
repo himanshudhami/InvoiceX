@@ -24,14 +24,16 @@ namespace Application.Services
         private readonly IInvoicesRepository _repository;
         private readonly IInvoiceItemsRepository _invoiceItemsRepository;
         private readonly IPaymentsRepository _paymentsRepository;
+        private readonly IPaymentAllocationRepository _allocationRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateInvoicesDto> _createValidator;
         private readonly IValidator<UpdateInvoicesDto> _updateValidator;
 
         public InvoicesService(
-            IInvoicesRepository repository, 
-            IInvoiceItemsRepository invoiceItemsRepository, 
-            IPaymentsRepository paymentsRepository, 
+            IInvoicesRepository repository,
+            IInvoiceItemsRepository invoiceItemsRepository,
+            IPaymentsRepository paymentsRepository,
+            IPaymentAllocationRepository allocationRepository,
             IMapper mapper,
             IValidator<CreateInvoicesDto> createValidator,
             IValidator<UpdateInvoicesDto> updateValidator)
@@ -39,6 +41,7 @@ namespace Application.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _invoiceItemsRepository = invoiceItemsRepository ?? throw new ArgumentNullException(nameof(invoiceItemsRepository));
             _paymentsRepository = paymentsRepository ?? throw new ArgumentNullException(nameof(paymentsRepository));
+            _allocationRepository = allocationRepository ?? throw new ArgumentNullException(nameof(allocationRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -284,8 +287,26 @@ namespace Application.Services
             var paymentEntity = _mapper.Map<Payments>(paymentDto);
             paymentEntity.CreatedAt = DateTime.UtcNow;
             paymentEntity.UpdatedAt = DateTime.UtcNow;
-            
+
             var createdPayment = await _paymentsRepository.AddAsync(paymentEntity);
+
+            // Create payment allocation to track this payment against the invoice
+            var allocation = new PaymentAllocation
+            {
+                Id = Guid.NewGuid(),
+                CompanyId = invoice.CompanyId ?? Guid.Empty,
+                PaymentId = createdPayment.Id,
+                InvoiceId = invoiceId,
+                AllocatedAmount = paymentDto.GrossAmount ?? paymentDto.Amount,
+                Currency = invoice.Currency ?? "INR",
+                AmountInInr = paymentDto.AmountInInr,
+                AllocationDate = createdPayment.PaymentDate,
+                AllocationType = "invoice_settlement",
+                Notes = $"Payment for invoice {invoice.InvoiceNumber}",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _allocationRepository.AddAsync(allocation);
 
             // Update invoice paid amount and status
             var currentPaidAmount = invoice.PaidAmount ?? 0;

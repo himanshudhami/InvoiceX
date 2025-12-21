@@ -224,19 +224,21 @@ namespace Infrastructure.Data
         public async Task<(decimal TotalPaid, decimal BalanceDue, string Status)> GetInvoicePaymentStatusAsync(Guid invoiceId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
+            // Include both the invoice's paid_amount (legacy) and payment_allocations (new system)
+            // Use GREATEST to take whichever is higher (handles migration from legacy to new)
             var sql = @"
                 SELECT
-                    COALESCE(SUM(pa.allocated_amount), 0) as TotalPaid,
-                    i.total_amount - COALESCE(SUM(pa.allocated_amount), 0) as BalanceDue,
+                    GREATEST(COALESCE(i.paid_amount, 0), COALESCE(SUM(pa.allocated_amount), 0)) as TotalPaid,
+                    i.total_amount - GREATEST(COALESCE(i.paid_amount, 0), COALESCE(SUM(pa.allocated_amount), 0)) as BalanceDue,
                     CASE
-                        WHEN COALESCE(SUM(pa.allocated_amount), 0) = 0 THEN 'unpaid'
-                        WHEN COALESCE(SUM(pa.allocated_amount), 0) >= i.total_amount THEN 'paid'
+                        WHEN GREATEST(COALESCE(i.paid_amount, 0), COALESCE(SUM(pa.allocated_amount), 0)) = 0 THEN 'unpaid'
+                        WHEN GREATEST(COALESCE(i.paid_amount, 0), COALESCE(SUM(pa.allocated_amount), 0)) >= i.total_amount THEN 'paid'
                         ELSE 'partial'
                     END as Status
                 FROM invoices i
                 LEFT JOIN payment_allocations pa ON pa.invoice_id = i.id
                 WHERE i.id = @invoiceId
-                GROUP BY i.id, i.total_amount";
+                GROUP BY i.id, i.total_amount, i.paid_amount";
 
             var result = await connection.QueryFirstOrDefaultAsync<(decimal, decimal, string)>(sql, new { invoiceId });
             return result;
