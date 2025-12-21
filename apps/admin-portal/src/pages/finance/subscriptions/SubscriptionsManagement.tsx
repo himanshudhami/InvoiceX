@@ -14,8 +14,8 @@ import {
   useCancelSubscription,
 } from '@/hooks/api/useSubscriptions';
 import { useEmployees } from '@/hooks/api/useEmployees';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { DataTable } from '../components/ui/DataTable';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/DataTable';
 import { Drawer } from '@/components/ui/Drawer';
 import { Modal } from '@/components/ui/Modal';
 import { SubscriptionForm } from '@/components/forms/SubscriptionForm';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Loan } from '../services/api/types';
+import { Loan } from '@/services/api/types';
 import {
   useLoans,
   useCreateLoan,
@@ -9,8 +9,8 @@ import {
   useLoanSchedule,
 } from '@/hooks/api/useLoans';
 import { useCompanies } from '@/hooks/api/useCompanies';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { DataTable } from '../components/ui/DataTable';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/DataTable';
 import { Drawer } from '@/components/ui/Drawer';
 import { LoanForm } from '@/components/forms/LoanForm';
 import { LoanScheduleView } from '@/components/loans/LoanScheduleView';

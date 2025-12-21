@@ -6,7 +6,7 @@ import { useAssets } from '@/hooks/api/useAssets';
 import { useEmployees } from '@/hooks/api/useEmployees';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
-import { DataTable } from '../components/ui/DataTable';
+import { DataTable } from '@/components/ui/DataTable';
 
 type AssignmentWithAsset = AssetAssignment & {
   asset?: any;
