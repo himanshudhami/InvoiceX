@@ -71,9 +71,9 @@ namespace Application.Services.Reports
                 var femaDeadline = invoice.InvoiceDate.AddDays(FemaRealizationDays);
                 var daysToFema = (femaDeadline.ToDateTime(TimeOnly.MinValue) - effectiveDate.ToDateTime(TimeOnly.MinValue)).Days;
 
-                // Estimate INR value (use invoice rate if available, otherwise estimate)
-                var estimatedInr = invoice.ForeignCurrencyAmount ?? outstanding * 83m;
-                var outstandingInr = outstanding / invoice.TotalAmount * estimatedInr;
+                // Calculate INR value using exchange rate (default to 85 if not set)
+                var exchangeRate = invoice.InvoiceExchangeRate ?? invoice.ExchangeRate ?? 85m;
+                var outstandingInr = outstanding * exchangeRate;
 
                 var ageingInvoice = new AgeingInvoiceDto
                 {
@@ -203,8 +203,8 @@ namespace Application.Services.Reports
                 var paidAmount = payments.Sum(p => p.Amount);
                 var outstanding = invoice.TotalAmount - paidAmount;
                 var daysOutstanding = (effectiveDate.ToDateTime(TimeOnly.MinValue) - invoice.InvoiceDate.ToDateTime(TimeOnly.MinValue)).Days;
-                var estimatedInr = invoice.ForeignCurrencyAmount ?? outstanding * 83m;
-                var outstandingInr = outstanding / invoice.TotalAmount * estimatedInr;
+                var exchangeRate = invoice.InvoiceExchangeRate ?? invoice.ExchangeRate ?? 85m;
+                var outstandingInr = outstanding * exchangeRate;
 
                 var cr = customerReceivables[customerId];
                 cr.InvoiceCount++;

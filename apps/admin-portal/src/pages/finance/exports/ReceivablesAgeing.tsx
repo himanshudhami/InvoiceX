@@ -89,20 +89,18 @@ export default function ReceivablesAgeing() {
     data: ageingData,
     isLoading,
     refetch,
-  } = useExportReceivablesAgeing(companyId || '', asOfDate, {
-    enabled: !!companyId,
-  });
+  } = useExportReceivablesAgeing(companyId || '', asOfDate, !!companyId);
 
   // Process data for charts
   const ageingChartData = useMemo(() => {
     if (!ageingData) return [];
     return [
-      { name: '0-30 Days', usd: ageingData.current_bucket_usd, inr: ageingData.current_bucket_inr, color: AGING_COLORS.current },
-      { name: '31-60 Days', usd: ageingData.bucket_31_60_usd, inr: ageingData.bucket_31_60_inr, color: AGING_COLORS['31-60'] },
-      { name: '61-90 Days', usd: ageingData.bucket_61_90_usd, inr: ageingData.bucket_61_90_inr, color: AGING_COLORS['61-90'] },
-      { name: '91-180 Days', usd: ageingData.bucket_91_180_usd, inr: ageingData.bucket_91_180_inr, color: AGING_COLORS['91-180'] },
-      { name: '181-270 Days', usd: ageingData.bucket_181_270_usd, inr: ageingData.bucket_181_270_inr, color: AGING_COLORS['181-270'] },
-      { name: '270+ Days', usd: ageingData.overdue_bucket_usd, inr: ageingData.overdue_bucket_inr, color: AGING_COLORS.overdue },
+      { name: '0-30 Days', usd: ageingData.current || 0, inr: ageingData.currentInr || 0, color: AGING_COLORS.current },
+      { name: '31-60 Days', usd: ageingData.days31To60 || 0, inr: ageingData.days31To60Inr || 0, color: AGING_COLORS['31-60'] },
+      { name: '61-90 Days', usd: ageingData.days61To90 || 0, inr: ageingData.days61To90Inr || 0, color: AGING_COLORS['61-90'] },
+      { name: '91-180 Days', usd: ageingData.days91To180 || 0, inr: ageingData.days91To180Inr || 0, color: AGING_COLORS['91-180'] },
+      { name: '181-270 Days', usd: ageingData.days181To270 || 0, inr: ageingData.days181To270Inr || 0, color: AGING_COLORS['181-270'] },
+      { name: '270+ Days', usd: ageingData.over270Days || 0, inr: ageingData.over270DaysInr || 0, color: AGING_COLORS.overdue },
     ];
   }, [ageingData]);
 
@@ -115,13 +113,13 @@ export default function ReceivablesAgeing() {
 
   // Filter invoices based on bucket selection
   const filteredInvoices = useMemo(() => {
-    if (!ageingData?.invoice_details) return [];
-    let invoices = ageingData.invoice_details;
+    if (!ageingData?.invoices) return [];
+    let invoices = ageingData.invoices;
 
     // Filter by bucket
     if (bucket !== 'all') {
       invoices = invoices.filter(inv => {
-        const age = inv.days_outstanding;
+        const age = inv.daysOutstanding;
         switch (bucket) {
           case 'current': return age <= 30;
           case '31-60': return age > 30 && age <= 60;
@@ -139,8 +137,8 @@ export default function ReceivablesAgeing() {
       const query = searchQuery.toLowerCase();
       invoices = invoices.filter(
         inv =>
-          inv.invoice_number.toLowerCase().includes(query) ||
-          inv.customer_name.toLowerCase().includes(query)
+          inv.invoiceNumber.toLowerCase().includes(query) ||
+          inv.customerName.toLowerCase().includes(query)
       );
     }
 
@@ -149,12 +147,12 @@ export default function ReceivablesAgeing() {
 
   // Calculate FEMA deadline stats
   const femaStats = useMemo(() => {
-    if (!ageingData?.invoice_details) return { atRisk: 0, critical: 0, violated: 0 };
-    const invoices = ageingData.invoice_details;
+    if (!ageingData?.invoices) return { atRisk: 0, critical: 0, violated: 0 };
+    const invoices = ageingData.invoices;
     return {
-      atRisk: invoices.filter(i => i.days_outstanding > 180 && i.days_outstanding <= 240).length,
-      critical: invoices.filter(i => i.days_outstanding > 240 && i.days_outstanding <= 270).length,
-      violated: invoices.filter(i => i.days_outstanding > 270).length,
+      atRisk: invoices.filter(i => i.daysOutstanding > 180 && i.daysOutstanding <= 240).length,
+      critical: invoices.filter(i => i.daysOutstanding > 240 && i.daysOutstanding <= 270).length,
+      violated: invoices.filter(i => i.daysOutstanding > 270).length,
     };
   }, [ageingData]);
 
@@ -274,10 +272,10 @@ export default function ReceivablesAgeing() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${formatNumber(ageingData?.total_outstanding_usd || 0)}
+              ${formatNumber(ageingData?.totalReceivablesForeign || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {ageingData?.total_invoices || 0} invoices
+              {ageingData?.invoices?.length || 0} invoices
             </p>
           </CardContent>
         </Card>
@@ -291,7 +289,7 @@ export default function ReceivablesAgeing() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{formatNumber(ageingData?.total_outstanding_inr || 0)}
+              ₹{formatNumber(ageingData?.totalReceivablesInr || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               At current exchange rates
@@ -309,17 +307,17 @@ export default function ReceivablesAgeing() {
           <CardContent>
             <div className={cn(
               'text-2xl font-bold flex items-center gap-1',
-              (ageingData?.unrealized_forex_gain_loss || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+              (ageingData?.totalReceivablesInr || 0) >= 0 ? 'text-green-600' : 'text-red-600'
             )}>
-              {(ageingData?.unrealized_forex_gain_loss || 0) >= 0 ? (
+              {(ageingData?.totalReceivablesInr || 0) >= 0 ? (
                 <ArrowUpRight className="h-5 w-5" />
               ) : (
                 <ArrowDownRight className="h-5 w-5" />
               )}
-              ₹{formatNumber(Math.abs(ageingData?.unrealized_forex_gain_loss || 0))}
+              ₹{formatNumber(Math.abs(ageingData?.totalReceivablesInr || 0))}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {(ageingData?.unrealized_forex_gain_loss || 0) >= 0 ? 'Potential gain' : 'Potential loss'}
+              INR equivalent at booking rates
             </p>
           </CardContent>
         </Card>
@@ -333,7 +331,7 @@ export default function ReceivablesAgeing() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {ageingData?.weighted_average_age || 0} days
+              {ageingData?.invoices?.length ? Math.round(ageingData.invoices.reduce((sum, i) => sum + i.daysOutstanding, 0) / ageingData.invoices.length) : 0} days
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Weighted by amount
@@ -461,7 +459,7 @@ export default function ReceivablesAgeing() {
             <div>
               <CardTitle className="text-lg">Invoice Details</CardTitle>
               <CardDescription>
-                {filteredInvoices.length} of {ageingData?.invoice_details?.length || 0} invoices
+                {filteredInvoices.length} of {ageingData?.invoices?.length || 0} invoices
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -517,36 +515,36 @@ export default function ReceivablesAgeing() {
                   </TableRow>
                 ) : (
                   filteredInvoices.map((invoice) => (
-                    <TableRow key={invoice.invoice_id}>
+                    <TableRow key={invoice.invoiceId}>
                       <TableCell className="font-medium">
-                        {invoice.invoice_number}
+                        {invoice.invoiceNumber}
                       </TableCell>
-                      <TableCell>{invoice.customer_name}</TableCell>
-                      <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-                      <TableCell>{formatDate(invoice.due_date)}</TableCell>
+                      <TableCell>{invoice.customerName}</TableCell>
+                      <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
+                      <TableCell>{formatDate(invoice.dueDate)}</TableCell>
                       <TableCell className="text-right font-medium">
-                        ${formatNumber(invoice.amount_usd)}
+                        ${formatNumber(invoice.outstandingAmount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{formatNumber(invoice.amount_inr)}
+                        ₹{formatNumber(invoice.outstandingAmountInr)}
                       </TableCell>
                       <TableCell>
-                        <span title={`${invoice.days_outstanding} days outstanding`}>
-                          {getAgeingBadge(invoice.days_outstanding)}
+                        <span title={`${invoice.daysOutstanding} days outstanding`}>
+                          {getAgeingBadge(invoice.daysOutstanding)}
                         </span>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          {getDaysToDeadline(invoice.days_outstanding)}
+                          {getDaysToDeadline(invoice.daysOutstanding)}
                           <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
                             <div
                               className={cn(
                                 'h-full rounded-full transition-all',
-                                invoice.days_outstanding > 270 ? 'bg-red-600' :
-                                invoice.days_outstanding > 180 ? 'bg-orange-500' :
+                                invoice.daysOutstanding > 270 ? 'bg-red-600' :
+                                invoice.daysOutstanding > 180 ? 'bg-orange-500' :
                                 'bg-green-500'
                               )}
-                              style={{ width: `${Math.min((invoice.days_outstanding / 270) * 100, 100)}%` }}
+                              style={{ width: `${Math.min((invoice.daysOutstanding / 270) * 100, 100)}%` }}
                             />
                           </div>
                         </div>
@@ -554,10 +552,10 @@ export default function ReceivablesAgeing() {
                       <TableCell className="text-right">
                         <span className={cn(
                           'font-medium',
-                          invoice.unrealized_gain_loss >= 0 ? 'text-green-600' : 'text-red-600'
+                          (invoice.outstandingAmountInr - invoice.outstandingAmount * 83) >= 0 ? 'text-green-600' : 'text-red-600'
                         )}>
-                          {invoice.unrealized_gain_loss >= 0 ? '+' : ''}
-                          ₹{formatNumber(invoice.unrealized_gain_loss)}
+                          {(invoice.outstandingAmountInr - invoice.outstandingAmount * 83) >= 0 ? '+' : ''}
+                          ₹{formatNumber(invoice.outstandingAmountInr - invoice.outstandingAmount * 83)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -569,8 +567,8 @@ export default function ReceivablesAgeing() {
         </CardContent>
       </Card>
 
-      {/* Customer Summary */}
-      {ageingData?.by_customer && ageingData.by_customer.length > 0 && (
+      {/* Customer Summary - derived from invoice data */}
+      {ageingData?.invoices && ageingData.invoices.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">By Customer</CardTitle>
@@ -585,36 +583,38 @@ export default function ReceivablesAgeing() {
                     <TableHead className="text-right">Total USD</TableHead>
                     <TableHead className="text-right">Total INR</TableHead>
                     <TableHead className="text-center">Invoices</TableHead>
-                    <TableHead>Avg Age</TableHead>
-                    <TableHead className="text-right">Forex Impact</TableHead>
+                    <TableHead>Oldest</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ageingData.by_customer.map((customer) => (
-                    <TableRow key={customer.customer_id}>
+                  {Object.entries(
+                    ageingData.invoices.reduce((acc, inv) => {
+                      const key = inv.customerId;
+                      if (!acc[key]) {
+                        acc[key] = { name: inv.customerName, totalUsd: 0, totalInr: 0, count: 0, maxAge: 0 };
+                      }
+                      acc[key].totalUsd += inv.outstandingAmount;
+                      acc[key].totalInr += inv.outstandingAmountInr;
+                      acc[key].count += 1;
+                      acc[key].maxAge = Math.max(acc[key].maxAge, inv.daysOutstanding);
+                      return acc;
+                    }, {} as Record<string, { name: string; totalUsd: number; totalInr: number; count: number; maxAge: number }>)
+                  ).map(([customerId, customer]) => (
+                    <TableRow key={customerId}>
                       <TableCell className="font-medium">
-                        {customer.customer_name}
+                        {customer.name}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        ${formatNumber(customer.total_usd)}
+                        ${formatNumber(customer.totalUsd)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{formatNumber(customer.total_inr)}
+                        ₹{formatNumber(customer.totalInr)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {customer.invoice_count}
+                        {customer.count}
                       </TableCell>
                       <TableCell>
-                        {getAgeingBadge(customer.average_age)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={cn(
-                          'font-medium',
-                          customer.unrealized_gain_loss >= 0 ? 'text-green-600' : 'text-red-600'
-                        )}>
-                          {customer.unrealized_gain_loss >= 0 ? '+' : ''}
-                          ₹{formatNumber(customer.unrealized_gain_loss)}
-                        </span>
+                        {getAgeingBadge(customer.maxAge)}
                       </TableCell>
                     </TableRow>
                   ))}

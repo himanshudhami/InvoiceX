@@ -13,7 +13,7 @@ import {
 } from '../types';
 
 export class ExportReportingService {
-  private readonly endpoint = 'export-reports';
+  private readonly endpoint = 'exportreporting';
 
   // ==================== Receivables Ageing ====================
 
@@ -82,7 +82,7 @@ export class ExportReportingService {
    */
   async getFemaComplianceDashboard(companyId: string): Promise<FemaComplianceDashboard> {
     return apiClient.get<FemaComplianceDashboard>(
-      `${this.endpoint}/fema-compliance/${companyId}`
+      `${this.endpoint}/fema-dashboard/${companyId}`
     );
   }
 
@@ -91,7 +91,7 @@ export class ExportReportingService {
    */
   async getFemaViolationAlerts(companyId: string): Promise<FemaViolationAlert[]> {
     return apiClient.get<FemaViolationAlert[]>(
-      `${this.endpoint}/fema-alerts/${companyId}`
+      `${this.endpoint}/fema-violations/${companyId}`
     );
   }
 

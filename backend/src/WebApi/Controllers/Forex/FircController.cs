@@ -10,7 +10,7 @@ namespace WebApi.Controllers.Forex
     /// FIRC (Foreign Inward Remittance Certificate) management endpoints for FEMA compliance
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/fircs")]
     [Produces("application/json")]
     public class FircController : ControllerBase
     {
@@ -115,6 +115,34 @@ namespace WebApi.Controllers.Forex
             }
 
             return NoContent();
+        }
+
+        /// <summary>
+        /// Get all FIRCs for a company
+        /// </summary>
+        [HttpGet("by-company/{companyId}")]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetByCompany(Guid companyId)
+        {
+            var result = await _service.GetPagedAsync(1, 100, companyId, null, null, null);
+            if (result.IsFailure)
+                return BadRequest(result.Error!.Message);
+
+            return Ok(result.Value.Items);
+        }
+
+        /// <summary>
+        /// Get FIRCs pending reconciliation (unlinked to payments/invoices)
+        /// </summary>
+        [HttpGet("pending-reconciliation/{companyId}")]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetPendingReconciliation(Guid companyId)
+        {
+            var result = await _service.GetUnlinkedAsync(companyId);
+            if (result.IsFailure)
+                return BadRequest(result.Error!.Message);
+
+            return Ok(result.Value);
         }
 
         // ==================== FIRC-Specific Endpoints ====================

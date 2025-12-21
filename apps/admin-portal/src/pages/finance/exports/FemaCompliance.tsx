@@ -120,7 +120,7 @@ const FemaCompliance = () => {
         description: femaCompliance.hasActiveLut
           ? `LUT ${femaCompliance.activeLutNumber} valid for ${femaCompliance.daysToLutExpiry} days`
           : 'No active LUT found',
-        action: femaCompliance.hasActiveLut ? undefined : { label: 'Register LUT', link: '/exports/lut-register' },
+        action: femaCompliance.hasActiveLut ? undefined : { label: 'Register LUT', link: '/exports/lut' },
       },
       {
         label: 'FEMA Realization',
@@ -128,13 +128,13 @@ const FemaCompliance = () => {
         description: femaCompliance.overdueCount === 0
           ? 'All invoices within 270-day deadline'
           : `${femaCompliance.overdueCount} invoices past FEMA deadline`,
-        action: femaCompliance.overdueCount > 0 ? { label: 'View Overdue', link: '/exports/receivables-ageing' } : undefined,
+        action: femaCompliance.overdueCount > 0 ? { label: 'View Overdue', link: '/exports/ageing' } : undefined,
       },
       {
         label: 'FIRC Coverage',
         status: femaCompliance.fircsCoverage >= 90 ? 'pass' : femaCompliance.fircsCoverage >= 70 ? 'warning' : 'fail',
         description: `${femaCompliance.fircsCoverage.toFixed(1)}% of payments have FIRCs`,
-        action: femaCompliance.fircsPending > 0 ? { label: 'Manage FIRCs', link: '/exports/firc-management' } : undefined,
+        action: femaCompliance.fircsPending > 0 ? { label: 'Manage FIRCs', link: '/exports/firc' } : undefined,
       },
       {
         label: 'EDPMS Reporting',
@@ -142,7 +142,7 @@ const FemaCompliance = () => {
         description: femaCompliance.edpmsPending === 0
           ? 'All FIRCs reported to EDPMS'
           : `${femaCompliance.edpmsPending} FIRCs pending EDPMS reporting`,
-        action: femaCompliance.edpmsPending > 0 ? { label: 'Report Now', link: '/exports/firc-management' } : undefined,
+        action: femaCompliance.edpmsPending > 0 ? { label: 'Report Now', link: '/exports/firc' } : undefined,
       },
     ]
   }, [femaCompliance])
@@ -459,7 +459,7 @@ const FemaCompliance = () => {
             {realizationReport.atRiskInvoices.length > 10 && (
               <div className="mt-4 text-center">
                 <Button variant="outline" asChild>
-                  <Link to="/exports/receivables-ageing">
+                  <Link to="/exports/ageing">
                     View All {realizationReport.atRiskInvoices.length} At-Risk Invoices
                   </Link>
                 </Button>

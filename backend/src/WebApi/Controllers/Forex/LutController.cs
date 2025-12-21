@@ -10,7 +10,7 @@ namespace WebApi.Controllers.Forex
     /// LUT (Letter of Undertaking) management endpoints for GST Export compliance
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/luts")]
     [Produces("application/json")]
     public class LutController : ControllerBase
     {
@@ -119,7 +119,41 @@ namespace WebApi.Controllers.Forex
         // ==================== LUT-Specific Endpoints ====================
 
         /// <summary>
-        /// Get active LUT for a company in a financial year
+        /// Get all LUTs for a company
+        /// </summary>
+        [HttpGet("by-company/{companyId}")]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetByCompany(Guid companyId)
+        {
+            var result = await _service.GetPagedAsync(1, 100, companyId, null, null);
+            if (result.IsFailure)
+                return BadRequest(result.Error!.Message);
+
+            return Ok(result.Value.Items);
+        }
+
+        /// <summary>
+        /// Get active LUT for a company (uses current financial year)
+        /// </summary>
+        [HttpGet("active/{companyId}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetActiveCurrent(Guid companyId)
+        {
+            var currentFy = GetCurrentFinancialYear();
+            var result = await _service.GetActiveAsync(companyId, currentFy);
+            if (result.IsFailure)
+            {
+                return result.Error!.Type == ErrorType.NotFound
+                    ? NotFound(result.Error.Message)
+                    : BadRequest(result.Error.Message);
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get active LUT for a company in a specific financial year
         /// </summary>
         [HttpGet("active/{companyId}/{financialYear}")]
         [ProducesResponseType(200)]
@@ -198,11 +232,25 @@ namespace WebApi.Controllers.Forex
         }
 
         /// <summary>
-        /// Get LUT expiry alerts
+        /// Get LUT expiry alerts (all companies)
         /// </summary>
         [HttpGet("expiry-alerts")]
         [ProducesResponseType(200)]
-        public async Task<IActionResult> GetExpiryAlerts([FromQuery] Guid? companyId, [FromQuery] int daysBeforeExpiry = 30)
+        public async Task<IActionResult> GetExpiryAlerts([FromQuery] int daysBeforeExpiry = 30)
+        {
+            var result = await _service.GetExpiryAlertsAsync(null, daysBeforeExpiry);
+            if (result.IsFailure)
+                return BadRequest(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get LUT expiry alerts for a specific company
+        /// </summary>
+        [HttpGet("expiry-alerts/{companyId}")]
+        [ProducesResponseType(200)]
+        public async Task<IActionResult> GetExpiryAlertsForCompany(Guid companyId, [FromQuery] int daysBeforeExpiry = 30)
         {
             var result = await _service.GetExpiryAlertsAsync(companyId, daysBeforeExpiry);
             if (result.IsFailure)
@@ -237,6 +285,15 @@ namespace WebApi.Controllers.Forex
                 return BadRequest(result.Error!.Message);
 
             return Ok(result.Value);
+        }
+
+        // ==================== Helper Methods ====================
+
+        private static string GetCurrentFinancialYear()
+        {
+            var today = DateTime.UtcNow;
+            var year = today.Month >= 4 ? today.Year : today.Year - 1;
+            return $"{year}-{(year + 1) % 100:D2}";
         }
     }
 
