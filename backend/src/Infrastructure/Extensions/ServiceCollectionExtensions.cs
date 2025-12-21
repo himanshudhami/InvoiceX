@@ -251,6 +251,14 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             // Register factory for cases where caller wants to choose provider
             services.AddScoped<Infrastructure.Data.Payroll.TaxRateProviderFactory>();
 
+            // Forex/Export repositories
+            services.AddScoped<Core.Interfaces.Forex.IFircTrackingRepository>(sp =>
+                new Infrastructure.Data.Forex.FircTrackingRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Forex.ILutRegisterRepository>(sp =>
+                new Infrastructure.Data.Forex.LutRegisterRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Forex.IForexTransactionRepository>(sp =>
+                new Infrastructure.Data.Forex.ForexTransactionRepository(connectionString));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();

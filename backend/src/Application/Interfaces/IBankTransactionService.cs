@@ -81,6 +81,22 @@ namespace Application.Interfaces
         Task<Result<IEnumerable<ReconciliationSuggestionDto>>> GetReconciliationSuggestionsAsync(
             Guid transactionId, decimal tolerance = 0.01m, int maxResults = 10);
 
+        /// <summary>
+        /// Automatically reconcile unmatched transactions with payments
+        /// </summary>
+        Task<Result<AutoReconcileResultDto>> AutoReconcileAsync(
+            Guid bankAccountId,
+            int minMatchScore = 80,
+            decimal amountTolerance = 0.01m,
+            int dateTolerance = 3);
+
+        /// <summary>
+        /// Generate Bank Reconciliation Statement
+        /// </summary>
+        Task<Result<BankReconciliationStatementDto>> GenerateBrsAsync(
+            Guid bankAccountId,
+            DateOnly asOfDate);
+
         // ==================== Import Methods ====================
 
         /// <summary>
@@ -119,5 +135,84 @@ namespace Application.Interfaces
         public decimal TotalDebits { get; set; }
         public decimal NetAmount => TotalCredits - TotalDebits;
         public double ReconciliationPercentage => TotalCount > 0 ? Math.Round((double)ReconciledCount / TotalCount * 100, 2) : 0;
+    }
+
+    /// <summary>
+    /// Result of auto-reconciliation process
+    /// </summary>
+    public class AutoReconcileResultDto
+    {
+        public int TransactionsProcessed { get; set; }
+        public int TransactionsReconciled { get; set; }
+        public int TransactionsSkipped { get; set; }
+        public decimal TotalAmountReconciled { get; set; }
+        public List<AutoReconcileMatchDto> Matches { get; set; } = new();
+    }
+
+    public class AutoReconcileMatchDto
+    {
+        public Guid BankTransactionId { get; set; }
+        public Guid PaymentId { get; set; }
+        public decimal Amount { get; set; }
+        public int MatchScore { get; set; }
+        public string MatchReason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Bank Reconciliation Statement
+    /// </summary>
+    public class BankReconciliationStatementDto
+    {
+        public Guid BankAccountId { get; set; }
+        public string BankAccountName { get; set; } = string.Empty;
+        public DateOnly AsOfDate { get; set; }
+        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+
+        // Bank Balance
+        public decimal BankStatementBalance { get; set; }
+
+        // Add: Deposits in transit (recorded in books but not yet in bank)
+        public decimal DepositsInTransit { get; set; }
+        public List<BrsItemDto> DepositsInTransitItems { get; set; } = new();
+
+        // Less: Outstanding cheques (recorded in books but not yet cleared)
+        public decimal OutstandingCheques { get; set; }
+        public List<BrsItemDto> OutstandingChequeItems { get; set; } = new();
+
+        // Adjusted Bank Balance
+        public decimal AdjustedBankBalance { get; set; }
+
+        // Book Balance
+        public decimal BookBalance { get; set; }
+
+        // Add: Bank credits not in books
+        public decimal BankCreditsNotInBooks { get; set; }
+        public List<BrsItemDto> BankCreditsNotInBooksItems { get; set; } = new();
+
+        // Less: Bank debits not in books
+        public decimal BankDebitsNotInBooks { get; set; }
+        public List<BrsItemDto> BankDebitsNotInBooksItems { get; set; } = new();
+
+        // Adjusted Book Balance
+        public decimal AdjustedBookBalance { get; set; }
+
+        // Difference (should be 0 if reconciled)
+        public decimal Difference => AdjustedBankBalance - AdjustedBookBalance;
+        public bool IsReconciled => Math.Abs(Difference) < 0.01m;
+
+        // Summary
+        public int TotalTransactions { get; set; }
+        public int ReconciledTransactions { get; set; }
+        public int UnreconciledTransactions { get; set; }
+    }
+
+    public class BrsItemDto
+    {
+        public Guid Id { get; set; }
+        public DateOnly Date { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string? ReferenceNumber { get; set; }
+        public decimal Amount { get; set; }
+        public string Type { get; set; } = string.Empty; // 'bank_transaction', 'payment', 'expense'
     }
 }

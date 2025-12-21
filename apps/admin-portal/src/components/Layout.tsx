@@ -44,6 +44,11 @@ import {
   ScrollText,
   FileCheck,
   BookMarked,
+  Globe,
+  DollarSign,
+  FileSearch,
+  ShieldCheck,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -119,6 +124,18 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'TDS Receivables', href: '/tds-receivables', icon: Receipt },
         { name: 'Expense Reports', href: '/expense-dashboard', icon: BarChart3 },
         { name: 'Financial Report', href: '/financial-report', icon: FileSpreadsheet },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Exports & Forex',
+      icon: Globe,
+      items: [
+        { name: 'Export Dashboard', href: '/exports', icon: BarChart3 },
+        { name: 'FIRC Management', href: '/exports/firc', icon: DollarSign },
+        { name: 'LUT Register', href: '/exports/lut', icon: FileSearch },
+        { name: 'FEMA Compliance', href: '/exports/fema', icon: ShieldCheck },
+        { name: 'Receivables Ageing', href: '/exports/ageing', icon: Clock },
       ],
     },
     {

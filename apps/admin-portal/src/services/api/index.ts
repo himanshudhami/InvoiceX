@@ -49,3 +49,8 @@ export * from './hr/payroll/payrollService'
 
 // DEPRECATED: employeeSalaryTransactionService - Use payrollService instead
 export * from './hr/payroll/employeeSalaryTransactionService'
+
+// Export & Forex Management
+export * from './exports/fircService'
+export * from './exports/lutService'
+export * from './exports/exportReportingService'

@@ -103,6 +103,13 @@ const EInvoiceSettings = lazy(() => import('./pages/finance/tax/EInvoiceSettings
 // Tax Rule Packs
 const TaxRulePacksManagement = lazy(() => import('./pages/finance/tax/TaxRulePacksManagement'))
 
+// Export & Forex Management
+const ExportDashboard = lazy(() => import('./pages/finance/exports/ExportDashboard'))
+const FircManagement = lazy(() => import('./pages/finance/exports/FircManagement'))
+const LutRegister = lazy(() => import('./pages/finance/exports/LutRegister'))
+const FemaCompliance = lazy(() => import('./pages/finance/exports/FemaCompliance'))
+const ReceivablesAgeing = lazy(() => import('./pages/finance/exports/ReceivablesAgeing'))
+
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -259,6 +266,13 @@ function AppRoutes() {
 
               {/* Tax Compliance Routes */}
               <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />
+
+              {/* Export & Forex Routes */}
+              <Route path="/exports" element={<ExportDashboard />} />
+              <Route path="/exports/firc" element={<FircManagement />} />
+              <Route path="/exports/lut" element={<LutRegister />} />
+              <Route path="/exports/fema" element={<FemaCompliance />} />
+              <Route path="/exports/ageing" element={<ReceivablesAgeing />} />
 
               {/* General Ledger Routes */}
               <Route path="/ledger/accounts" element={<ChartOfAccountsManagement />} />

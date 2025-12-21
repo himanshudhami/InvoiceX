@@ -1,9 +1,12 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Forex;
+using Application.Interfaces.Ledger;
 using Application.DTOs.Payments;
 using Application.Validators.Payments;
 using Core.Entities;
 using Core.Interfaces;
+using Core.Interfaces.Forex;
 using Core.Common;
 using AutoMapper;
 using FluentValidation;
@@ -15,13 +18,16 @@ namespace Application.Services
 {
     /// <summary>
     /// Service implementation for Payments operations
-    /// Enhanced for Indian tax compliance with TDS tracking and direct payments
+    /// Enhanced for Indian tax compliance with TDS tracking, direct payments, and forex gain/loss (Ind AS 21)
     /// </summary>
     public class PaymentsService : IPaymentsService
     {
         private readonly IPaymentsRepository _repository;
         private readonly IInvoicesRepository _invoicesRepository;
         private readonly IPaymentAllocationRepository _allocationRepository;
+        private readonly IForexService _forexService;
+        private readonly IForexTransactionRepository _forexRepository;
+        private readonly IAutoPostingService _autoPostingService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreatePaymentsDto> _createValidator;
         private readonly IValidator<UpdatePaymentsDto> _updateValidator;
@@ -30,6 +36,9 @@ namespace Application.Services
             IPaymentsRepository repository,
             IInvoicesRepository invoicesRepository,
             IPaymentAllocationRepository allocationRepository,
+            IForexService forexService,
+            IForexTransactionRepository forexRepository,
+            IAutoPostingService autoPostingService,
             IMapper mapper,
             IValidator<CreatePaymentsDto> createValidator,
             IValidator<UpdatePaymentsDto> updateValidator)
@@ -37,6 +46,9 @@ namespace Application.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _invoicesRepository = invoicesRepository ?? throw new ArgumentNullException(nameof(invoicesRepository));
             _allocationRepository = allocationRepository ?? throw new ArgumentNullException(nameof(allocationRepository));
+            _forexService = forexService ?? throw new ArgumentNullException(nameof(forexService));
+            _forexRepository = forexRepository ?? throw new ArgumentNullException(nameof(forexRepository));
+            _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -199,10 +211,76 @@ namespace Application.Services
 
                     invoice.UpdatedAt = DateTime.UtcNow;
                     await _invoicesRepository.UpdateAsync(invoice);
+
+                    // Process forex settlement for export invoices (Ind AS 21)
+                    if (IsExportPayment(invoice, createdEntity))
+                    {
+                        await ProcessForexSettlementAsync(invoice, createdEntity);
+                    }
                 }
             }
 
+            // Trigger auto-posting for the payment
+            await _autoPostingService.PostPaymentAsync(createdEntity.Id);
+
             return Result<Payments>.Success(createdEntity);
+        }
+
+        /// <summary>
+        /// Check if this payment is for an export invoice (foreign currency)
+        /// </summary>
+        private static bool IsExportPayment(Invoices invoice, Payments payment)
+        {
+            return invoice.InvoiceType == "export" ||
+                   invoice.SupplyType == "export" ||
+                   (!string.IsNullOrEmpty(payment.Currency) &&
+                    !payment.Currency.Equals("INR", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Process forex settlement and calculate realized gain/loss (Ind AS 21)
+        /// </summary>
+        private async Task ProcessForexSettlementAsync(Invoices invoice, Payments payment)
+        {
+            if (!payment.CompanyId.HasValue || !payment.AmountInInr.HasValue)
+                return;
+
+            // Get the original forex booking transaction for this invoice
+            var bookingTxn = await _forexRepository.GetBySourceAsync("invoice", invoice.Id);
+            if (bookingTxn == null)
+                return; // No booking found, skip settlement
+
+            // Calculate settlement exchange rate from payment
+            var settlementRate = payment.AmountInInr.Value / payment.Amount;
+
+            // Get financial year
+            var financialYear = GetFinancialYear(payment.PaymentDate);
+
+            // Create forex settlement transaction with gain/loss
+            var settlementRequest = new ForexSettlementRequest
+            {
+                CompanyId = payment.CompanyId.Value,
+                TransactionDate = payment.PaymentDate,
+                FinancialYear = financialYear,
+                BookingTransactionId = bookingTxn.Id,
+                SourceType = "payment",
+                SourceId = payment.Id,
+                SourceNumber = payment.ReferenceNumber ?? payment.Id.ToString()[..8],
+                Currency = payment.Currency ?? "USD",
+                ForeignAmount = payment.Amount,
+                SettlementRate = settlementRate
+            };
+
+            await _forexService.RecordSettlementAsync(settlementRequest);
+        }
+
+        /// <summary>
+        /// Get financial year in format "2025-26" from a date
+        /// </summary>
+        private static string GetFinancialYear(DateOnly date)
+        {
+            var year = date.Month >= 4 ? date.Year : date.Year - 1;
+            return $"{year}-{(year + 1) % 100:D2}";
         }
 
         /// <inheritdoc />

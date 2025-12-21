@@ -1,11 +1,14 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Forex;
+using Application.Interfaces.Ledger;
 using Application.DTOs.Invoices;
 using Application.DTOs.Payments;
 using Application.Validators.Invoices;
 using Application.Validators.Payments;
 using Core.Entities;
 using Core.Interfaces;
+using Core.Interfaces.Forex;
 using Core.Common;
 using AutoMapper;
 using FluentValidation;
@@ -18,6 +21,7 @@ namespace Application.Services
 {
     /// <summary>
     /// Service implementation for Invoices operations
+    /// Enhanced with forex accounting (Ind AS 21) and auto-posting support
     /// </summary>
     public class InvoicesService : IInvoicesService
     {
@@ -25,15 +29,24 @@ namespace Application.Services
         private readonly IInvoiceItemsRepository _invoiceItemsRepository;
         private readonly IPaymentsRepository _paymentsRepository;
         private readonly IPaymentAllocationRepository _allocationRepository;
+        private readonly IForexService _forexService;
+        private readonly IAutoPostingService _autoPostingService;
+        private readonly ILutRegisterRepository _lutRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateInvoicesDto> _createValidator;
         private readonly IValidator<UpdateInvoicesDto> _updateValidator;
+
+        // Default exchange rate for USD (fallback when RBI rate not available)
+        private const decimal DefaultUsdRate = 83.50m;
 
         public InvoicesService(
             IInvoicesRepository repository,
             IInvoiceItemsRepository invoiceItemsRepository,
             IPaymentsRepository paymentsRepository,
             IPaymentAllocationRepository allocationRepository,
+            IForexService forexService,
+            IAutoPostingService autoPostingService,
+            ILutRegisterRepository lutRepository,
             IMapper mapper,
             IValidator<CreateInvoicesDto> createValidator,
             IValidator<UpdateInvoicesDto> updateValidator)
@@ -42,6 +55,9 @@ namespace Application.Services
             _invoiceItemsRepository = invoiceItemsRepository ?? throw new ArgumentNullException(nameof(invoiceItemsRepository));
             _paymentsRepository = paymentsRepository ?? throw new ArgumentNullException(nameof(paymentsRepository));
             _allocationRepository = allocationRepository ?? throw new ArgumentNullException(nameof(allocationRepository));
+            _forexService = forexService ?? throw new ArgumentNullException(nameof(forexService));
+            _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
+            _lutRepository = lutRepository ?? throw new ArgumentNullException(nameof(lutRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -101,13 +117,124 @@ namespace Application.Services
 
             // Map DTO to entity
             var entity = _mapper.Map<Invoices>(dto);
-            
+
             // Set timestamps
             entity.CreatedAt = DateTime.UtcNow;
             entity.UpdatedAt = DateTime.UtcNow;
 
+            // Handle export invoice forex fields
+            var isExport = IsExportInvoice(entity);
+            if (isExport)
+            {
+                await ProcessExportInvoiceForexAsync(entity);
+            }
+
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Create forex booking transaction for export invoices
+            if (isExport && createdEntity.CompanyId.HasValue && createdEntity.InvoiceExchangeRate.HasValue)
+            {
+                await CreateForexBookingAsync(createdEntity);
+            }
+
+            // Trigger auto-posting if invoice is finalized (not draft)
+            if (!string.IsNullOrEmpty(createdEntity.Status) &&
+                !createdEntity.Status.Equals("draft", StringComparison.OrdinalIgnoreCase))
+            {
+                await _autoPostingService.PostInvoiceAsync(createdEntity.Id);
+            }
+
             return Result<Invoices>.Success(createdEntity);
+        }
+
+        /// <summary>
+        /// Check if invoice is an export invoice (foreign currency)
+        /// </summary>
+        private static bool IsExportInvoice(Invoices invoice)
+        {
+            return invoice.InvoiceType == "export" ||
+                   invoice.SupplyType == "export" ||
+                   (!string.IsNullOrEmpty(invoice.Currency) &&
+                    !invoice.Currency.Equals("INR", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Process forex fields for export invoice (Ind AS 21)
+        /// </summary>
+        private async Task ProcessExportInvoiceForexAsync(Invoices entity)
+        {
+            // Set export type if not provided
+            if (string.IsNullOrEmpty(entity.InvoiceType))
+                entity.InvoiceType = "export";
+
+            if (string.IsNullOrEmpty(entity.SupplyType))
+                entity.SupplyType = "export";
+
+            // Set foreign currency amount
+            entity.ForeignCurrencyAmount = entity.TotalAmount;
+            entity.ForeignCurrency = entity.Currency ?? "USD";
+
+            // Get or use default exchange rate
+            var exchangeRate = entity.InvoiceExchangeRate ?? entity.ExchangeRate ?? DefaultUsdRate;
+            entity.InvoiceExchangeRate = exchangeRate;
+            entity.ExchangeRate = exchangeRate;
+
+            // Calculate INR amount at invoice date rate
+            entity.InvoiceAmountInr = entity.ForeignCurrencyAmount * exchangeRate;
+
+            // Set realization due date (9 months from invoice date per FEMA)
+            entity.RealizationDueDate = entity.InvoiceDate.AddMonths(9);
+
+            // Get and set LUT details if company has one
+            if (entity.CompanyId.HasValue)
+            {
+                var lut = await _lutRepository.GetValidForDateAsync(entity.CompanyId.Value, entity.InvoiceDate);
+                if (lut != null)
+                {
+                    entity.LutNumber = lut.LutNumber;
+                    entity.LutValidFrom = lut.ValidFrom;
+                    entity.LutValidTo = lut.ValidTo;
+                }
+            }
+
+            // Set default purpose code for software services
+            if (string.IsNullOrEmpty(entity.PurposeCode))
+                entity.PurposeCode = "P0802"; // Computer Software
+        }
+
+        /// <summary>
+        /// Create forex booking transaction when export invoice is created
+        /// </summary>
+        private async Task CreateForexBookingAsync(Invoices invoice)
+        {
+            if (!invoice.CompanyId.HasValue || !invoice.InvoiceExchangeRate.HasValue)
+                return;
+
+            var financialYear = GetFinancialYear(invoice.InvoiceDate);
+
+            var bookingRequest = new ForexBookingRequest
+            {
+                CompanyId = invoice.CompanyId.Value,
+                TransactionDate = invoice.InvoiceDate,
+                FinancialYear = financialYear,
+                SourceType = "invoice",
+                SourceId = invoice.Id,
+                SourceNumber = invoice.InvoiceNumber,
+                Currency = invoice.ForeignCurrency ?? invoice.Currency ?? "USD",
+                ForeignAmount = invoice.ForeignCurrencyAmount ?? invoice.TotalAmount,
+                ExchangeRate = invoice.InvoiceExchangeRate.Value
+            };
+
+            await _forexService.RecordBookingAsync(bookingRequest);
+        }
+
+        /// <summary>
+        /// Get financial year in format "2025-26" from a date
+        /// </summary>
+        private static string GetFinancialYear(DateOnly date)
+        {
+            var year = date.Month >= 4 ? date.Year : date.Year - 1;
+            return $"{year}-{(year + 1) % 100:D2}";
         }
 
         /// <inheritdoc />
@@ -126,13 +253,26 @@ namespace Application.Services
             if (existingEntity == null)
                 return Error.NotFound($"Invoices with ID {id} not found");
 
+            // Track if status is changing from draft to finalized
+            var wasNotPosted = string.IsNullOrEmpty(existingEntity.Status) ||
+                               existingEntity.Status.Equals("draft", StringComparison.OrdinalIgnoreCase);
+
             // Map DTO to existing entity
             _mapper.Map(dto, existingEntity);
-            
+
             // Set updated timestamp
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Trigger auto-posting if status changed from draft to finalized
+            var isNowFinalized = !string.IsNullOrEmpty(existingEntity.Status) &&
+                                 !existingEntity.Status.Equals("draft", StringComparison.OrdinalIgnoreCase);
+            if (wasNotPosted && isNowFinalized)
+            {
+                await _autoPostingService.PostInvoiceAsync(existingEntity.Id);
+            }
+
             return Result.Success();
         }
 

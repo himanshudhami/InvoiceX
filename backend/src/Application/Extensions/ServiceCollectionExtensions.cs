@@ -189,6 +189,16 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService,
                               Application.Services.Ledger.AutoPostingService>();
 
+            // Forex/Export services
+            services.AddScoped<Application.Interfaces.Forex.IFircReconciliationService,
+                              Application.Services.Forex.FircReconciliationService>();
+            services.AddScoped<Application.Interfaces.Forex.ILutService,
+                              Application.Services.Forex.LutService>();
+            services.AddScoped<Application.Interfaces.Forex.IForexService,
+                              Application.Services.Forex.ForexService>();
+            services.AddScoped<Application.Interfaces.Reports.IExportReportingService,
+                              Application.Services.Reports.ExportReportingService>();
+
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();
             // services.AddScoped<INotificationService, NotificationService>();

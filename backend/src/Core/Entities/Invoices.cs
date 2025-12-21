@@ -64,6 +64,25 @@ namespace Core.Entities
         public decimal? ExchangeRate { get; set; }
         public decimal? ForeignCurrencyAmount { get; set; }
 
+        // Forex accounting (Ind AS 21)
+        public decimal? InvoiceExchangeRate { get; set; }  // RBI rate on invoice date
+        public decimal? InvoiceAmountInr { get; set; }     // INR value at invoice date
+
+        // LUT for zero-rated exports
+        public string? LutNumber { get; set; }
+        public DateOnly? LutValidFrom { get; set; }
+        public DateOnly? LutValidTo { get; set; }
+
+        // FEMA compliance
+        public string? PurposeCode { get; set; }           // RBI purpose code (P0802)
+        public string? AdBankName { get; set; }            // Authorized Dealer bank
+        public DateOnly? RealizationDueDate { get; set; }  // 9 months from invoice date
+
+        // Ledger posting
+        public bool IsPosted { get; set; }
+        public Guid? PostedJournalId { get; set; }
+        public DateTime? PostedAt { get; set; }
+
         // SEZ-specific fields
         public string? SezCategory { get; set; } // SEZWP, SEZWOP
 

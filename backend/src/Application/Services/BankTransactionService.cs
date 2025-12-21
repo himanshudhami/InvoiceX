@@ -429,6 +429,181 @@ namespace Application.Services
             });
         }
 
+        // ==================== Auto-Reconciliation Methods ====================
+
+        /// <inheritdoc />
+        public async Task<Result<AutoReconcileResultDto>> AutoReconcileAsync(
+            Guid bankAccountId,
+            int minMatchScore = 80,
+            decimal amountTolerance = 0.01m,
+            int dateTolerance = 3)
+        {
+            var validation = ServiceExtensions.ValidateGuid(bankAccountId);
+            if (validation.IsFailure)
+                return validation.Error!;
+
+            var result = new AutoReconcileResultDto();
+
+            // Get unreconciled bank transactions
+            var unreconciledTxns = await _repository.GetUnreconciledAsync(bankAccountId);
+            var transactions = unreconciledTxns.ToList();
+            result.TransactionsProcessed = transactions.Count;
+
+            foreach (var txn in transactions)
+            {
+                // Get suggestions for this transaction
+                var suggestions = await _repository.GetReconciliationSuggestionsAsync(txn.Id, amountTolerance, 5);
+                var suggestionsList = suggestions.ToList();
+
+                if (!suggestionsList.Any())
+                {
+                    result.TransactionsSkipped++;
+                    continue;
+                }
+
+                // Find best match above threshold
+                Payments? bestMatch = null;
+                int bestScore = 0;
+                string matchReason = "";
+
+                foreach (var payment in suggestionsList)
+                {
+                    var score = CalculateMatchScore(txn, payment);
+                    if (score >= minMatchScore && score > bestScore)
+                    {
+                        // Additional date tolerance check
+                        var dateDiff = Math.Abs((txn.TransactionDate.ToDateTime(TimeOnly.MinValue) -
+                            payment.PaymentDate.ToDateTime(TimeOnly.MinValue)).Days);
+                        if (dateDiff <= dateTolerance)
+                        {
+                            bestMatch = payment;
+                            bestScore = score;
+                            matchReason = BuildMatchReason(txn, payment, score);
+                        }
+                    }
+                }
+
+                if (bestMatch != null)
+                {
+                    // Reconcile the transaction
+                    await _repository.ReconcileTransactionAsync(txn.Id, "payment", bestMatch.Id, "auto-reconcile");
+
+                    result.TransactionsReconciled++;
+                    result.TotalAmountReconciled += txn.Amount;
+                    result.Matches.Add(new AutoReconcileMatchDto
+                    {
+                        BankTransactionId = txn.Id,
+                        PaymentId = bestMatch.Id,
+                        Amount = txn.Amount,
+                        MatchScore = bestScore,
+                        MatchReason = matchReason
+                    });
+                }
+                else
+                {
+                    result.TransactionsSkipped++;
+                }
+            }
+
+            return Result<AutoReconcileResultDto>.Success(result);
+        }
+
+        /// <inheritdoc />
+        public async Task<Result<BankReconciliationStatementDto>> GenerateBrsAsync(
+            Guid bankAccountId,
+            DateOnly asOfDate)
+        {
+            var validation = ServiceExtensions.ValidateGuid(bankAccountId);
+            if (validation.IsFailure)
+                return validation.Error!;
+
+            var bankAccount = await _bankAccountRepository.GetByIdAsync(bankAccountId);
+            if (bankAccount == null)
+                return Error.NotFound($"Bank account with ID {bankAccountId} not found");
+
+            var brs = new BankReconciliationStatementDto
+            {
+                BankAccountId = bankAccountId,
+                BankAccountName = bankAccount.AccountName ?? $"{bankAccount.BankName} - {bankAccount.AccountNumber}",
+                AsOfDate = asOfDate,
+                BankStatementBalance = bankAccount.CurrentBalance
+            };
+
+            // Get all transactions up to the as-of date
+            var allTxns = await _repository.GetByDateRangeAsync(bankAccountId, DateOnly.MinValue, asOfDate);
+            var transactions = allTxns.ToList();
+
+            brs.TotalTransactions = transactions.Count;
+            brs.ReconciledTransactions = transactions.Count(t => t.IsReconciled);
+            brs.UnreconciledTransactions = transactions.Count(t => !t.IsReconciled);
+
+            // Unreconciled bank credits (in bank but not in books)
+            var unreconciledCredits = transactions.Where(t => !t.IsReconciled && t.TransactionType == "credit").ToList();
+            brs.BankCreditsNotInBooks = unreconciledCredits.Sum(t => t.Amount);
+            brs.BankCreditsNotInBooksItems = unreconciledCredits.Select(t => new BrsItemDto
+            {
+                Id = t.Id,
+                Date = t.TransactionDate,
+                Description = t.Description ?? "",
+                ReferenceNumber = t.ReferenceNumber,
+                Amount = t.Amount,
+                Type = "bank_transaction"
+            }).ToList();
+
+            // Unreconciled bank debits (in bank but not in books)
+            var unreconciledDebits = transactions.Where(t => !t.IsReconciled && t.TransactionType == "debit").ToList();
+            brs.BankDebitsNotInBooks = unreconciledDebits.Sum(t => t.Amount);
+            brs.BankDebitsNotInBooksItems = unreconciledDebits.Select(t => new BrsItemDto
+            {
+                Id = t.Id,
+                Date = t.TransactionDate,
+                Description = t.Description ?? "",
+                ReferenceNumber = t.ReferenceNumber,
+                Amount = t.Amount,
+                Type = "bank_transaction"
+            }).ToList();
+
+            // Calculate book balance from reconciled transactions
+            var reconciledCredits = transactions.Where(t => t.IsReconciled && t.TransactionType == "credit").Sum(t => t.Amount);
+            var reconciledDebits = transactions.Where(t => t.IsReconciled && t.TransactionType == "debit").Sum(t => t.Amount);
+            brs.BookBalance = reconciledCredits - reconciledDebits;
+
+            // For now, deposits in transit and outstanding cheques are set to 0
+            // These would need integration with payment/expense systems to track
+            brs.DepositsInTransit = 0;
+            brs.OutstandingCheques = 0;
+
+            // Calculate adjusted balances
+            brs.AdjustedBankBalance = brs.BankStatementBalance + brs.DepositsInTransit - brs.OutstandingCheques;
+            brs.AdjustedBookBalance = brs.BookBalance + brs.BankCreditsNotInBooks - brs.BankDebitsNotInBooks;
+
+            return Result<BankReconciliationStatementDto>.Success(brs);
+        }
+
+        private static string BuildMatchReason(BankTransaction txn, Payments payment, int score)
+        {
+            var reasons = new List<string>();
+
+            if (Math.Abs(txn.Amount - payment.Amount) < 0.01m)
+                reasons.Add("Exact amount match");
+            else
+                reasons.Add($"Amount within tolerance (diff: {Math.Abs(txn.Amount - payment.Amount):F2})");
+
+            var dateDiff = Math.Abs((txn.TransactionDate.ToDateTime(TimeOnly.MinValue) -
+                payment.PaymentDate.ToDateTime(TimeOnly.MinValue)).Days);
+            if (dateDiff == 0)
+                reasons.Add("Same date");
+            else
+                reasons.Add($"Date within {dateDiff} days");
+
+            if (!string.IsNullOrWhiteSpace(txn.ReferenceNumber) &&
+                !string.IsNullOrWhiteSpace(payment.ReferenceNumber) &&
+                txn.ReferenceNumber.Contains(payment.ReferenceNumber, StringComparison.OrdinalIgnoreCase))
+                reasons.Add("Reference number match");
+
+            return $"Score: {score}% - {string.Join(", ", reasons)}";
+        }
+
         // ==================== Helper Methods ====================
 
         private static string GenerateTransactionHash(DateOnly date, decimal amount, string? description)
