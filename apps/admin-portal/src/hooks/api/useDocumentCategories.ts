@@ -4,7 +4,7 @@ import {
   DocumentCategory,
   CreateDocumentCategoryDto,
   UpdateDocumentCategoryDto,
-} from '@/services/api/documentCategoryService';
+} from '@/services/api/documents/documentCategoryService';
 import { PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

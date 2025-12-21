@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { payrollService } from '@/services/api/payrollService'
+import { payrollService } from '@/services/api/hr/payroll/payrollService'
 import type {
   EmployeeSalaryStructure,
   CreateEmployeeSalaryStructureDto,

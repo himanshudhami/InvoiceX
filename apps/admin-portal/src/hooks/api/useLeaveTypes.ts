@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { leaveTypeService } from '@/services/api/leaveTypeService';
+import { leaveTypeService } from '@/services/api/hr/leave/leaveTypeService';
 import { CreateLeaveTypeDto, UpdateLeaveTypeDto, PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

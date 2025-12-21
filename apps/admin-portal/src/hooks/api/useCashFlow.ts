@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { cashFlowService } from '@/services/api/cashFlowService';
+import { cashFlowService } from '@/services/api/finance/reports/cashFlowService';
 
 // Query keys for proper cache management
 export const cashFlowKeys = {

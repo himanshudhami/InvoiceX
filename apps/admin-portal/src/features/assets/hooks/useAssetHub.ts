@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { assetService } from '@/services/api/assetService'
+import { assetService } from '@/services/api/assets/assetService'
 import { assetKeys } from './assetKeys'
 
 // Hook to get a single asset by ID

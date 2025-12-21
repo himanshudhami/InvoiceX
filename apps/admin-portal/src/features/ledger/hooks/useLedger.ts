@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { ledgerService } from '@/services/api/ledgerService'
+import { ledgerService } from '@/services/api/finance/ledger/ledgerService'
 import type {
   ChartOfAccount,
   CreateChartOfAccountDto,

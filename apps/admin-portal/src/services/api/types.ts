@@ -2338,16 +2338,13 @@ export interface TdsCalculationRequest {
 
 export interface TdsCalculationResult {
   success: boolean;
-  sectionCode: string;
-  payeeType: string;
-  grossAmount: number;
+  errorMessage?: string;
+  rulePackId?: string;
+  sectionCode?: string;
   applicableRate: number;
+  thresholdAmount?: number;
+  isExempt: boolean;
   tdsAmount: number;
-  netAmount: number;
-  thresholdApplied: boolean;
-  message?: string;
-  financialYear?: string;
-  rulePackVersion?: number;
 }
 
 export interface IncomeTaxCalculationRequest {

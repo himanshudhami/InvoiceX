@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bankAccountService } from '@/services/api/bankAccountService';
+import { bankAccountService } from '@/services/api/finance/banking/bankAccountService';
 import {
   CreateBankAccountDto,
   UpdateBankAccountDto,

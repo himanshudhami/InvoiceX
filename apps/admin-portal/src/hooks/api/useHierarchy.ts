@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { HierarchyService } from '@/services/api/hierarchyService'
+import { HierarchyService } from '@/services/api/hr/employees/hierarchyService'
 import { UpdateManagerDto } from 'shared-types'
 import toast from 'react-hot-toast'
 

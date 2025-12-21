@@ -7,8 +7,8 @@ import { useInterestPayments } from '@/hooks/api/useLoans';
 import { usePnLCalculation } from '@/hooks/usePnLCalculation';
 import { calculateCashFlow, CashFlowData } from '@/lib/cashFlowCalculation';
 import { useQuery } from '@tanstack/react-query';
-import { assetService } from '@/services/api/assetService';
-import { invoiceService } from '@/services/api/invoiceService';
+import { assetService } from '@/services/api/assets/assetService';
+import { invoiceService } from '@/services/api/billing/invoiceService';
 
 /**
  * Hook to fetch all assets for a company (for cash flow filtering)
@@ -95,7 +95,7 @@ const useAllLoanTransactions = (companyId?: string, fromDate?: string, toDate?: 
     queryFn: async () => {
       // Fetch all loans and their transactions
       // This is simplified - in production, you'd have a dedicated endpoint
-      const { loanService } = await import('@/services/api/loanService');
+      const { loanService } = await import('@/services/api/finance/loans/loanService');
       const loans = await loanService.getPaged({ 
         ...(companyId && { companyId }),
         pageSize: 100,

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { announcementService, CreateAnnouncementDto, UpdateAnnouncementDto } from '@/services/api/announcementService';
+import { announcementService, CreateAnnouncementDto, UpdateAnnouncementDto } from '@/services/api/portal/announcementService';
 import toast from 'react-hot-toast';
 
 export const ANNOUNCEMENT_QUERY_KEYS = {

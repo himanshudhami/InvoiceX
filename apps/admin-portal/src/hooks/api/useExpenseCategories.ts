@@ -4,7 +4,7 @@ import {
   ExpenseCategory,
   CreateExpenseCategoryDto,
   UpdateExpenseCategoryDto,
-} from '@/services/api/expenseCategoryService';
+} from '@/services/api/finance/expenses/expenseCategoryService';
 import { PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

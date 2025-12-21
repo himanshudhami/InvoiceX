@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { payrollService } from '@/services/api/payrollService'
+import { payrollService } from '@/services/api/hr/payroll/payrollService'
 import type { TaxSlab, ProfessionalTaxSlab } from '@/features/payroll/types/payroll'
 import { payrollKeys } from './payrollKeys'
 

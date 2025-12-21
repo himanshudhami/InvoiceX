@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { leaveBalanceService } from '@/services/api/leaveBalanceService';
+import { leaveBalanceService } from '@/services/api/hr/leave/leaveBalanceService';
 import {
   CreateLeaveBalanceDto,
   UpdateLeaveBalanceDto,

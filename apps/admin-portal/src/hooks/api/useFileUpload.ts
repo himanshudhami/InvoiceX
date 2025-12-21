@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { fileService, FileUploadResponse } from '@/services/api/fileService';
+import { fileService, FileUploadResponse } from '@/services/api/documents/fileService';
 import toast from 'react-hot-toast';
 
 interface UploadParams {

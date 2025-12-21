@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invoiceTemplateService } from '@/services/api/invoiceTemplateService';
+import { invoiceTemplateService } from '@/services/api/billing/invoiceTemplateService';
 import { InvoiceTemplate, CreateInvoiceTemplateDto, UpdateInvoiceTemplateDto, PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

@@ -5,7 +5,7 @@ import {
   UpdatePaymentAllocationDto,
   BulkAllocationDto,
   PaymentAllocationFilterParams,
-} from '@/services/api/paymentAllocationService';
+} from '@/services/api/finance/payments/paymentAllocationService';
 
 const QUERY_KEYS = {
   all: ['payment-allocations'] as const,

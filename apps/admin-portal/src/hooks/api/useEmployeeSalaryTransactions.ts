@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { employeeSalaryTransactionService } from '@/services/api/employeeSalaryTransactionService';
+import { employeeSalaryTransactionService } from '@/services/api/hr/payroll/employeeSalaryTransactionService';
 import { 
   EmployeeSalaryTransaction, 
   CreateEmployeeSalaryTransactionDto, 

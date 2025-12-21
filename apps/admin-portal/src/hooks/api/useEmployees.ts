@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { employeeService } from '@/services/api/employeeService';
+import { employeeService } from '@/services/api/hr/employees/employeeService';
 import { Employee, CreateEmployeeDto, UpdateEmployeeDto, EmployeesFilterParams, BulkEmployeesDto, ResignEmployeeDto, RejoinEmployeeDto, PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

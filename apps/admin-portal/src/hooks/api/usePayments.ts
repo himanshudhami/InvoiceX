@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { paymentService, CreatePaymentDto, UpdatePaymentDto, PaymentFilterParams } from '@/services/api/paymentService';
+import { paymentService, CreatePaymentDto, UpdatePaymentDto, PaymentFilterParams } from '@/services/api/finance/payments/paymentService';
 
 const QUERY_KEYS = {
   all: ['payments'] as const,

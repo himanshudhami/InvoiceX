@@ -7,7 +7,7 @@ import { useCompanyInvoicePaymentStatus } from '@/hooks/api/usePaymentAllocation
 import { Payment, Invoice } from '@/services/api/types';
 import { formatCurrency } from '@/lib/currency';
 import { AlertCircle, Check, FileText, Plus, Trash2 } from 'lucide-react';
-import { ALLOCATION_TYPE_LABELS, AllocationTypeEnum } from '@/services/api/paymentAllocationService';
+import { ALLOCATION_TYPE_LABELS, AllocationTypeEnum } from '@/services/api/finance/payments/paymentAllocationService';
 
 interface PaymentAllocationDialogProps {
   isOpen: boolean;

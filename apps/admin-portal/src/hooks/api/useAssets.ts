@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { assetService } from '@/services/api/assetService';
+import { assetService } from '@/services/api/assets/assetService';
 import {
   Asset,
   AssetAssignment,

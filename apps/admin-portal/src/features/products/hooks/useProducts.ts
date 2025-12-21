@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { productService } from '@/services/api/productService'
+import { productService } from '@/services/api/catalog/productService'
 import type {
   Product,
   CreateProductDto,

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { loanService } from '@/services/api/loanService';
+import { loanService } from '@/services/api/finance/loans/loanService';
 import {
   Loan,
   LoanScheduleDto,

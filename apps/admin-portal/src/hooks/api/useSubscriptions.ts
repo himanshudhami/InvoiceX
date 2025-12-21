@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { subscriptionService } from '@/services/api/subscriptionService';
+import { subscriptionService } from '@/services/api/finance/subscriptions/subscriptionService';
 import {
   Subscription,
   SubscriptionAssignment,

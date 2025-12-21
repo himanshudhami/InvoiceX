@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useAuth } from './AuthContext'
 import { hasMultiCompanyAccess } from '../types/auth'
 import { Company } from '../services/api/types'
-import { companyService } from '../services/api/companyService'
+import { companyService } from '../services/api/admin/companyService'
 
 interface CompanyContextType {
   // Currently selected company for data filtering

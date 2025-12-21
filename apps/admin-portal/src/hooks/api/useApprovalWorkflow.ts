@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   approvalTemplateService,
   approvalWorkflowService,
-} from '@/services/api/approvalWorkflowService';
+} from '@/services/api/workflows/approvalWorkflowService';
 import {
   CreateApprovalTemplateDto,
   UpdateApprovalTemplateDto,

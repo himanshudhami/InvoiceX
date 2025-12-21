@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { leaveApplicationService } from '@/services/api/leaveApplicationService';
+import { leaveApplicationService } from '@/services/api/hr/leave/leaveApplicationService';
 import {
   CreateLeaveApplicationDto,
   UpdateLeaveApplicationDto,

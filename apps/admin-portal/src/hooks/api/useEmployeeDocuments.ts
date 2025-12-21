@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { employeeDocumentService, CreateEmployeeDocumentDto, UpdateEmployeeDocumentDto, UpdateDocumentRequestDto } from '@/services/api/employeeDocumentService';
+import { employeeDocumentService, CreateEmployeeDocumentDto, UpdateEmployeeDocumentDto, UpdateDocumentRequestDto } from '@/services/api/portal/employeeDocumentService';
 import toast from 'react-hot-toast';
 
 export const EMPLOYEE_DOCUMENT_QUERY_KEYS = {

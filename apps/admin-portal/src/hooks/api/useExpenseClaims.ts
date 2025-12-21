@@ -5,7 +5,7 @@ import {
   ExpenseClaimFilterParams,
   RejectExpenseClaimDto,
   ReimburseExpenseClaimDto,
-} from '@/services/api/expenseClaimService';
+} from '@/services/api/finance/expenses/expenseClaimService';
 import toast from 'react-hot-toast';
 
 // Query keys for React Query cache management

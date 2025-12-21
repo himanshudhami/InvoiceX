@@ -45,7 +45,7 @@ export const RecordPaymentModal = ({
     setIsSubmitting(true);
 
     try {
-      const { invoiceService } = await import('@/services/api/invoiceService');
+      const { invoiceService } = await import('@/services/api/billing/invoiceService');
 
       const paymentData = {
         amount: amount,

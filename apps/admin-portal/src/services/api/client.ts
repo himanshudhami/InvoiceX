@@ -85,7 +85,12 @@ class ApiClient {
       const data = error.response.data as any;
       return {
         type: this.mapErrorType(error.response.status),
-        message: data?.message || data?.error?.message || `HTTP ${error.response.status} Error`,
+        message:
+          data?.message ||
+          data?.errorMessage ||
+          data?.ErrorMessage ||
+          data?.error?.message ||
+          `HTTP ${error.response.status} Error`,
         details: data?.details || data?.error?.details || []
       };
     } else if (error.request) {

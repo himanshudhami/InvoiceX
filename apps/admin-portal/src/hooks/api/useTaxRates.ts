@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taxRateService } from '@/services/api/taxRateService';
+import { taxRateService } from '@/services/api/finance/tax/taxRateService';
 import { TaxRate, CreateTaxRateDto, UpdateTaxRateDto, PaginationParams } from '@/services/api/types';
 import toast from 'react-hot-toast';
 

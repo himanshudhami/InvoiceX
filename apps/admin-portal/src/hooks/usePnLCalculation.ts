@@ -6,8 +6,8 @@ import { useSubscriptionMonthlyExpenses } from '@/hooks/api/useSubscriptions';
 import { useInterestPayments } from '@/hooks/api/useLoans';
 import { calculatePnL, PnLData } from '@/lib/pnlCalculation';
 import { useQuery } from '@tanstack/react-query';
-import { assetService } from '@/services/api/assetService';
-import { paymentService } from '@/services/api/paymentService';
+import { assetService } from '@/services/api/assets/assetService';
+import { paymentService } from '@/services/api/finance/payments/paymentService';
 
 /**
  * Hook to fetch all assets for a company (for OPEX filtering)

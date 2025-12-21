@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supportTicketService, UpdateSupportTicketDto, CreateTicketMessageDto, CreateFaqDto, UpdateFaqDto } from '@/services/api/supportTicketService';
+import { supportTicketService, UpdateSupportTicketDto, CreateTicketMessageDto, CreateFaqDto, UpdateFaqDto } from '@/services/api/portal/supportTicketService';
 import toast from 'react-hot-toast';
 
 export const SUPPORT_TICKET_QUERY_KEYS = {

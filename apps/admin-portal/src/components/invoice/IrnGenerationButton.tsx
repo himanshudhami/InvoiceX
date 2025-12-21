@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { eInvoiceService } from '@/services/api/eInvoiceService';
+import { eInvoiceService } from '@/services/api/finance/tax/eInvoiceService';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -4,8 +4,8 @@ import { useEmployee } from '@/hooks/api/useEmployees'
 import { usePayrollInfo } from '@/features/payroll/hooks/usePayrollInfo'
 import { useCurrentSalaryStructure } from '@/features/payroll/hooks/useSalaryStructures'
 import { useTaxDeclarations } from '@/features/payroll/hooks/useTaxDeclarations'
-import { assetService } from '@/services/api/assetService'
-import { subscriptionService } from '@/services/api/subscriptionService'
+import { assetService } from '@/services/api/assets/assetService'
+import { subscriptionService } from '@/services/api/finance/subscriptions/subscriptionService'
 
 /**
  * Combined hook for employee details with payroll info

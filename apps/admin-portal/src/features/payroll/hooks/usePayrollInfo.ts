@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { payrollService } from '@/services/api/payrollService';
+import { payrollService } from '@/services/api/hr/payroll/payrollService';
 import { payrollKeys } from './payrollKeys';
 
 export interface CreateEmployeePayrollInfoDto {

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companyService } from '@/services/api/companyService';
+import { companyService } from '@/services/api/admin/companyService';
 import { Company, CreateCompanyDto, UpdateCompanyDto, PaginationParams } from '@/services/api/types';
 
 // Query keys for React Query cache management

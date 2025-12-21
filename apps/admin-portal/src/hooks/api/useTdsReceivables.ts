@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { tdsReceivableService } from '@/services/api/tdsReceivableService';
+import { tdsReceivableService } from '@/services/api/finance/tax/tdsReceivableService';
 import {
   CreateTdsReceivableDto,
   UpdateTdsReceivableDto,

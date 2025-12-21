@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { holidayService } from '@/services/api/holidayService';
+import { holidayService } from '@/services/api/hr/leave/holidayService';
 import {
   CreateHolidayDto,
   UpdateHolidayDto,

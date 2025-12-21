@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { customerService } from '@/services/api/customerService'
+import { customerService } from '@/services/api/crm/customerService'
 import type {
   Customer,
   CreateCustomerDto,

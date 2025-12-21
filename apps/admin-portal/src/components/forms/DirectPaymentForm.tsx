@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import { useCustomers } from '@/features/customers/hooks';
 import { useCreatePayment } from '@/hooks/api/usePayments';
-import { CreatePaymentDto, TDS_SECTIONS, getFinancialYear, calculateTds } from '@/services/api/paymentService';
+import { CreatePaymentDto, TDS_SECTIONS, getFinancialYear, calculateTds } from '@/services/api/finance/payments/paymentService';
 import { Company, Customer } from '@/services/api/types';
 import { toInr, formatINR } from '@/lib/financialUtils';
 import { Calendar, DollarSign, AlertCircle } from 'lucide-react';
