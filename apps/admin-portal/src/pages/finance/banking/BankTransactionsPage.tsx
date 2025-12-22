@@ -3,14 +3,13 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   useBankTransactionsByAccount,
   useBankTransactionSummary,
-  useUnreconcileTransaction,
-  useReconcileTransaction,
-  useReconciliationSuggestions
+  useUnreconcileTransaction
 } from '@/hooks/api/useBankTransactions'
 import { useBankAccounts } from '@/hooks/api/useBankAccounts'
 import { useCompanies } from '@/hooks/api/useCompanies'
-import { BankTransaction, ReconciliationSuggestion } from '@/services/api/types'
-import { Modal } from '@/components/ui/Modal'
+import { BankTransaction } from '@/services/api/types'
+import { ReconciliationDrawer } from '@/components/banking/ReconciliationDrawer'
+import { ReversalPairingDrawer } from '@/components/banking/ReversalPairingDrawer'
 import { CompanySelect } from '@/components/ui/CompanySelect'
 import {
   ArrowLeft,
@@ -22,8 +21,34 @@ import {
   TrendingDown,
   RefreshCw,
   Filter,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react'
+
+// Simple reversal detection for UI (matches backend ReversalDetector patterns)
+const isLikelyReversal = (transaction: BankTransaction): boolean => {
+  if (transaction.transactionType !== 'credit') return false
+  if (transaction.isReversalTransaction) return true
+
+  const desc = (transaction.description || '').toUpperCase()
+  const reversalPatterns = [
+    /^REV[-/\s]/,
+    /^REVERSAL/,
+    /^R[-/]/,
+    /^RV[-/]/,
+    /NEFT[-\s]REV/,
+    /RTGS[-\s]REV/,
+    /REV[-/]UPI/,
+    /UPI[-\s]REV/,
+    /CHQ[-\s]?RET/,
+    /CHEQUE[-\s]RETURN/,
+    /NACH[-\s]RETURN/,
+    /CHARGEBACK/,
+    /^REFUND/,
+  ]
+
+  return reversalPatterns.some(pattern => pattern.test(desc))
+}
 
 const BankTransactionsPage = () => {
   const [searchParams] = useSearchParams()
@@ -42,6 +67,16 @@ const BankTransactionsPage = () => {
     }
   }, [preselectedAccountId, selectedAccountId])
   const [reconcilingTransaction, setReconcilingTransaction] = useState<BankTransaction | null>(null)
+  const [reversalTransaction, setReversalTransaction] = useState<BankTransaction | null>(null)
+
+  // Handle reconciliation click - detect if it's a reversal
+  const handleReconcileClick = (transaction: BankTransaction) => {
+    if (isLikelyReversal(transaction)) {
+      setReversalTransaction(transaction)
+    } else {
+      setReconcilingTransaction(transaction)
+    }
+  }
 
   const { data: bankAccounts = [], isLoading: accountsLoading } = useBankAccounts()
   const { data: companies = [] } = useCompanies()
@@ -362,11 +397,19 @@ const BankTransactionsPage = () => {
                             </button>
                           ) : (
                             <button
-                              onClick={() => setReconcilingTransaction(transaction)}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
-                              title="Reconcile"
+                              onClick={() => handleReconcileClick(transaction)}
+                              className={`p-1 rounded ${
+                                isLikelyReversal(transaction)
+                                  ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50'
+                                  : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
+                              }`}
+                              title={isLikelyReversal(transaction) ? 'Pair Reversal' : 'Reconcile'}
                             >
-                              <Link2 className="h-4 w-4" />
+                              {isLikelyReversal(transaction) ? (
+                                <AlertTriangle className="h-4 w-4" />
+                              ) : (
+                                <Link2 className="h-4 w-4" />
+                              )}
                             </button>
                           )}
                         </td>
@@ -380,9 +423,10 @@ const BankTransactionsPage = () => {
         </>
       )}
 
-      {/* Reconciliation Modal */}
-      <ReconciliationModal
+      {/* Reconciliation Drawer */}
+      <ReconciliationDrawer
         transaction={reconcilingTransaction}
+        companyId={selectedAccount?.companyId || selectedCompanyId}
         onClose={() => setReconcilingTransaction(null)}
         onReconciled={() => {
           setReconcilingTransaction(null)
@@ -390,216 +434,18 @@ const BankTransactionsPage = () => {
         }}
         formatCurrency={formatCurrency}
       />
+
+      {/* Reversal Pairing Drawer */}
+      <ReversalPairingDrawer
+        transaction={reversalTransaction}
+        onClose={() => setReversalTransaction(null)}
+        onPaired={() => {
+          setReversalTransaction(null)
+          refetch()
+        }}
+        formatCurrency={formatCurrency}
+      />
     </div>
-  )
-}
-
-// Reconciliation Modal Component
-interface ReconciliationModalProps {
-  transaction: BankTransaction | null
-  onClose: () => void
-  onReconciled: () => void
-  formatCurrency: (amount: number) => string
-}
-
-const ReconciliationModal = ({ transaction, onClose, onReconciled, formatCurrency }: ReconciliationModalProps) => {
-  const [manualType, setManualType] = useState<string>('payment')
-  const [manualId, setManualId] = useState<string>('')
-
-  const { data: suggestions = [], isLoading: suggestionsLoading } = useReconciliationSuggestions(
-    transaction?.id || '',
-    100, // tolerance in amount
-    10,  // max results
-    !!transaction && transaction.transactionType === 'credit'
-  )
-
-  const reconcileTransaction = useReconcileTransaction()
-
-  const handleReconcileWithSuggestion = async (suggestion: ReconciliationSuggestion) => {
-    if (!transaction) return
-
-    try {
-      await reconcileTransaction.mutateAsync({
-        id: transaction.id,
-        data: {
-          reconciledType: 'payment',
-          reconciledId: suggestion.paymentId,
-          reconciledBy: 'user'
-        }
-      })
-      onReconciled()
-    } catch (error) {
-      console.error('Failed to reconcile:', error)
-    }
-  }
-
-  const handleManualReconcile = async () => {
-    if (!transaction || !manualId) return
-
-    try {
-      await reconcileTransaction.mutateAsync({
-        id: transaction.id,
-        data: {
-          reconciledType: manualType,
-          reconciledId: manualId,
-          reconciledBy: 'user'
-        }
-      })
-      onReconciled()
-    } catch (error) {
-      console.error('Failed to reconcile:', error)
-    }
-  }
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
-
-  if (!transaction) return null
-
-  return (
-    <Modal
-      isOpen={!!transaction}
-      onClose={onClose}
-      title="Reconcile Transaction"
-      size="lg"
-    >
-      <div className="space-y-6">
-        {/* Transaction Details */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Transaction Details</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Date:</span>
-              <span className="ml-2 font-medium">{formatDate(transaction.transactionDate)}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Amount:</span>
-              <span className={`ml-2 font-medium ${
-                transaction.transactionType === 'credit' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {formatCurrency(transaction.amount)}
-              </span>
-            </div>
-            <div className="col-span-2">
-              <span className="text-gray-500">Description:</span>
-              <span className="ml-2">{transaction.description || '-'}</span>
-            </div>
-            {transaction.referenceNumber && (
-              <div className="col-span-2">
-                <span className="text-gray-500">Reference:</span>
-                <span className="ml-2 font-mono text-xs">{transaction.referenceNumber}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Suggestions (only for credits/receipts) */}
-        {transaction.transactionType === 'credit' && (
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              Matching Payments
-              {suggestionsLoading && <span className="ml-2 text-gray-400">(Loading...)</span>}
-            </h4>
-
-            {suggestions.length === 0 && !suggestionsLoading ? (
-              <p className="text-sm text-gray-500 italic">No matching payments found</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.paymentId}
-                    className="border rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
-                    onClick={() => handleReconcileWithSuggestion(suggestion)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {suggestion.customerName || 'Unknown Customer'}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {suggestion.invoiceNumber && `Invoice: ${suggestion.invoiceNumber} • `}
-                          {formatDate(suggestion.paymentDate)}
-                        </div>
-                        {suggestion.referenceNumber && (
-                          <div className="text-xs text-gray-400 font-mono mt-1">
-                            Ref: {suggestion.referenceNumber}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium text-green-600">
-                          {formatCurrency(suggestion.amount)}
-                        </div>
-                        <div className={`text-xs ${
-                          suggestion.matchScore >= 80 ? 'text-green-600' :
-                          suggestion.matchScore >= 50 ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
-                          {suggestion.matchScore}% match
-                        </div>
-                      </div>
-                    </div>
-                    {suggestion.amountDifference !== 0 && (
-                      <div className="text-xs text-orange-600 mt-1">
-                        Amount difference: {formatCurrency(Math.abs(suggestion.amountDifference))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Manual Reconciliation */}
-        <div className="border-t pt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Manual Reconciliation</h4>
-          <div className="flex gap-3">
-            <select
-              value={manualType}
-              onChange={(e) => setManualType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-            >
-              <option value="payment">Payment</option>
-              <option value="expense">Expense</option>
-              <option value="payroll">Payroll</option>
-              <option value="tax_payment">Tax Payment</option>
-              <option value="transfer">Transfer</option>
-              <option value="contractor">Contractor Payment</option>
-              <option value="other">Other</option>
-            </select>
-            <input
-              type="text"
-              placeholder="Enter ID or reference"
-              value={manualId}
-              onChange={(e) => setManualId(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-            />
-            <button
-              onClick={handleManualReconcile}
-              disabled={!manualId || reconcileTransaction.isPending}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
-            >
-              {reconcileTransaction.isPending ? 'Saving...' : 'Reconcile'}
-            </button>
-          </div>
-        </div>
-
-        {/* Close Button */}
-        <div className="flex justify-end pt-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </Modal>
   )
 }
 

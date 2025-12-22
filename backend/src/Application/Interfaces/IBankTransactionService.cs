@@ -5,7 +5,12 @@ using Core.Common;
 namespace Application.Interfaces
 {
     /// <summary>
-    /// Service interface for BankTransaction operations
+    /// Service interface for BankTransaction CRUD operations
+    /// For reconciliation, use IReconciliationService
+    /// For import, use IBankStatementImportService
+    /// For BRS, use IBrsService
+    /// For reversals, use IReversalDetectionService
+    /// For outgoing payments, use IOutgoingPaymentsService
     /// </summary>
     public interface IBankTransactionService
     {
@@ -45,8 +50,6 @@ namespace Application.Interfaces
         /// </summary>
         Task<Result> DeleteAsync(Guid id);
 
-        // ==================== Bank Account Specific Methods ====================
-
         /// <summary>
         /// Get transactions for a specific bank account
         /// </summary>
@@ -58,69 +61,73 @@ namespace Application.Interfaces
         Task<Result<IEnumerable<BankTransaction>>> GetByDateRangeAsync(
             Guid bankAccountId, DateOnly fromDate, DateOnly toDate);
 
-        // ==================== Reconciliation Methods ====================
-
         /// <summary>
         /// Get unreconciled transactions, optionally filtered by bank account
         /// </summary>
         Task<Result<IEnumerable<BankTransaction>>> GetUnreconciledAsync(Guid? bankAccountId = null);
 
         /// <summary>
-        /// Reconcile a transaction with a payment or other record
-        /// </summary>
-        Task<Result> ReconcileTransactionAsync(Guid transactionId, ReconcileTransactionDto dto);
-
-        /// <summary>
-        /// Remove reconciliation from a transaction
-        /// </summary>
-        Task<Result> UnreconcileTransactionAsync(Guid transactionId);
-
-        /// <summary>
-        /// Get reconciliation suggestions for a transaction
-        /// </summary>
-        Task<Result<IEnumerable<ReconciliationSuggestionDto>>> GetReconciliationSuggestionsAsync(
-            Guid transactionId, decimal tolerance = 0.01m, int maxResults = 10);
-
-        /// <summary>
-        /// Automatically reconcile unmatched transactions with payments
-        /// </summary>
-        Task<Result<AutoReconcileResultDto>> AutoReconcileAsync(
-            Guid bankAccountId,
-            int minMatchScore = 80,
-            decimal amountTolerance = 0.01m,
-            int dateTolerance = 3);
-
-        /// <summary>
-        /// Generate Bank Reconciliation Statement
-        /// </summary>
-        Task<Result<BankReconciliationStatementDto>> GenerateBrsAsync(
-            Guid bankAccountId,
-            DateOnly asOfDate);
-
-        // ==================== Import Methods ====================
-
-        /// <summary>
-        /// Import bank transactions from parsed CSV data
-        /// </summary>
-        Task<Result<ImportBankTransactionsResult>> ImportTransactionsAsync(ImportBankTransactionsRequest request);
-
-        /// <summary>
-        /// Get transactions from a specific import batch
-        /// </summary>
-        Task<Result<IEnumerable<BankTransaction>>> GetByImportBatchIdAsync(Guid batchId);
-
-        /// <summary>
-        /// Delete all transactions from a specific import batch (rollback import)
-        /// </summary>
-        Task<Result> DeleteImportBatchAsync(Guid batchId);
-
-        // ==================== Summary Methods ====================
-
-        /// <summary>
         /// Get summary statistics for a bank account
         /// </summary>
         Task<Result<BankTransactionSummaryDto>> GetSummaryAsync(
             Guid bankAccountId, DateOnly? fromDate = null, DateOnly? toDate = null);
+    }
+
+    // ==================== DTOs that stay in this file for backwards compatibility ====================
+
+    /// <summary>
+    /// Request to pair a reversal with its original
+    /// </summary>
+    public class PairReversalRequestDto
+    {
+        public Guid ReversalTransactionId { get; set; }
+        public Guid OriginalTransactionId { get; set; }
+        public bool OriginalWasPostedToLedger { get; set; }
+        public Guid? OriginalJournalEntryId { get; set; }
+        public string? Notes { get; set; }
+        public string? PairedBy { get; set; }
+    }
+
+    /// <summary>
+    /// Result of pairing reversal
+    /// </summary>
+    public class PairReversalResultDto
+    {
+        public bool Success { get; set; }
+        public Guid OriginalTransactionId { get; set; }
+        public Guid ReversalTransactionId { get; set; }
+        public Guid? ReversalJournalEntryId { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Result of reversal detection
+    /// </summary>
+    public class ReversalDetectionResultDto
+    {
+        public bool IsReversal { get; set; }
+        public string? DetectedPattern { get; set; }
+        public int Confidence { get; set; }
+        public string? ExtractedOriginalReference { get; set; }
+        public List<ReversalMatchSuggestionDto> SuggestedOriginals { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Suggested original transaction for a reversal
+    /// </summary>
+    public class ReversalMatchSuggestionDto
+    {
+        public Guid TransactionId { get; set; }
+        public DateOnly TransactionDate { get; set; }
+        public string? Description { get; set; }
+        public string? ReferenceNumber { get; set; }
+        public decimal Amount { get; set; }
+        public string TransactionType { get; set; } = string.Empty;
+        public int MatchScore { get; set; }
+        public string MatchReason { get; set; } = string.Empty;
+        public bool IsReconciled { get; set; }
+        public string? ReconciledType { get; set; }
+        public Guid? ReconciledId { get; set; }
     }
 
     /// <summary>
@@ -168,39 +175,20 @@ namespace Application.Interfaces
         public DateOnly AsOfDate { get; set; }
         public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
 
-        // Bank Balance
         public decimal BankStatementBalance { get; set; }
-
-        // Add: Deposits in transit (recorded in books but not yet in bank)
         public decimal DepositsInTransit { get; set; }
         public List<BrsItemDto> DepositsInTransitItems { get; set; } = new();
-
-        // Less: Outstanding cheques (recorded in books but not yet cleared)
         public decimal OutstandingCheques { get; set; }
         public List<BrsItemDto> OutstandingChequeItems { get; set; } = new();
-
-        // Adjusted Bank Balance
         public decimal AdjustedBankBalance { get; set; }
-
-        // Book Balance
         public decimal BookBalance { get; set; }
-
-        // Add: Bank credits not in books
         public decimal BankCreditsNotInBooks { get; set; }
         public List<BrsItemDto> BankCreditsNotInBooksItems { get; set; } = new();
-
-        // Less: Bank debits not in books
         public decimal BankDebitsNotInBooks { get; set; }
         public List<BrsItemDto> BankDebitsNotInBooksItems { get; set; } = new();
-
-        // Adjusted Book Balance
         public decimal AdjustedBookBalance { get; set; }
-
-        // Difference (should be 0 if reconciled)
         public decimal Difference => AdjustedBankBalance - AdjustedBookBalance;
         public bool IsReconciled => Math.Abs(Difference) < 0.01m;
-
-        // Summary
         public int TotalTransactions { get; set; }
         public int ReconciledTransactions { get; set; }
         public int UnreconciledTransactions { get; set; }
@@ -213,6 +201,6 @@ namespace Application.Interfaces
         public string Description { get; set; } = string.Empty;
         public string? ReferenceNumber { get; set; }
         public decimal Amount { get; set; }
-        public string Type { get; set; } = string.Empty; // 'bank_transaction', 'payment', 'expense'
+        public string Type { get; set; } = string.Empty;
     }
 }

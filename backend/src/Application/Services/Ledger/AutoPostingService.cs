@@ -1,6 +1,7 @@
 using Application.Interfaces.Ledger;
 using Core.Entities.Ledger;
 using Core.Interfaces;
+using Core.Interfaces.Expense;
 using Core.Interfaces.Ledger;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -18,6 +19,8 @@ namespace Application.Services.Ledger
         private readonly IPostingRuleRepository _ruleRepository;
         private readonly IInvoicesRepository _invoiceRepository;
         private readonly IPaymentsRepository _paymentRepository;
+        private readonly IExpenseClaimRepository _expenseClaimRepository;
+        private readonly IExpenseCategoryRepository _expenseCategoryRepository;
         private readonly ILogger<AutoPostingService> _logger;
 
         public AutoPostingService(
@@ -26,6 +29,8 @@ namespace Application.Services.Ledger
             IPostingRuleRepository ruleRepository,
             IInvoicesRepository invoiceRepository,
             IPaymentsRepository paymentRepository,
+            IExpenseClaimRepository expenseClaimRepository,
+            IExpenseCategoryRepository expenseCategoryRepository,
             ILogger<AutoPostingService> logger)
         {
             _accountRepository = accountRepository;
@@ -33,6 +38,8 @@ namespace Application.Services.Ledger
             _ruleRepository = ruleRepository;
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
+            _expenseClaimRepository = expenseClaimRepository;
+            _expenseCategoryRepository = expenseCategoryRepository;
             _logger = logger;
         }
 
@@ -103,6 +110,7 @@ namespace Application.Services.Ledger
 
                 var sourceData = new Dictionary<string, object>
                 {
+                    ["company_id"] = payment.CompanyId?.ToString() ?? "",
                     ["tds_applicable"] = hasTds,
                     ["tds_section"] = tdsSection,
                     ["is_advance"] = payment.InvoiceId == null,
@@ -149,10 +157,83 @@ namespace Application.Services.Ledger
             return null;
         }
 
+        public async Task<JournalEntry?> PostExpenseClaimAsync(
+            Guid expenseClaimId,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            try
+            {
+                var claim = await _expenseClaimRepository.GetByIdAsync(expenseClaimId);
+                if (claim == null)
+                {
+                    _logger.LogWarning("Expense claim {ExpenseClaimId} not found for auto-posting", expenseClaimId);
+                    return null;
+                }
+
+                // Get expense category for GL account
+                var category = await _expenseCategoryRepository.GetByIdAsync(claim.CategoryId);
+                var expenseAccount = category?.GlAccountCode ?? "5100"; // Default to general expense
+
+                // Build source data from expense claim
+                var sourceData = new Dictionary<string, object>
+                {
+                    ["company_id"] = claim.CompanyId.ToString(),
+                    ["is_gst_applicable"] = claim.IsGstApplicable,
+                    ["supply_type"] = claim.SupplyType ?? "intra_state",
+                    ["amount"] = claim.Amount,
+                    ["base_amount"] = claim.BaseAmount ?? claim.Amount - claim.TotalGstAmount,
+                    ["cgst_amount"] = claim.CgstAmount,
+                    ["sgst_amount"] = claim.SgstAmount,
+                    ["igst_amount"] = claim.IgstAmount,
+                    ["cgst_rate"] = claim.CgstRate,
+                    ["sgst_rate"] = claim.SgstRate,
+                    ["igst_rate"] = claim.IgstRate,
+                    ["total_gst_amount"] = claim.TotalGstAmount,
+                    ["employee_id"] = claim.EmployeeId.ToString(),
+                    ["employee_name"] = claim.EmployeeName ?? "Employee",
+                    ["title"] = claim.Title,
+                    ["vendor_name"] = claim.VendorName ?? "Vendor",
+                    ["vendor_invoice_number"] = claim.InvoiceNumber ?? claim.ClaimNumber,
+                    ["expense_account"] = expenseAccount,
+                    ["claim_number"] = claim.ClaimNumber,
+                    ["source_number"] = claim.ClaimNumber
+                };
+
+                return await PostFromSourceWithTriggerAsync(
+                    "expense_claim",
+                    expenseClaimId,
+                    sourceData,
+                    "on_reimburse", // Specific trigger for expense claims
+                    postedBy,
+                    autoPost);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-posting expense claim {ExpenseClaimId}", expenseClaimId);
+                throw;
+            }
+        }
+
         public async Task<JournalEntry?> PostFromSourceAsync(
             string sourceType,
             Guid sourceId,
             Dictionary<string, object> sourceData,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            return await PostFromSourceWithTriggerAsync(
+                sourceType, sourceId, sourceData, "on_finalize", postedBy, autoPost);
+        }
+
+        /// <summary>
+        /// Post from source with a specific trigger event
+        /// </summary>
+        private async Task<JournalEntry?> PostFromSourceWithTriggerAsync(
+            string sourceType,
+            Guid sourceId,
+            Dictionary<string, object> sourceData,
+            string triggerEvent,
             Guid? postedBy = null,
             bool autoPost = true)
         {
@@ -167,7 +248,7 @@ namespace Application.Services.Ledger
                     return null;
                 }
 
-                // Get company ID from source data or first available
+                // Get company ID from source data
                 if (!sourceData.TryGetValue("company_id", out var companyIdObj) ||
                     !Guid.TryParse(companyIdObj?.ToString(), out var companyId))
                 {
@@ -175,25 +256,26 @@ namespace Application.Services.Ledger
                     return null;
                 }
 
-                // Find matching posting rule
+                // Find matching posting rule with specific trigger
                 var transactionDate = DateOnly.FromDateTime(DateTime.Today);
                 var rule = await _ruleRepository.GetBestMatchingRuleAsync(
                     companyId,
                     sourceType,
-                    "on_finalize", // Default trigger
+                    triggerEvent,
                     sourceData,
                     transactionDate);
 
                 if (rule == null)
                 {
                     _logger.LogWarning(
-                        "No posting rule found for {SourceType} with conditions {Conditions}",
-                        sourceType, JsonSerializer.Serialize(sourceData));
+                        "No posting rule found for {SourceType} with trigger {TriggerEvent} and conditions {Conditions}",
+                        sourceType, triggerEvent, JsonSerializer.Serialize(sourceData));
                     return null;
                 }
 
-                // Parse posting template
-                var template = JsonSerializer.Deserialize<PostingTemplate>(rule.PostingTemplate);
+                // Parse posting template (use case-insensitive for camelCase JSON)
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var template = JsonSerializer.Deserialize<PostingTemplate>(rule.PostingTemplate, jsonOptions);
                 if (template == null || template.Lines == null || !template.Lines.Any())
                 {
                     _logger.LogError("Invalid posting template for rule {RuleCode}", rule.RuleCode);
@@ -286,9 +368,9 @@ namespace Application.Services.Ledger
                     JournalEntryId = savedEntry.Id,
                     SourceType = sourceType,
                     SourceId = sourceId,
-                    ConditionsSnapshot = rule.ConditionsJson,
-                    TemplateSnapshot = rule.PostingTemplate,
-                    AppliedBy = postedBy
+                    RuleSnapshot = JsonSerializer.Serialize(new { rule.ConditionsJson, rule.PostingTemplate }),
+                    ComputedBy = postedBy,
+                    Success = true
                 });
 
                 _logger.LogInformation(

@@ -17,6 +17,13 @@ namespace Core.Entities.Expense
         public bool RequiresApproval { get; set; } = true;
         public string? GlAccountCode { get; set; }
         public int DisplayOrder { get; set; }
+
+        // GST settings
+        public bool IsGstApplicable { get; set; } = true;
+        public decimal DefaultGstRate { get; set; } = 18;
+        public string? DefaultHsnSac { get; set; }
+        public bool? ItcEligible { get; set; } = true; // Some categories have blocked ITC
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

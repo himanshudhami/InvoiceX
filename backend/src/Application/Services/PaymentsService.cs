@@ -28,6 +28,8 @@ namespace Application.Services
         private readonly IForexService _forexService;
         private readonly IForexTransactionRepository _forexRepository;
         private readonly IAutoPostingService _autoPostingService;
+        private readonly ITdsReceivableRepository _tdsReceivableRepository;
+        private readonly ICustomersRepository _customersRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreatePaymentsDto> _createValidator;
         private readonly IValidator<UpdatePaymentsDto> _updateValidator;
@@ -39,6 +41,8 @@ namespace Application.Services
             IForexService forexService,
             IForexTransactionRepository forexRepository,
             IAutoPostingService autoPostingService,
+            ITdsReceivableRepository tdsReceivableRepository,
+            ICustomersRepository customersRepository,
             IMapper mapper,
             IValidator<CreatePaymentsDto> createValidator,
             IValidator<UpdatePaymentsDto> updateValidator)
@@ -49,6 +53,8 @@ namespace Application.Services
             _forexService = forexService ?? throw new ArgumentNullException(nameof(forexService));
             _forexRepository = forexRepository ?? throw new ArgumentNullException(nameof(forexRepository));
             _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
+            _tdsReceivableRepository = tdsReceivableRepository ?? throw new ArgumentNullException(nameof(tdsReceivableRepository));
+            _customersRepository = customersRepository ?? throw new ArgumentNullException(nameof(customersRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -223,7 +229,86 @@ namespace Application.Services
             // Trigger auto-posting for the payment
             await _autoPostingService.PostPaymentAsync(createdEntity.Id);
 
+            // Create TDS receivable record if TDS was deducted
+            if ((createdEntity.TdsAmount ?? 0) > 0 && createdEntity.CompanyId.HasValue)
+            {
+                await CreateTdsReceivableAsync(createdEntity);
+            }
+
             return Result<Payments>.Success(createdEntity);
+        }
+
+        /// <summary>
+        /// Create TDS receivable record for tracking and Form 26AS matching
+        /// </summary>
+        private async Task CreateTdsReceivableAsync(Payments payment)
+        {
+            try
+            {
+                // Get customer details for deductor information
+                Customers? customer = null;
+                if (payment.CustomerId.HasValue)
+                {
+                    customer = await _customersRepository.GetByIdAsync(payment.CustomerId.Value);
+                }
+
+                var paymentDate = payment.PaymentDate;
+                var financialYear = GetFinancialYear(paymentDate);
+                var quarter = GetQuarter(paymentDate);
+                var grossAmount = payment.Amount + (payment.TdsAmount ?? 0);
+
+                var tdsReceivable = new TdsReceivable
+                {
+                    CompanyId = payment.CompanyId!.Value,
+                    FinancialYear = financialYear,
+                    Quarter = quarter,
+                    CustomerId = payment.CustomerId,
+                    DeductorName = customer?.Name ?? payment.Description ?? "Unknown Deductor",
+                    DeductorTan = customer?.TaxNumber,  // TAN stored in tax_number field
+                    DeductorPan = null,  // PAN not typically stored for customers
+                    PaymentDate = paymentDate,
+                    TdsSection = payment.TdsSection ?? "194J",
+                    GrossAmount = grossAmount,
+                    TdsRate = payment.TdsRate ?? CalculateTdsRate(payment.TdsAmount ?? 0, grossAmount),
+                    TdsAmount = payment.TdsAmount ?? 0,
+                    NetReceived = payment.Amount,
+                    PaymentId = payment.Id,
+                    InvoiceId = payment.InvoiceId,
+                    Status = "pending",
+                    MatchedWith26As = false,
+                    CertificateDownloaded = false
+                };
+
+                await _tdsReceivableRepository.AddAsync(tdsReceivable);
+            }
+            catch
+            {
+                // Log but don't fail the payment if TDS receivable creation fails
+                // The payment and journal entry are more critical
+            }
+        }
+
+        /// <summary>
+        /// Calculate TDS rate from amount and gross
+        /// </summary>
+        private static decimal CalculateTdsRate(decimal tdsAmount, decimal grossAmount)
+        {
+            if (grossAmount <= 0) return 0;
+            return Math.Round((tdsAmount / grossAmount) * 100, 2);
+        }
+
+        /// <summary>
+        /// Get quarter based on Indian financial year
+        /// </summary>
+        private static string GetQuarter(DateOnly date)
+        {
+            return date.Month switch
+            {
+                >= 4 and <= 6 => "Q1",
+                >= 7 and <= 9 => "Q2",
+                >= 10 and <= 12 => "Q3",
+                _ => "Q4"
+            };
         }
 
         /// <summary>

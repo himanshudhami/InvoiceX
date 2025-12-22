@@ -60,6 +60,7 @@ const CalculationRulesPage = lazy(() => import('./pages/hr/payroll/CalculationRu
 const BankAccountsManagement = lazy(() => import('./pages/finance/banking/BankAccountsManagement'))
 const BankStatementImport = lazy(() => import('./pages/finance/banking/BankStatementImport'))
 const BankTransactionsPage = lazy(() => import('./pages/finance/banking/BankTransactionsPage'))
+const OutgoingPaymentsReconciliation = lazy(() => import('./pages/finance/expenses/OutgoingPaymentsReconciliation'))
 const TdsReceivablesManagement = lazy(() => import('./pages/finance/tax/TdsReceivablesManagement'))
 
 // Leave Management
@@ -263,6 +264,7 @@ function AppRoutes() {
               <Route path="/bank/accounts" element={<BankAccountsManagement />} />
               <Route path="/bank/import" element={<BankStatementImport />} />
               <Route path="/bank/transactions" element={<BankTransactionsPage />} />
+              <Route path="/bank/outgoing-payments" element={<OutgoingPaymentsReconciliation />} />
 
               {/* Tax Compliance Routes */}
               <Route path="/tds-receivables" element={<TdsReceivablesManagement />} />

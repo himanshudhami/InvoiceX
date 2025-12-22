@@ -38,6 +38,27 @@ namespace Application.DTOs.Expense
         public string? ReimbursementReference { get; set; }
         public string? ReimbursementNotes { get; set; }
 
+        // GST/ITC Information
+        public string? VendorName { get; set; }
+        public string? VendorGstin { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public DateTime? InvoiceDate { get; set; }
+        public bool IsGstApplicable { get; set; }
+        public string SupplyType { get; set; } = "intra_state";
+        public string? HsnSacCode { get; set; }
+        public decimal GstRate { get; set; }
+        public decimal? BaseAmount { get; set; }
+        public decimal CgstRate { get; set; }
+        public decimal CgstAmount { get; set; }
+        public decimal SgstRate { get; set; }
+        public decimal SgstAmount { get; set; }
+        public decimal IgstRate { get; set; }
+        public decimal IgstAmount { get; set; }
+        public decimal TotalGstAmount { get; set; }
+        public bool ItcEligible { get; set; }
+        public bool ItcClaimed { get; set; }
+        public string? ItcClaimedInReturn { get; set; }
+
         // Attachments
         public IEnumerable<ExpenseAttachmentDto>? Attachments { get; set; }
         public int AttachmentCount { get; set; }
@@ -58,6 +79,20 @@ namespace Application.DTOs.Expense
         public DateTime ExpenseDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; } = "INR";
+
+        // GST/ITC Information (optional for ITC tracking)
+        public string? VendorName { get; set; }
+        public string? VendorGstin { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public DateTime? InvoiceDate { get; set; }
+        public bool IsGstApplicable { get; set; }
+        public string SupplyType { get; set; } = "intra_state"; // intra_state, inter_state
+        public string? HsnSacCode { get; set; }
+        public decimal GstRate { get; set; }
+        public decimal? BaseAmount { get; set; } // If provided, Amount = BaseAmount + GST
+        public decimal CgstAmount { get; set; }
+        public decimal SgstAmount { get; set; }
+        public decimal IgstAmount { get; set; }
     }
 
     /// <summary>
@@ -71,6 +106,20 @@ namespace Application.DTOs.Expense
         public DateTime ExpenseDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; } = "INR";
+
+        // GST/ITC Information
+        public string? VendorName { get; set; }
+        public string? VendorGstin { get; set; }
+        public string? InvoiceNumber { get; set; }
+        public DateTime? InvoiceDate { get; set; }
+        public bool IsGstApplicable { get; set; }
+        public string SupplyType { get; set; } = "intra_state";
+        public string? HsnSacCode { get; set; }
+        public decimal GstRate { get; set; }
+        public decimal? BaseAmount { get; set; }
+        public decimal CgstAmount { get; set; }
+        public decimal SgstAmount { get; set; }
+        public decimal IgstAmount { get; set; }
     }
 
     /// <summary>

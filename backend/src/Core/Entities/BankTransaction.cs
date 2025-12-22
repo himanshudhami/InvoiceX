@@ -93,6 +93,58 @@ namespace Core.Entities
         /// </summary>
         public string? ReconciledBy { get; set; }
 
+        // ==================== Reconciliation Difference Handling ====================
+
+        /// <summary>
+        /// Amount difference between bank transaction and reconciled record
+        /// Positive = bank received more, Negative = bank received less
+        /// </summary>
+        public decimal? ReconciliationDifferenceAmount { get; set; }
+
+        /// <summary>
+        /// Classification of the difference: bank_interest, bank_charges, tds_deducted,
+        /// round_off, forex_gain, forex_loss, other_income, other_expense, suspense
+        /// </summary>
+        public string? ReconciliationDifferenceType { get; set; }
+
+        /// <summary>
+        /// Notes explaining the reconciliation difference
+        /// </summary>
+        public string? ReconciliationDifferenceNotes { get; set; }
+
+        /// <summary>
+        /// TDS section if difference type is tds_deducted (e.g., 194C, 194J)
+        /// </summary>
+        public string? ReconciliationTdsSection { get; set; }
+
+        /// <summary>
+        /// Journal entry ID created to account for the difference
+        /// </summary>
+        public Guid? ReconciliationAdjustmentJournalId { get; set; }
+
+        // ==================== Reversal Pairing ====================
+
+        /// <summary>
+        /// ID of the paired transaction (for reversal pairs)
+        /// Original transaction points to reversal, reversal points to original
+        /// </summary>
+        public Guid? PairedTransactionId { get; set; }
+
+        /// <summary>
+        /// Type of pair: 'original' (the failed transaction) or 'reversal' (the return credit)
+        /// </summary>
+        public string? PairType { get; set; }
+
+        /// <summary>
+        /// If the original was already posted to ledger, this is the reversal journal entry ID
+        /// </summary>
+        public Guid? ReversalJournalEntryId { get; set; }
+
+        /// <summary>
+        /// Whether this is detected as a reversal transaction (starts with REV-, REVERSAL, etc.)
+        /// </summary>
+        public bool IsReversalTransaction { get; set; }
+
         // ==================== Import Tracking ====================
 
         /// <summary>

@@ -70,6 +70,18 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.IBankTransactionService,
                               Application.Services.BankTransactionService>();
 
+            // Bank transaction specialized services (refactored for SRP)
+            services.AddScoped<Application.Interfaces.IReconciliationService,
+                              Application.Services.ReconciliationService>();
+            services.AddScoped<Application.Interfaces.IBankStatementImportService,
+                              Application.Services.BankStatementImportService>();
+            services.AddScoped<Application.Interfaces.IBrsService,
+                              Application.Services.BrsService>();
+            services.AddScoped<Application.Interfaces.IReversalDetectionService,
+                              Application.Services.ReversalDetectionService>();
+            services.AddScoped<Application.Interfaces.IOutgoingPaymentsService,
+                              Application.Services.OutgoingPaymentsService>();
+
             // TDS Receivable service
             services.AddScoped<Application.Interfaces.ITdsReceivableService,
                               Application.Services.TdsReceivableService>();

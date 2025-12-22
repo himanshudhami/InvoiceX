@@ -312,11 +312,11 @@ namespace Infrastructure.Data.Ledger
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO posting_rule_usage_log (
                     posting_rule_id, journal_entry_id, source_type, source_id,
-                    conditions_snapshot, template_snapshot, applied_at, applied_by
+                    rule_snapshot, computed_at, computed_by, success, error_message
                 )
                 VALUES (
                     @PostingRuleId, @JournalEntryId, @SourceType, @SourceId,
-                    @ConditionsSnapshot, @TemplateSnapshot, NOW(), @AppliedBy
+                    @RuleSnapshot::jsonb, NOW(), @ComputedBy, @Success, @ErrorMessage
                 )";
             await connection.ExecuteAsync(sql, usageLog);
         }

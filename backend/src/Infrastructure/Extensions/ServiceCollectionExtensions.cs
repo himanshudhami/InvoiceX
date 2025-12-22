@@ -69,6 +69,10 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.ITdsReceivableRepository>(sp =>
                 new Infrastructure.Data.TdsReceivableRepository(connectionString));
 
+            // GST Input Credit repository
+            services.AddScoped<Core.Interfaces.Ledger.IGstInputCreditRepository>(sp =>
+                new Infrastructure.Data.Ledger.GstInputCreditRepository(connectionString));
+
             // Payment allocation repository
             services.AddScoped<Core.Interfaces.IPaymentAllocationRepository>(sp =>
                 new Infrastructure.Data.PaymentAllocationRepository(connectionString));
@@ -202,6 +206,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Ledger.IPostingRuleRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IInvoicesRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IPaymentsRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseClaimRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseCategoryRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
                 ));
 

@@ -25,6 +25,40 @@ namespace Application.DTOs.BankTransactions
         /// </summary>
         [StringLength(255, ErrorMessage = "Reconciled by cannot exceed 255 characters")]
         public string? ReconciledBy { get; set; }
+
+        /// <summary>
+        /// Amount of difference between bank transaction and reconciled record (can be positive or negative)
+        /// Positive = bank received more than payment recorded
+        /// Negative = bank received less than payment recorded (e.g., TDS deduction)
+        /// </summary>
+        public decimal? DifferenceAmount { get; set; }
+
+        /// <summary>
+        /// Classification of the difference for accounting treatment:
+        /// - bank_interest: Interest income credited by bank
+        /// - bank_charges: Fees/charges deducted by bank
+        /// - tds_deducted: TDS deducted by customer (receivable)
+        /// - round_off: Minor rounding difference (typically under ₹100)
+        /// - forex_gain: Foreign exchange gain
+        /// - forex_loss: Foreign exchange loss
+        /// - other_income: Other miscellaneous income
+        /// - other_expense: Other miscellaneous expense
+        /// - suspense: Park for later investigation
+        /// </summary>
+        [StringLength(50)]
+        public string? DifferenceType { get; set; }
+
+        /// <summary>
+        /// Optional notes explaining the difference
+        /// </summary>
+        [StringLength(500)]
+        public string? DifferenceNotes { get; set; }
+
+        /// <summary>
+        /// TDS section if difference is TDS (e.g., 194C, 194J)
+        /// </summary>
+        [StringLength(20)]
+        public string? TdsSection { get; set; }
     }
 
     /// <summary>

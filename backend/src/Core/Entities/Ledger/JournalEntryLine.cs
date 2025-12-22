@@ -50,9 +50,14 @@ namespace Core.Entities.Ledger
         public decimal ExchangeRate { get; set; } = 1;
 
         /// <summary>
-        /// Amount in INR (for multi-currency)
+        /// Foreign currency debit amount (for multi-currency)
         /// </summary>
-        public decimal? AmountInInr { get; set; }
+        public decimal? ForeignDebit { get; set; }
+
+        /// <summary>
+        /// Foreign currency credit amount (for multi-currency)
+        /// </summary>
+        public decimal? ForeignCredit { get; set; }
 
         // ==================== Subledger ====================
 
@@ -73,17 +78,17 @@ namespace Core.Entities.Ledger
         /// </summary>
         public string? Description { get; set; }
 
-        // ==================== Cost Center (Future) ====================
+        // ==================== Reference ====================
 
         /// <summary>
-        /// Cost center ID for departmental accounting
+        /// Reference type (e.g., invoice, payment, bank_transaction)
         /// </summary>
-        public Guid? CostCenterId { get; set; }
+        public string? ReferenceType { get; set; }
 
         /// <summary>
-        /// Project ID for project-based accounting
+        /// Reference ID linking to source document
         /// </summary>
-        public Guid? ProjectId { get; set; }
+        public Guid? ReferenceId { get; set; }
 
         // ==================== Navigation Properties ====================
 

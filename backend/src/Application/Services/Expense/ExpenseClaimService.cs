@@ -1,15 +1,19 @@
 using Application.DTOs.Expense;
 using Application.Interfaces.Approval;
 using Application.Interfaces.Expense;
+using Application.Interfaces.Ledger;
 using Core.Common;
 using Core.Entities.Expense;
+using Core.Entities.Ledger;
 using Core.Interfaces.Expense;
+using Core.Interfaces.Ledger;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services.Expense
 {
     /// <summary>
     /// Application service for expense claim operations.
+    /// Enhanced for Indian GST compliance with ITC (Input Tax Credit) tracking.
     /// </summary>
     public class ExpenseClaimService : IExpenseClaimService
     {
@@ -17,6 +21,8 @@ namespace Application.Services.Expense
         private readonly IExpenseCategoryRepository _categoryRepository;
         private readonly IExpenseAttachmentRepository _attachmentRepository;
         private readonly IApprovalWorkflowService _workflowService;
+        private readonly IGstInputCreditRepository _gstInputCreditRepository;
+        private readonly IAutoPostingService _autoPostingService;
         private readonly ILogger<ExpenseClaimService> _logger;
 
         public ExpenseClaimService(
@@ -24,12 +30,16 @@ namespace Application.Services.Expense
             IExpenseCategoryRepository categoryRepository,
             IExpenseAttachmentRepository attachmentRepository,
             IApprovalWorkflowService workflowService,
+            IGstInputCreditRepository gstInputCreditRepository,
+            IAutoPostingService autoPostingService,
             ILogger<ExpenseClaimService> logger)
         {
             _claimRepository = claimRepository ?? throw new ArgumentNullException(nameof(claimRepository));
             _categoryRepository = categoryRepository ?? throw new ArgumentNullException(nameof(categoryRepository));
             _attachmentRepository = attachmentRepository ?? throw new ArgumentNullException(nameof(attachmentRepository));
             _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
+            _gstInputCreditRepository = gstInputCreditRepository ?? throw new ArgumentNullException(nameof(gstInputCreditRepository));
+            _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -159,6 +169,16 @@ namespace Application.Services.Expense
 
             var claimNumber = await _claimRepository.GenerateClaimNumberAsync(companyId);
 
+            // Calculate GST amounts based on supply type
+            var cgstAmount = dto.CgstAmount;
+            var sgstAmount = dto.SgstAmount;
+            var igstAmount = dto.IgstAmount;
+            var totalGst = cgstAmount + sgstAmount + igstAmount;
+            var baseAmount = dto.BaseAmount ?? (dto.IsGstApplicable ? dto.Amount - totalGst : dto.Amount);
+            var cgstRate = dto.GstRate / 2;
+            var sgstRate = dto.GstRate / 2;
+            var igstRate = dto.SupplyType == "inter_state" ? dto.GstRate : 0;
+
             var claim = new ExpenseClaim
             {
                 Id = Guid.NewGuid(),
@@ -171,7 +191,25 @@ namespace Application.Services.Expense
                 ExpenseDate = dto.ExpenseDate,
                 Amount = dto.Amount,
                 Currency = dto.Currency ?? "INR",
-                Status = ExpenseClaimStatus.Draft
+                Status = ExpenseClaimStatus.Draft,
+                // GST fields
+                VendorName = dto.VendorName?.Trim(),
+                VendorGstin = dto.VendorGstin?.Trim()?.ToUpperInvariant(),
+                InvoiceNumber = dto.InvoiceNumber?.Trim(),
+                InvoiceDate = dto.InvoiceDate,
+                IsGstApplicable = dto.IsGstApplicable,
+                SupplyType = dto.SupplyType ?? "intra_state",
+                HsnSacCode = dto.HsnSacCode?.Trim(),
+                GstRate = dto.GstRate,
+                BaseAmount = baseAmount,
+                CgstRate = dto.SupplyType == "intra_state" ? cgstRate : 0,
+                CgstAmount = cgstAmount,
+                SgstRate = dto.SupplyType == "intra_state" ? sgstRate : 0,
+                SgstAmount = sgstAmount,
+                IgstRate = igstRate,
+                IgstAmount = igstAmount,
+                TotalGstAmount = totalGst,
+                ItcEligible = category.ItcEligible ?? true // From category settings
             };
 
             var created = await _claimRepository.AddAsync(claim);
@@ -230,12 +268,33 @@ namespace Application.Services.Expense
                 }
             }
 
+            // Calculate GST amounts
+            var totalGst = dto.CgstAmount + dto.SgstAmount + dto.IgstAmount;
+            var baseAmount = dto.BaseAmount ?? (dto.IsGstApplicable ? dto.Amount - totalGst : dto.Amount);
+
             claim.Title = dto.Title.Trim();
             claim.Description = dto.Description?.Trim();
             claim.CategoryId = dto.CategoryId;
             claim.ExpenseDate = dto.ExpenseDate;
             claim.Amount = dto.Amount;
             claim.Currency = dto.Currency ?? "INR";
+            // GST fields
+            claim.VendorName = dto.VendorName?.Trim();
+            claim.VendorGstin = dto.VendorGstin?.Trim()?.ToUpperInvariant();
+            claim.InvoiceNumber = dto.InvoiceNumber?.Trim();
+            claim.InvoiceDate = dto.InvoiceDate;
+            claim.IsGstApplicable = dto.IsGstApplicable;
+            claim.SupplyType = dto.SupplyType ?? "intra_state";
+            claim.HsnSacCode = dto.HsnSacCode?.Trim();
+            claim.GstRate = dto.GstRate;
+            claim.BaseAmount = baseAmount;
+            claim.CgstRate = dto.SupplyType == "intra_state" ? dto.GstRate / 2 : 0;
+            claim.CgstAmount = dto.CgstAmount;
+            claim.SgstRate = dto.SupplyType == "intra_state" ? dto.GstRate / 2 : 0;
+            claim.SgstAmount = dto.SgstAmount;
+            claim.IgstRate = dto.SupplyType == "inter_state" ? dto.GstRate : 0;
+            claim.IgstAmount = dto.IgstAmount;
+            claim.TotalGstAmount = totalGst;
 
             await _claimRepository.UpdateAsync(claim);
 
@@ -453,8 +512,102 @@ namespace Application.Services.Expense
                 "Expense claim reimbursed: {ClaimNumber}, Reference: {Reference}",
                 claim.ClaimNumber, dto.Reference);
 
+            // Trigger auto-posting for the expense claim
+            try
+            {
+                await _autoPostingService.PostExpenseClaimAsync(claim.Id);
+                _logger.LogInformation(
+                    "Auto-posting triggered for expense claim: {ClaimNumber}",
+                    claim.ClaimNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Auto-posting failed for expense claim: {ClaimNumber}",
+                    claim.ClaimNumber);
+                // Don't fail the reimbursement if auto-posting fails
+            }
+
+            // Create GST Input Credit record if GST is applicable and ITC is eligible
+            if (claim.IsGstApplicable && claim.ItcEligible && claim.TotalGstAmount > 0)
+            {
+                await CreateGstInputCreditAsync(claim);
+            }
+
             var updated = await _claimRepository.GetByIdAsync(id);
             return Result<ExpenseClaimDto>.Success(MapToDto(updated!));
+        }
+
+        /// <summary>
+        /// Create GST Input Credit record for ITC tracking and GSTR filing.
+        /// Per GST Act 2017 Sections 16-21.
+        /// </summary>
+        private async Task CreateGstInputCreditAsync(ExpenseClaim claim)
+        {
+            try
+            {
+                var expenseDate = DateOnly.FromDateTime(claim.ExpenseDate);
+                var financialYear = GetFinancialYear(expenseDate);
+                var returnPeriod = GetReturnPeriod(expenseDate);
+
+                var gstInputCredit = new GstInputCredit
+                {
+                    CompanyId = claim.CompanyId,
+                    FinancialYear = financialYear,
+                    ReturnPeriod = returnPeriod,
+                    SourceType = "expense_claim",
+                    SourceId = claim.Id,
+                    SourceNumber = claim.ClaimNumber,
+                    VendorGstin = claim.VendorGstin,
+                    VendorName = claim.VendorName,
+                    VendorInvoiceNumber = claim.InvoiceNumber,
+                    VendorInvoiceDate = claim.InvoiceDate,
+                    SupplyType = claim.SupplyType,
+                    HsnSacCode = claim.HsnSacCode,
+                    TaxableValue = claim.BaseAmount ?? claim.Amount - claim.TotalGstAmount,
+                    CgstRate = claim.CgstRate,
+                    CgstAmount = claim.CgstAmount,
+                    SgstRate = claim.SgstRate,
+                    SgstAmount = claim.SgstAmount,
+                    IgstRate = claim.IgstRate,
+                    IgstAmount = claim.IgstAmount,
+                    TotalGst = claim.TotalGstAmount,
+                    ItcEligible = claim.ItcEligible,
+                    Status = GstInputCreditStatus.Pending
+                };
+
+                await _gstInputCreditRepository.AddAsync(gstInputCredit);
+
+                _logger.LogInformation(
+                    "GST Input Credit created for expense claim {ClaimNumber}: GST ₹{GstAmount}",
+                    claim.ClaimNumber, claim.TotalGstAmount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to create GST Input Credit for expense claim: {ClaimNumber}",
+                    claim.ClaimNumber);
+                // Don't fail the reimbursement if ITC creation fails
+            }
+        }
+
+        /// <summary>
+        /// Get financial year in format "2024-25" from a date.
+        /// Indian FY starts April 1.
+        /// </summary>
+        private static string GetFinancialYear(DateOnly date)
+        {
+            var year = date.Month >= 4 ? date.Year : date.Year - 1;
+            return $"{year}-{(year + 1) % 100:D2}";
+        }
+
+        /// <summary>
+        /// Get GSTR return period in format "Jan-2025" from a date.
+        /// </summary>
+        private static string GetReturnPeriod(DateOnly date)
+        {
+            var monthName = date.ToString("MMM");
+            return $"{monthName}-{date.Year}";
         }
 
         public async Task<Result<bool>> DeleteAsync(Guid id, Guid employeeId)
@@ -667,6 +820,26 @@ namespace Application.Services.Expense
                 ReimbursedAt = claim.ReimbursedAt,
                 ReimbursementReference = claim.ReimbursementReference,
                 ReimbursementNotes = claim.ReimbursementNotes,
+                // GST fields
+                VendorName = claim.VendorName,
+                VendorGstin = claim.VendorGstin,
+                InvoiceNumber = claim.InvoiceNumber,
+                InvoiceDate = claim.InvoiceDate,
+                IsGstApplicable = claim.IsGstApplicable,
+                SupplyType = claim.SupplyType,
+                HsnSacCode = claim.HsnSacCode,
+                GstRate = claim.GstRate,
+                BaseAmount = claim.BaseAmount,
+                CgstRate = claim.CgstRate,
+                CgstAmount = claim.CgstAmount,
+                SgstRate = claim.SgstRate,
+                SgstAmount = claim.SgstAmount,
+                IgstRate = claim.IgstRate,
+                IgstAmount = claim.IgstAmount,
+                TotalGstAmount = claim.TotalGstAmount,
+                ItcEligible = claim.ItcEligible,
+                ItcClaimed = claim.ItcClaimed,
+                ItcClaimedInReturn = claim.ItcClaimedInReturn,
                 CreatedAt = claim.CreatedAt,
                 UpdatedAt = claim.UpdatedAt
             };

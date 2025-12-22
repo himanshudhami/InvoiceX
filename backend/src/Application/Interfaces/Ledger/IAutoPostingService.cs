@@ -40,6 +40,14 @@ namespace Application.Interfaces.Ledger
             bool autoPost = true);
 
         /// <summary>
+        /// Create and post a journal entry for an expense claim reimbursement
+        /// </summary>
+        Task<JournalEntry?> PostExpenseClaimAsync(
+            Guid expenseClaimId,
+            Guid? postedBy = null,
+            bool autoPost = true);
+
+        /// <summary>
         /// Create and post a journal entry for a generic source
         /// </summary>
         Task<JournalEntry?> PostFromSourceAsync(

@@ -200,9 +200,18 @@ namespace Infrastructure.Data
 
         /// <summary>
         /// Mark a transaction as reconciled with a linked record
+        /// Optionally stores difference information and adjustment journal reference
         /// </summary>
         public async Task ReconcileTransactionAsync(
-            Guid transactionId, string reconciledType, Guid reconciledId, string? reconciledBy = null)
+            Guid transactionId,
+            string reconciledType,
+            Guid reconciledId,
+            string? reconciledBy = null,
+            decimal? differenceAmount = null,
+            string? differenceType = null,
+            string? differenceNotes = null,
+            string? tdsSection = null,
+            Guid? adjustmentJournalId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.ExecuteAsync(
@@ -212,13 +221,29 @@ namespace Infrastructure.Data
                     reconciled_id = @reconciledId,
                     reconciled_at = NOW(),
                     reconciled_by = @reconciledBy,
+                    reconciliation_difference_amount = @differenceAmount,
+                    reconciliation_difference_type = @differenceType,
+                    reconciliation_difference_notes = @differenceNotes,
+                    reconciliation_tds_section = @tdsSection,
+                    reconciliation_adjustment_journal_id = @adjustmentJournalId,
                     updated_at = NOW()
                   WHERE id = @transactionId",
-                new { transactionId, reconciledType, reconciledId, reconciledBy });
+                new {
+                    transactionId,
+                    reconciledType,
+                    reconciledId,
+                    reconciledBy,
+                    differenceAmount,
+                    differenceType,
+                    differenceNotes,
+                    tdsSection,
+                    adjustmentJournalId
+                });
         }
 
         /// <summary>
         /// Remove reconciliation from a transaction
+        /// Clears all reconciliation fields including difference tracking
         /// </summary>
         public async Task UnreconcileTransactionAsync(Guid transactionId)
         {
@@ -230,6 +255,11 @@ namespace Infrastructure.Data
                     reconciled_id = NULL,
                     reconciled_at = NULL,
                     reconciled_by = NULL,
+                    reconciliation_difference_amount = NULL,
+                    reconciliation_difference_type = NULL,
+                    reconciliation_difference_notes = NULL,
+                    reconciliation_tds_section = NULL,
+                    reconciliation_adjustment_journal_id = NULL,
                     updated_at = NOW()
                   WHERE id = @transactionId",
                 new { transactionId });
@@ -323,9 +353,9 @@ namespace Infrastructure.Data
         }
 
         /// <summary>
-        /// Get potential payment matches for reconciliation
+        /// Get potential payment matches for reconciliation (credit transactions)
         /// </summary>
-        public async Task<IEnumerable<Payments>> GetReconciliationSuggestionsAsync(
+        public async Task<IEnumerable<PaymentWithDetails>> GetReconciliationSuggestionsAsync(
             Guid transactionId, decimal tolerance = 0.01m, int maxResults = 10)
         {
             using var connection = new NpgsqlConnection(_connectionString);
@@ -333,32 +363,112 @@ namespace Infrastructure.Data
             // First get the bank transaction details
             var transaction = await GetByIdAsync(transactionId);
             if (transaction == null)
-                return Enumerable.Empty<Payments>();
+                return Enumerable.Empty<PaymentWithDetails>();
 
             // Only suggest matches for credit transactions (money coming in)
             if (transaction.TransactionType != "credit")
-                return Enumerable.Empty<Payments>();
+                return Enumerable.Empty<PaymentWithDetails>();
 
-            // Find payments with similar amount and date range
+            // Find payments with similar amount, including customer and invoice info
+            // Use wider date range (±30 days) for better matching
+            // Use amount_in_inr for multi-currency payments (bank transactions are always in INR)
             var sql = @"
-                SELECT p.* FROM payments p
-                WHERE ABS(p.amount - @amount) <= @tolerance
+                SELECT
+                    p.id,
+                    p.payment_date,
+                    COALESCE(p.amount_in_inr, p.amount) as amount,
+                    p.reference_number,
+                    p.payment_method,
+                    p.notes,
+                    c.name as customer_name,
+                    c.company_name as customer_company,
+                    i.invoice_number
+                FROM payments p
+                LEFT JOIN customers c ON c.id = p.customer_id
+                LEFT JOIN invoices i ON i.id = p.invoice_id
+                WHERE ABS(COALESCE(p.amount_in_inr, p.amount) - @amount) <= @tolerance
                   AND p.payment_date >= @fromDate
                   AND p.payment_date <= @toDate
                   AND NOT EXISTS (
                       SELECT 1 FROM bank_transactions bt
                       WHERE bt.reconciled_id = p.id AND bt.is_reconciled = true
                   )
-                ORDER BY ABS(p.amount - @amount), ABS(p.payment_date - @transactionDate)
+                ORDER BY ABS(COALESCE(p.amount_in_inr, p.amount) - @amount), ABS(p.payment_date::date - @transactionDate::date)
                 LIMIT @maxResults";
 
-            return await connection.QueryAsync<Payments>(sql, new
+            return await connection.QueryAsync<PaymentWithDetails>(sql, new
             {
                 amount = transaction.Amount,
                 tolerance,
-                fromDate = transaction.TransactionDate.AddDays(-7),
-                toDate = transaction.TransactionDate.AddDays(7),
+                fromDate = transaction.TransactionDate.AddDays(-30),
+                toDate = transaction.TransactionDate.AddDays(30),
                 transactionDate = transaction.TransactionDate,
+                maxResults
+            });
+        }
+
+        /// <summary>
+        /// Search payments for credit reconciliation with text search
+        /// </summary>
+        public async Task<IEnumerable<PaymentWithDetails>> SearchPaymentsAsync(
+            Guid companyId,
+            string? searchTerm = null,
+            decimal? amountMin = null,
+            decimal? amountMax = null,
+            int maxResults = 20)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var conditions = new List<string> { "p.company_id = @companyId" };
+
+            // Exclude already reconciled payments
+            conditions.Add(@"NOT EXISTS (
+                SELECT 1 FROM bank_transactions bt
+                WHERE bt.reconciled_id = p.id AND bt.is_reconciled = true
+            )");
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                conditions.Add(@"(
+                    c.name ILIKE @searchPattern OR
+                    c.company_name ILIKE @searchPattern OR
+                    i.invoice_number ILIKE @searchPattern OR
+                    p.reference_number ILIKE @searchPattern OR
+                    p.notes ILIKE @searchPattern
+                )");
+            }
+
+            // Use amount_in_inr for filtering to handle multi-currency payments correctly
+            // Bank transactions are always in INR, so we need to compare against INR amounts
+            if (amountMin.HasValue)
+                conditions.Add("COALESCE(p.amount_in_inr, p.amount) >= @amountMin");
+            if (amountMax.HasValue)
+                conditions.Add("COALESCE(p.amount_in_inr, p.amount) <= @amountMax");
+
+            var sql = $@"
+                SELECT
+                    p.id,
+                    p.payment_date,
+                    COALESCE(p.amount_in_inr, p.amount) as amount,
+                    p.reference_number,
+                    p.payment_method,
+                    p.notes,
+                    c.name as customer_name,
+                    c.company_name as customer_company,
+                    i.invoice_number
+                FROM payments p
+                LEFT JOIN customers c ON c.id = p.customer_id
+                LEFT JOIN invoices i ON i.id = p.invoice_id
+                WHERE {string.Join(" AND ", conditions)}
+                ORDER BY p.payment_date DESC
+                LIMIT @maxResults";
+
+            return await connection.QueryAsync<PaymentWithDetails>(sql, new
+            {
+                companyId,
+                searchPattern = $"%{searchTerm}%",
+                amountMin,
+                amountMax,
                 maxResults
             });
         }
@@ -391,6 +501,746 @@ namespace Infrastructure.Data
             var result = await connection.QueryFirstAsync<(int, int, decimal, decimal)>(
                 sql, new { bankAccountId, fromDate, toDate });
             return result;
+        }
+
+        // ==================== Debit Reconciliation (Outgoing Payments) Methods ====================
+
+        /// <summary>
+        /// Get debit reconciliation candidates by querying across all expense tables
+        /// </summary>
+        public async Task<IEnumerable<OutgoingPaymentRecord>> GetDebitReconciliationCandidatesAsync(
+            Guid companyId, decimal amount, DateOnly date, decimal amountTolerance, int dateTolerance, int maxResults)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var fromDate = date.AddDays(-dateTolerance);
+            var toDate = date.AddDays(dateTolerance);
+
+            // Union query across all 6 expense tables
+            var sql = @"
+                WITH candidates AS (
+                    -- Salary transactions
+                    SELECT
+                        est.id,
+                        'salary' as type,
+                        est.payment_date as payment_date,
+                        est.net_salary as amount,
+                        e.employee_name as payee_name,
+                        CONCAT('Salary for ', est.salary_month, '/', est.salary_year) as description,
+                        est.payment_reference as reference_number,
+                        est.bank_transaction_id IS NOT NULL as is_reconciled,
+                        est.bank_transaction_id,
+                        est.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Salary' as category,
+                        est.status
+                    FROM employee_salary_transactions est
+                    JOIN employees e ON e.id = est.employee_id
+                    WHERE e.company_id = @companyId
+                      AND est.status = 'paid'
+                      AND est.payment_date >= @fromDate
+                      AND est.payment_date <= @toDate
+                      AND ABS(est.net_salary - @amount) <= @amountTolerance
+
+                    UNION ALL
+
+                    -- Contractor payments
+                    SELECT
+                        cp.id,
+                        'contractor' as type,
+                        cp.payment_date,
+                        cp.net_payable as amount,
+                        e.employee_name as payee_name,
+                        cp.remarks as description,
+                        cp.payment_reference as reference_number,
+                        cp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        cp.bank_transaction_id,
+                        cp.reconciled_at,
+                        cp.tds_amount,
+                        cp.tds_section,
+                        'Contractor' as category,
+                        cp.status
+                    FROM contractor_payments cp
+                    JOIN employees e ON e.id = cp.employee_id
+                    WHERE e.company_id = @companyId
+                      AND cp.status = 'paid'
+                      AND cp.payment_date >= @fromDate
+                      AND cp.payment_date <= @toDate
+                      AND ABS(cp.net_payable - @amount) <= @amountTolerance
+
+                    UNION ALL
+
+                    -- Expense claims
+                    SELECT
+                        ec.id,
+                        'expense_claim' as type,
+                        ec.approved_at::date as payment_date,
+                        ec.amount,
+                        e.employee_name as payee_name,
+                        ec.description,
+                        ec.claim_number as reference_number,
+                        ec.bank_transaction_id IS NOT NULL as is_reconciled,
+                        ec.bank_transaction_id,
+                        ec.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        cat.name as category,
+                        ec.status
+                    FROM expense_claims ec
+                    JOIN employees e ON e.id = ec.employee_id
+                    LEFT JOIN expense_categories cat ON cat.id = ec.category_id
+                    WHERE e.company_id = @companyId
+                      AND ec.status IN ('approved', 'reimbursed')
+                      AND ec.approved_at IS NOT NULL
+                      AND ec.approved_at::date >= @fromDate
+                      AND ec.approved_at::date <= @toDate
+                      AND ABS(ec.amount - @amount) <= @amountTolerance
+
+                    UNION ALL
+
+                    -- Subscriptions (recurring)
+                    SELECT
+                        s.id,
+                        'subscription' as type,
+                        s.renewal_date as payment_date,
+                        s.cost_per_period as amount,
+                        COALESCE(s.vendor, s.name) as payee_name,
+                        COALESCE(s.plan_name, s.notes) as description,
+                        s.name as reference_number,
+                        s.bank_transaction_id IS NOT NULL as is_reconciled,
+                        s.bank_transaction_id,
+                        s.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        s.category,
+                        s.status
+                    FROM subscriptions s
+                    WHERE s.company_id = @companyId
+                      AND s.status = 'active'
+                      AND s.renewal_date >= @fromDate
+                      AND s.renewal_date <= @toDate
+                      AND ABS(s.cost_per_period - @amount) <= @amountTolerance
+
+                    UNION ALL
+
+                    -- Loan EMI payments
+                    SELECT
+                        lt.id,
+                        'loan_payment' as type,
+                        lt.transaction_date as payment_date,
+                        lt.amount,
+                        l.lender_name as payee_name,
+                        CONCAT(lt.transaction_type, ' - ', l.loan_name) as description,
+                        lt.voucher_reference as reference_number,
+                        lt.bank_transaction_id IS NOT NULL as is_reconciled,
+                        lt.bank_transaction_id,
+                        lt.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Loan' as category,
+                        'completed' as status
+                    FROM loan_transactions lt
+                    JOIN loans l ON l.id = lt.loan_id
+                    WHERE l.company_id = @companyId
+                      AND lt.transaction_type IN ('emi_payment', 'prepayment', 'foreclosure')
+                      AND lt.transaction_date >= @fromDate
+                      AND lt.transaction_date <= @toDate
+                      AND ABS(lt.amount - @amount) <= @amountTolerance
+
+                    UNION ALL
+
+                    -- Asset maintenance
+                    SELECT
+                        am.id,
+                        'asset_maintenance' as type,
+                        am.opened_at::date as payment_date,
+                        am.cost as amount,
+                        am.vendor as payee_name,
+                        am.title as description,
+                        NULL::text as reference_number,
+                        am.bank_transaction_id IS NOT NULL as is_reconciled,
+                        am.bank_transaction_id,
+                        am.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Asset Maintenance' as category,
+                        am.status
+                    FROM asset_maintenance am
+                    JOIN assets a ON a.id = am.asset_id
+                    WHERE a.company_id = @companyId
+                      AND am.status IN ('resolved', 'closed')
+                      AND am.opened_at::date >= @fromDate
+                      AND am.opened_at::date <= @toDate
+                      AND ABS(am.cost - @amount) <= @amountTolerance
+                )
+                SELECT * FROM candidates
+                WHERE is_reconciled = false
+                ORDER BY ABS(amount - @amount), ABS(payment_date::date - @targetDate::date)
+                LIMIT @maxResults";
+
+            return await connection.QueryAsync<OutgoingPaymentRecord>(sql, new
+            {
+                companyId,
+                amount,
+                amountTolerance,
+                fromDate,
+                toDate,
+                targetDate = date,
+                maxResults
+            });
+        }
+
+        /// <summary>
+        /// Get unified list of outgoing payments across all expense types
+        /// </summary>
+        public async Task<(IEnumerable<OutgoingPaymentRecord> Items, int TotalCount)> GetOutgoingPaymentsAsync(
+            Guid companyId,
+            int pageNumber,
+            int pageSize,
+            bool? reconciled = null,
+            List<string>? types = null,
+            DateOnly? fromDate = null,
+            DateOnly? toDate = null,
+            string? searchTerm = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var offset = (pageNumber - 1) * pageSize;
+
+            // Build the base union query
+            var unionClauses = new List<string>();
+
+            // Only include requested types, or all if none specified
+            var includeAll = types == null || !types.Any();
+            var typeSet = types?.ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>();
+
+            if (includeAll || typeSet.Contains("salary"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        est.id,
+                        'salary' as type,
+                        est.payment_date as payment_date,
+                        est.net_salary as amount,
+                        e.employee_name as payee_name,
+                        CONCAT('Salary for ', est.salary_month, '/', est.salary_year) as description,
+                        est.payment_reference as reference_number,
+                        est.bank_transaction_id IS NOT NULL as is_reconciled,
+                        est.bank_transaction_id,
+                        est.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Salary' as category,
+                        est.status
+                    FROM employee_salary_transactions est
+                    JOIN employees e ON e.id = est.employee_id
+                    WHERE e.company_id = @companyId
+                      AND est.status = 'paid'");
+            }
+
+            if (includeAll || typeSet.Contains("contractor"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        cp.id,
+                        'contractor' as type,
+                        cp.payment_date,
+                        cp.net_payable as amount,
+                        e.employee_name as payee_name,
+                        cp.remarks as description,
+                        cp.payment_reference as reference_number,
+                        cp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        cp.bank_transaction_id,
+                        cp.reconciled_at,
+                        cp.tds_amount,
+                        cp.tds_section,
+                        'Contractor' as category,
+                        cp.status
+                    FROM contractor_payments cp
+                    JOIN employees e ON e.id = cp.employee_id
+                    WHERE e.company_id = @companyId
+                      AND cp.status = 'paid'");
+            }
+
+            if (includeAll || typeSet.Contains("expense_claim"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        ec.id,
+                        'expense_claim' as type,
+                        ec.approved_at::date as payment_date,
+                        ec.amount,
+                        e.employee_name as payee_name,
+                        ec.description,
+                        ec.claim_number as reference_number,
+                        ec.bank_transaction_id IS NOT NULL as is_reconciled,
+                        ec.bank_transaction_id,
+                        ec.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        cat.name as category,
+                        ec.status
+                    FROM expense_claims ec
+                    JOIN employees e ON e.id = ec.employee_id
+                    LEFT JOIN expense_categories cat ON cat.id = ec.category_id
+                    WHERE e.company_id = @companyId
+                      AND ec.status IN ('approved', 'reimbursed')
+                      AND ec.approved_at IS NOT NULL");
+            }
+
+            if (includeAll || typeSet.Contains("subscription"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        s.id,
+                        'subscription' as type,
+                        s.renewal_date as payment_date,
+                        s.cost_per_period as amount,
+                        COALESCE(s.vendor, s.name) as payee_name,
+                        COALESCE(s.plan_name, s.notes) as description,
+                        s.name as reference_number,
+                        s.bank_transaction_id IS NOT NULL as is_reconciled,
+                        s.bank_transaction_id,
+                        s.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        s.category,
+                        s.status
+                    FROM subscriptions s
+                    WHERE s.company_id = @companyId");
+            }
+
+            if (includeAll || typeSet.Contains("loan_payment"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        lt.id,
+                        'loan_payment' as type,
+                        lt.transaction_date as payment_date,
+                        lt.amount,
+                        l.lender_name as payee_name,
+                        CONCAT(lt.transaction_type, ' - ', l.loan_name) as description,
+                        lt.voucher_reference as reference_number,
+                        lt.bank_transaction_id IS NOT NULL as is_reconciled,
+                        lt.bank_transaction_id,
+                        lt.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Loan' as category,
+                        'completed' as status
+                    FROM loan_transactions lt
+                    JOIN loans l ON l.id = lt.loan_id
+                    WHERE l.company_id = @companyId
+                      AND lt.transaction_type IN ('emi_payment', 'prepayment', 'foreclosure')");
+            }
+
+            if (includeAll || typeSet.Contains("asset_maintenance"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        am.id,
+                        'asset_maintenance' as type,
+                        am.opened_at::date as payment_date,
+                        am.cost as amount,
+                        am.vendor as payee_name,
+                        am.title as description,
+                        NULL::text as reference_number,
+                        am.bank_transaction_id IS NOT NULL as is_reconciled,
+                        am.bank_transaction_id,
+                        am.reconciled_at,
+                        NULL::decimal as tds_amount,
+                        NULL::text as tds_section,
+                        'Asset Maintenance' as category,
+                        am.status
+                    FROM asset_maintenance am
+                    JOIN assets a ON a.id = am.asset_id
+                    WHERE a.company_id = @companyId
+                      AND am.status IN ('resolved', 'closed')");
+            }
+
+            if (!unionClauses.Any())
+            {
+                return (Enumerable.Empty<OutgoingPaymentRecord>(), 0);
+            }
+
+            var baseSql = string.Join(" UNION ALL ", unionClauses);
+
+            // Build filter conditions
+            var filters = new List<string>();
+            if (reconciled.HasValue)
+                filters.Add(reconciled.Value ? "is_reconciled = true" : "is_reconciled = false");
+            if (fromDate.HasValue)
+                filters.Add("payment_date >= @fromDate");
+            if (toDate.HasValue)
+                filters.Add("payment_date <= @toDate");
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                filters.Add("(payee_name ILIKE @searchPattern OR description ILIKE @searchPattern OR reference_number ILIKE @searchPattern)");
+
+            var filterClause = filters.Any() ? "WHERE " + string.Join(" AND ", filters) : "";
+
+            var dataSql = $@"
+                WITH all_payments AS ({baseSql})
+                SELECT * FROM all_payments
+                {filterClause}
+                ORDER BY payment_date DESC
+                OFFSET @offset LIMIT @pageSize";
+
+            var countSql = $@"
+                WITH all_payments AS ({baseSql})
+                SELECT COUNT(*) FROM all_payments
+                {filterClause}";
+
+            var searchPattern = $"%{searchTerm}%";
+
+            using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, new
+            {
+                companyId,
+                reconciled,
+                fromDate,
+                toDate,
+                searchPattern,
+                offset,
+                pageSize
+            });
+
+            var items = await multi.ReadAsync<OutgoingPaymentRecord>();
+            var totalCount = await multi.ReadSingleAsync<int>();
+
+            return (items, totalCount);
+        }
+
+        /// <summary>
+        /// Get summary of outgoing payments for dashboard
+        /// </summary>
+        public async Task<OutgoingPaymentsSummary> GetOutgoingPaymentsSummaryAsync(
+            Guid companyId,
+            DateOnly? fromDate = null,
+            DateOnly? toDate = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var dateFilter = "";
+            if (fromDate.HasValue)
+                dateFilter += " AND payment_date >= @fromDate";
+            if (toDate.HasValue)
+                dateFilter += " AND payment_date <= @toDate";
+
+            var sql = $@"
+                WITH all_payments AS (
+                    -- Salary transactions
+                    SELECT
+                        'salary' as type,
+                        est.net_salary as amount,
+                        est.bank_transaction_id IS NOT NULL as is_reconciled,
+                        est.payment_date
+                    FROM employee_salary_transactions est
+                    JOIN employees e ON e.id = est.employee_id
+                    WHERE e.company_id = @companyId AND est.status = 'paid'
+
+                    UNION ALL
+
+                    -- Contractor payments
+                    SELECT
+                        'contractor' as type,
+                        cp.net_payable as amount,
+                        cp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        cp.payment_date
+                    FROM contractor_payments cp
+                    JOIN employees e ON e.id = cp.employee_id
+                    WHERE e.company_id = @companyId AND cp.status = 'paid'
+
+                    UNION ALL
+
+                    -- Expense claims
+                    SELECT
+                        'expense_claim' as type,
+                        ec.amount,
+                        ec.bank_transaction_id IS NOT NULL as is_reconciled,
+                        ec.approved_at::date as payment_date
+                    FROM expense_claims ec
+                    JOIN employees e ON e.id = ec.employee_id
+                    WHERE e.company_id = @companyId AND ec.status IN ('approved', 'reimbursed') AND ec.approved_at IS NOT NULL
+
+                    UNION ALL
+
+                    -- Subscriptions
+                    SELECT
+                        'subscription' as type,
+                        s.cost_per_period as amount,
+                        s.bank_transaction_id IS NOT NULL as is_reconciled,
+                        s.renewal_date as payment_date
+                    FROM subscriptions s
+                    WHERE s.company_id = @companyId
+
+                    UNION ALL
+
+                    -- Loan payments
+                    SELECT
+                        'loan_payment' as type,
+                        lt.amount,
+                        lt.bank_transaction_id IS NOT NULL as is_reconciled,
+                        lt.transaction_date as payment_date
+                    FROM loan_transactions lt
+                    JOIN loans l ON l.id = lt.loan_id
+                    WHERE l.company_id = @companyId AND lt.transaction_type IN ('emi_payment', 'prepayment', 'foreclosure')
+
+                    UNION ALL
+
+                    -- Asset maintenance
+                    SELECT
+                        'asset_maintenance' as type,
+                        am.cost as amount,
+                        am.bank_transaction_id IS NOT NULL as is_reconciled,
+                        am.opened_at::date as payment_date
+                    FROM asset_maintenance am
+                    JOIN assets a ON a.id = am.asset_id
+                    WHERE a.company_id = @companyId AND am.status IN ('resolved', 'closed')
+                ),
+                filtered AS (
+                    SELECT * FROM all_payments WHERE 1=1 {dateFilter}
+                )
+                SELECT
+                    COUNT(*) as total_count,
+                    COUNT(*) FILTER (WHERE is_reconciled = true) as reconciled_count,
+                    COUNT(*) FILTER (WHERE is_reconciled = false) as unreconciled_count,
+                    COALESCE(SUM(amount), 0) as total_amount,
+                    COALESCE(SUM(amount) FILTER (WHERE is_reconciled = true), 0) as reconciled_amount,
+                    COALESCE(SUM(amount) FILTER (WHERE is_reconciled = false), 0) as unreconciled_amount,
+                    type,
+                    COUNT(*) FILTER (WHERE type = type) as type_count,
+                    COALESCE(SUM(amount) FILTER (WHERE type = type), 0) as type_amount,
+                    COUNT(*) FILTER (WHERE type = type AND is_reconciled = true) as type_reconciled_count
+                FROM filtered
+                GROUP BY GROUPING SETS ((), (type))";
+
+            var results = await connection.QueryAsync<dynamic>(sql, new { companyId, fromDate, toDate });
+            var rows = results.ToList();
+
+            var summary = new OutgoingPaymentsSummary();
+
+            // First row is the total (no type)
+            var totalRow = rows.FirstOrDefault(r => r.type == null);
+            if (totalRow != null)
+            {
+                summary.TotalCount = (int)(totalRow.total_count ?? 0);
+                summary.ReconciledCount = (int)(totalRow.reconciled_count ?? 0);
+                summary.UnreconciledCount = (int)(totalRow.unreconciled_count ?? 0);
+                summary.TotalAmount = (decimal)(totalRow.total_amount ?? 0m);
+                summary.ReconciledAmount = (decimal)(totalRow.reconciled_amount ?? 0m);
+                summary.UnreconciledAmount = (decimal)(totalRow.unreconciled_amount ?? 0m);
+            }
+
+            // Other rows are by type
+            foreach (var row in rows.Where(r => r.type != null))
+            {
+                var typeName = (string)row.type;
+                summary.ByType[typeName] = (
+                    Count: (int)(row.type_count ?? 0),
+                    Amount: (decimal)(row.type_amount ?? 0m),
+                    ReconciledCount: (int)(row.type_reconciled_count ?? 0)
+                );
+            }
+
+            return summary;
+        }
+
+        // ==================== Reversal Pairing Methods ====================
+
+        /// <summary>
+        /// Find potential original transactions for a reversal
+        /// </summary>
+        public async Task<IEnumerable<BankTransaction>> FindPotentialOriginalsForReversalAsync(
+            Guid reversalTransactionId,
+            int maxDaysBack = 90,
+            int maxResults = 10)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            // First get the reversal transaction
+            var reversalSql = @"
+                SELECT * FROM bank_transactions
+                WHERE id = @reversalTransactionId";
+
+            var reversal = await connection.QueryFirstOrDefaultAsync<BankTransaction>(reversalSql, new { reversalTransactionId });
+            if (reversal == null)
+                return Enumerable.Empty<BankTransaction>();
+
+            // Find potential originals: opposite type (debit), same amount, within date range, same bank account
+            var sql = @"
+                SELECT *
+                FROM bank_transactions
+                WHERE bank_account_id = @bankAccountId
+                  AND transaction_type = 'debit'
+                  AND amount = @amount
+                  AND transaction_date >= @minDate
+                  AND transaction_date <= @maxDate
+                  AND id != @reversalTransactionId
+                  AND paired_transaction_id IS NULL
+                ORDER BY ABS(transaction_date::date - @reversalDate::date), transaction_date DESC
+                LIMIT @maxResults";
+
+            var minDate = reversal.TransactionDate.AddDays(-maxDaysBack);
+            var maxDate = reversal.TransactionDate;
+
+            return await connection.QueryAsync<BankTransaction>(sql, new
+            {
+                bankAccountId = reversal.BankAccountId,
+                amount = reversal.Amount,
+                minDate,
+                maxDate,
+                reversalDate = reversal.TransactionDate,
+                reversalTransactionId,
+                maxResults
+            });
+        }
+
+        /// <summary>
+        /// Pair a reversal transaction with its original
+        /// </summary>
+        public async Task PairReversalAsync(
+            Guid originalTransactionId,
+            Guid reversalTransactionId,
+            Guid? reversalJournalEntryId = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var transaction = await connection.BeginTransactionAsync();
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                // Update original transaction
+                var updateOriginalSql = @"
+                    UPDATE bank_transactions
+                    SET paired_transaction_id = @reversalTransactionId,
+                        pair_type = 'original',
+                        is_reconciled = true,
+                        reconciled_type = 'reversal',
+                        reconciled_id = @reversalTransactionId,
+                        reconciled_at = @now,
+                        updated_at = @now
+                    WHERE id = @originalTransactionId";
+
+                await connection.ExecuteAsync(updateOriginalSql, new
+                {
+                    reversalTransactionId,
+                    originalTransactionId,
+                    now
+                }, transaction);
+
+                // Update reversal transaction
+                var updateReversalSql = @"
+                    UPDATE bank_transactions
+                    SET paired_transaction_id = @originalTransactionId,
+                        pair_type = 'reversal',
+                        reversal_journal_entry_id = @reversalJournalEntryId,
+                        is_reconciled = true,
+                        reconciled_type = 'reversal',
+                        reconciled_id = @originalTransactionId,
+                        reconciled_at = @now,
+                        updated_at = @now
+                    WHERE id = @reversalTransactionId";
+
+                await connection.ExecuteAsync(updateReversalSql, new
+                {
+                    originalTransactionId,
+                    reversalTransactionId,
+                    reversalJournalEntryId,
+                    now
+                }, transaction);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Unpair a reversal from its original
+        /// </summary>
+        public async Task UnpairReversalAsync(Guid transactionId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var transaction = await connection.BeginTransactionAsync();
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                // Get the paired transaction ID first
+                var getPairedSql = "SELECT paired_transaction_id FROM bank_transactions WHERE id = @transactionId";
+                var pairedId = await connection.QueryFirstOrDefaultAsync<Guid?>(getPairedSql, new { transactionId }, transaction);
+
+                // Clear pairing on this transaction
+                var clearSql = @"
+                    UPDATE bank_transactions
+                    SET paired_transaction_id = NULL,
+                        pair_type = NULL,
+                        reversal_journal_entry_id = NULL,
+                        is_reconciled = false,
+                        reconciled_type = NULL,
+                        reconciled_id = NULL,
+                        reconciled_at = NULL,
+                        updated_at = @now
+                    WHERE id = @transactionId";
+
+                await connection.ExecuteAsync(clearSql, new { transactionId, now }, transaction);
+
+                // Clear pairing on the paired transaction
+                if (pairedId.HasValue)
+                {
+                    await connection.ExecuteAsync(clearSql, new { transactionId = pairedId.Value, now }, transaction);
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Update the is_reversal_transaction flag
+        /// </summary>
+        public async Task UpdateReversalFlagAsync(Guid transactionId, bool isReversal)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                UPDATE bank_transactions
+                SET is_reversal_transaction = @isReversal,
+                    updated_at = @now
+                WHERE id = @transactionId";
+
+            await connection.ExecuteAsync(sql, new { transactionId, isReversal, now = DateTime.UtcNow });
+        }
+
+        /// <summary>
+        /// Get all unpaired reversal transactions
+        /// </summary>
+        public async Task<IEnumerable<BankTransaction>> GetUnpairedReversalsAsync(Guid? bankAccountId = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT * FROM bank_transactions
+                WHERE is_reversal_transaction = true
+                  AND paired_transaction_id IS NULL";
+
+            if (bankAccountId.HasValue)
+                sql += " AND bank_account_id = @bankAccountId";
+
+            sql += " ORDER BY transaction_date DESC";
+
+            return await connection.QueryAsync<BankTransaction>(sql, new { bankAccountId });
         }
     }
 }

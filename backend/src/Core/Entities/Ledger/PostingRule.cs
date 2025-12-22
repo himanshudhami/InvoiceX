@@ -128,24 +128,29 @@ namespace Core.Entities.Ledger
         public Guid SourceId { get; set; }
 
         /// <summary>
-        /// Snapshot of the rule conditions at time of posting
+        /// Snapshot of the rule at time of posting (JSON)
         /// </summary>
-        public string? ConditionsSnapshot { get; set; }
+        public string? RuleSnapshot { get; set; }
 
         /// <summary>
-        /// Snapshot of the posting template at time of posting
+        /// When the posting was computed
         /// </summary>
-        public string? TemplateSnapshot { get; set; }
-
-        /// <summary>
-        /// When the posting was applied
-        /// </summary>
-        public DateTime AppliedAt { get; set; }
+        public DateTime ComputedAt { get; set; }
 
         /// <summary>
         /// User who triggered the posting
         /// </summary>
-        public Guid? AppliedBy { get; set; }
+        public Guid? ComputedBy { get; set; }
+
+        /// <summary>
+        /// Whether the posting was successful
+        /// </summary>
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// Error message if posting failed
+        /// </summary>
+        public string? ErrorMessage { get; set; }
 
         // ==================== Navigation Properties ====================
 

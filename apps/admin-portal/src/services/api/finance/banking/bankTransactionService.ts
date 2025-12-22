@@ -5,11 +5,17 @@ import {
   UpdateBankTransactionDto,
   ReconcileTransactionDto,
   ReconciliationSuggestion,
+  DebitReconciliationSuggestion,
+  ReconciliationSearchRequest,
   ImportBankTransactionsRequest,
   ImportBankTransactionsResult,
   BankTransactionSummary,
   BankTransactionFilterParams,
-  PagedResponse
+  PagedResponse,
+  ReversalDetectionResult,
+  ReversalMatchSuggestion,
+  PairReversalRequest,
+  PairReversalResult
 } from '../../types';
 
 export class BankTransactionService {
@@ -63,12 +69,12 @@ export class BankTransactionService {
 
   // Reconcile a transaction
   async reconcile(id: string, data: ReconcileTransactionDto): Promise<void> {
-    return apiClient.put(`${this.endpoint}/${id}/reconcile`, data);
+    return apiClient.post(`${this.endpoint}/${id}/reconcile`, data);
   }
 
   // Unreconcile a transaction
   async unreconcile(id: string): Promise<void> {
-    return apiClient.put(`${this.endpoint}/${id}/unreconcile`, {});
+    return apiClient.post(`${this.endpoint}/${id}/unreconcile`, {});
   }
 
   // Get reconciliation suggestions for a transaction
@@ -104,6 +110,89 @@ export class BankTransactionService {
   // Get transaction summary for a bank account
   async getSummary(bankAccountId: string): Promise<BankTransactionSummary> {
     return apiClient.get<BankTransactionSummary>(`${this.endpoint}/summary/${bankAccountId}`);
+  }
+
+  // Get debit reconciliation suggestions for a transaction (outgoing payments)
+  async getDebitReconciliationSuggestions(
+    id: string,
+    tolerance?: number,
+    maxResults?: number
+  ): Promise<DebitReconciliationSuggestion[]> {
+    const params = new URLSearchParams();
+    if (tolerance !== undefined) params.append('tolerance', tolerance.toString());
+    if (maxResults !== undefined) params.append('maxResults', maxResults.toString());
+    const query = params.toString();
+    return apiClient.get<DebitReconciliationSuggestion[]>(
+      `${this.endpoint}/${id}/debit-reconciliation-suggestions${query ? `?${query}` : ''}`
+    );
+  }
+
+  // Search for reconciliation candidates with filters
+  async searchReconciliationCandidates(
+    request: ReconciliationSearchRequest
+  ): Promise<PagedResponse<DebitReconciliationSuggestion>> {
+    return apiClient.post<PagedResponse<DebitReconciliationSuggestion>>(
+      `${this.endpoint}/search-reconciliation-candidates`,
+      request
+    );
+  }
+
+  // Search payments for credit reconciliation (incoming payments)
+  async searchPayments(params: {
+    companyId: string;
+    searchTerm?: string;
+    amountMin?: number;
+    amountMax?: number;
+    maxResults?: number;
+  }): Promise<ReconciliationSuggestion[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('companyId', params.companyId);
+    if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+    if (params.amountMin !== undefined) queryParams.append('amountMin', params.amountMin.toString());
+    if (params.amountMax !== undefined) queryParams.append('amountMax', params.amountMax.toString());
+    if (params.maxResults !== undefined) queryParams.append('maxResults', params.maxResults.toString());
+
+    return apiClient.get<ReconciliationSuggestion[]>(
+      `${this.endpoint}/search-payments?${queryParams.toString()}`
+    );
+  }
+
+  // ==================== Reversal Pairing Methods ====================
+
+  // Detect if a transaction is a reversal and get suggested originals
+  async detectReversal(id: string): Promise<ReversalDetectionResult> {
+    return apiClient.get<ReversalDetectionResult>(`${this.endpoint}/${id}/detect-reversal`);
+  }
+
+  // Find potential original transactions for a reversal
+  async findPotentialOriginals(
+    id: string,
+    maxDaysBack?: number,
+    maxResults?: number
+  ): Promise<ReversalMatchSuggestion[]> {
+    const params = new URLSearchParams();
+    if (maxDaysBack !== undefined) params.append('maxDaysBack', maxDaysBack.toString());
+    if (maxResults !== undefined) params.append('maxResults', maxResults.toString());
+    const query = params.toString();
+    return apiClient.get<ReversalMatchSuggestion[]>(
+      `${this.endpoint}/${id}/potential-originals${query ? `?${query}` : ''}`
+    );
+  }
+
+  // Pair a reversal transaction with its original
+  async pairReversal(request: PairReversalRequest): Promise<PairReversalResult> {
+    return apiClient.post<PairReversalResult>(`${this.endpoint}/pair-reversal`, request);
+  }
+
+  // Unpair a reversal from its original
+  async unpairReversal(id: string): Promise<void> {
+    return apiClient.post(`${this.endpoint}/${id}/unpair-reversal`, {});
+  }
+
+  // Get all unpaired reversal transactions
+  async getUnpairedReversals(bankAccountId?: string): Promise<BankTransaction[]> {
+    const params = bankAccountId ? `?bankAccountId=${bankAccountId}` : '';
+    return apiClient.get<BankTransaction[]>(`${this.endpoint}/unpaired-reversals${params}`);
   }
 }
 

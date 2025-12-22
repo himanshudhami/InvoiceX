@@ -141,7 +141,7 @@ namespace Infrastructure.Data.Ledger
                         financial_year, period_month, entry_type,
                         source_type, source_id, source_number,
                         description, total_debit, total_credit,
-                        status, rule_pack_version, rule_code,
+                        status, rule_pack_version,
                         created_by, created_at, updated_at
                     )
                     VALUES (
@@ -149,7 +149,7 @@ namespace Infrastructure.Data.Ledger
                         @FinancialYear, @PeriodMonth, @EntryType,
                         @SourceType, @SourceId, @SourceNumber,
                         @Description, @TotalDebit, @TotalCredit,
-                        @Status, @RulePackVersion, @RuleCode,
+                        @Status, @RulePackVersion,
                         @CreatedBy, NOW(), NOW()
                     )
                     RETURNING *";
@@ -545,14 +545,14 @@ namespace Infrastructure.Data.Ledger
             var lineSql = @"INSERT INTO journal_entry_lines (
                     journal_entry_id, account_id, line_number,
                     debit_amount, credit_amount, currency, exchange_rate,
-                    amount_in_inr, subledger_type, subledger_id,
-                    description, cost_center_id, project_id
+                    foreign_debit, foreign_credit, subledger_type, subledger_id,
+                    description, reference_type, reference_id
                 )
                 VALUES (
                     @JournalEntryId, @AccountId, @LineNumber,
                     @DebitAmount, @CreditAmount, @Currency, @ExchangeRate,
-                    @AmountInInr, @SubledgerType, @SubledgerId,
-                    @Description, @CostCenterId, @ProjectId
+                    @ForeignDebit, @ForeignCredit, @SubledgerType, @SubledgerId,
+                    @Description, @ReferenceType, @ReferenceId
                 )";
 
             int lineNum = 1;

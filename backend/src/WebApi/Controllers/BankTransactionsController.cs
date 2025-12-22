@@ -20,22 +20,30 @@ namespace WebApi.Controllers
     public class BankTransactionsController : ControllerBase
     {
         private readonly IBankTransactionService _service;
+        private readonly IReconciliationService _reconciliationService;
+        private readonly IBankStatementImportService _importService;
+        private readonly IBrsService _brsService;
+        private readonly IReversalDetectionService _reversalService;
+        private readonly IOutgoingPaymentsService _outgoingPaymentsService;
 
-        /// <summary>
-        /// Initializes a new instance of the BankTransactionsController
-        /// </summary>
-        public BankTransactionsController(IBankTransactionService service)
+        public BankTransactionsController(
+            IBankTransactionService service,
+            IReconciliationService reconciliationService,
+            IBankStatementImportService importService,
+            IBrsService brsService,
+            IReversalDetectionService reversalService,
+            IOutgoingPaymentsService outgoingPaymentsService)
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
+            _reconciliationService = reconciliationService ?? throw new ArgumentNullException(nameof(reconciliationService));
+            _importService = importService ?? throw new ArgumentNullException(nameof(importService));
+            _brsService = brsService ?? throw new ArgumentNullException(nameof(brsService));
+            _reversalService = reversalService ?? throw new ArgumentNullException(nameof(reversalService));
+            _outgoingPaymentsService = outgoingPaymentsService ?? throw new ArgumentNullException(nameof(outgoingPaymentsService));
         }
 
-        /// <summary>
-        /// Get bank transaction by ID
-        /// </summary>
-        /// <param name="id">The bank transaction ID</param>
-        /// <returns>The bank transaction</returns>
-        /// <response code="200">Returns the bank transaction</response>
-        /// <response code="404">Bank transaction not found</response>
+        // ==================== CRUD Endpoints ====================
+
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(BankTransaction), 200)]
         [ProducesResponseType(400)]
@@ -43,153 +51,53 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _service.GetByIdAsync(id);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Get all bank transactions
-        /// </summary>
-        /// <returns>List of bank transactions</returns>
-        /// <response code="200">Returns the list of bank transactions</response>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
         public async Task<IActionResult> GetAll()
         {
             var result = await _service.GetAllAsync();
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Get paginated bank transactions with filtering and sorting
-        /// </summary>
-        /// <param name="request">Pagination and filter parameters</param>
-        /// <returns>Paginated list of bank transactions</returns>
-        /// <response code="200">Returns the paginated list of bank transactions</response>
         [HttpGet("paged")]
         [ProducesResponseType(typeof(PagedResponse<BankTransaction>), 200)]
         public async Task<IActionResult> GetPaged([FromQuery] BankTransactionFilterRequest request)
         {
             var result = await _service.GetPagedAsync(
-                request.PageNumber,
-                request.PageSize,
-                request.SearchTerm,
-                request.SortBy,
-                request.SortDescending,
-                request.GetFilters());
+                request.PageNumber, request.PageSize, request.SearchTerm,
+                request.SortBy, request.SortDescending, request.GetFilters());
 
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
+            if (result.IsFailure) return HandleError(result.Error!);
 
             var (items, totalCount) = result.Value;
-            var response = new PagedResponse<BankTransaction>(
-                items,
-                totalCount,
-                request.PageNumber,
-                request.PageSize);
-
-            return Ok(response);
+            return Ok(new PagedResponse<BankTransaction>(items, totalCount, request.PageNumber, request.PageSize));
         }
 
-        /// <summary>
-        /// Create a new bank transaction (manual entry)
-        /// </summary>
-        /// <param name="dto">The bank transaction to create</param>
-        /// <returns>The created bank transaction</returns>
-        /// <response code="201">Bank transaction created successfully</response>
-        /// <response code="400">Invalid input</response>
         [HttpPost]
         [ProducesResponseType(typeof(BankTransaction), 201)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Create([FromBody] CreateBankTransactionDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = await _service.CreateAsync(dto);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
+            if (result.IsFailure) return HandleError(result.Error!);
             return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
         }
 
-        /// <summary>
-        /// Update an existing bank transaction
-        /// </summary>
-        /// <param name="id">The bank transaction ID</param>
-        /// <param name="dto">The updated bank transaction data</param>
-        /// <returns>No content</returns>
-        /// <response code="204">Bank transaction updated successfully</response>
-        /// <response code="400">Invalid input</response>
-        /// <response code="404">Bank transaction not found</response>
         [HttpPut("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBankTransactionDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = await _service.UpdateAsync(id, dto);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return NoContent();
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
         }
 
-        /// <summary>
-        /// Delete a bank transaction
-        /// </summary>
-        /// <param name="id">The bank transaction ID to delete</param>
-        /// <returns>No content</returns>
-        /// <response code="204">Bank transaction deleted successfully</response>
-        /// <response code="404">Bank transaction not found</response>
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
@@ -197,338 +105,266 @@ namespace WebApi.Controllers
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _service.DeleteAsync(id);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return NoContent();
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
         }
 
         // ==================== Bank Account Specific Endpoints ====================
 
-        /// <summary>
-        /// Get transactions for a specific bank account
-        /// </summary>
-        /// <param name="bankAccountId">The bank account ID</param>
-        /// <returns>List of transactions for the bank account</returns>
-        /// <response code="200">Returns the list of transactions</response>
         [HttpGet("by-account/{bankAccountId}")]
         [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> GetByBankAccountId(Guid bankAccountId)
         {
-            if (bankAccountId == Guid.Empty)
-                return BadRequest("Bank account ID cannot be empty");
-
+            if (bankAccountId == Guid.Empty) return BadRequest("Bank account ID cannot be empty");
             var result = await _service.GetByBankAccountIdAsync(bankAccountId);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Get transactions within a date range for a specific bank account
-        /// </summary>
-        /// <param name="bankAccountId">The bank account ID</param>
-        /// <param name="fromDate">Start date</param>
-        /// <param name="toDate">End date</param>
-        /// <returns>List of transactions in the date range</returns>
-        /// <response code="200">Returns the list of transactions</response>
         [HttpGet("by-account/{bankAccountId}/date-range")]
         [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> GetByDateRange(
-            Guid bankAccountId,
-            [FromQuery] DateOnly fromDate,
-            [FromQuery] DateOnly toDate)
+        public async Task<IActionResult> GetByDateRange(Guid bankAccountId, [FromQuery] DateOnly fromDate, [FromQuery] DateOnly toDate)
         {
-            if (bankAccountId == Guid.Empty)
-                return BadRequest("Bank account ID cannot be empty");
-
+            if (bankAccountId == Guid.Empty) return BadRequest("Bank account ID cannot be empty");
             var result = await _service.GetByDateRangeAsync(bankAccountId, fromDate, toDate);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            return HandleResult(result);
         }
 
-        // ==================== Reconciliation Endpoints ====================
-
-        /// <summary>
-        /// Get unreconciled transactions
-        /// </summary>
-        /// <param name="bankAccountId">Optional bank account ID filter</param>
-        /// <returns>List of unreconciled transactions</returns>
-        /// <response code="200">Returns the list of unreconciled transactions</response>
         [HttpGet("unreconciled")]
         [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
         public async Task<IActionResult> GetUnreconciled([FromQuery] Guid? bankAccountId = null)
         {
             var result = await _service.GetUnreconciledAsync(bankAccountId);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Reconcile a transaction with a payment or other record
-        /// </summary>
-        /// <param name="id">The bank transaction ID</param>
-        /// <param name="dto">The reconciliation data</param>
-        /// <returns>No content</returns>
-        /// <response code="204">Transaction reconciled successfully</response>
-        /// <response code="400">Invalid input or transaction already reconciled</response>
-        /// <response code="404">Transaction not found</response>
+        [HttpGet("summary/{bankAccountId}")]
+        [ProducesResponseType(typeof(BankTransactionSummaryDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> GetSummary(Guid bankAccountId, [FromQuery] DateOnly? fromDate = null, [FromQuery] DateOnly? toDate = null)
+        {
+            if (bankAccountId == Guid.Empty) return BadRequest("Bank account ID cannot be empty");
+            var result = await _service.GetSummaryAsync(bankAccountId, fromDate, toDate);
+            return HandleResult(result);
+        }
+
+        // ==================== Reconciliation Endpoints (via IReconciliationService) ====================
+
         [HttpPost("{id}/reconcile")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Reconcile(Guid id, [FromBody] ReconcileTransactionDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await _service.ReconcileTransactionAsync(id, dto);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return NoContent();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _reconciliationService.ReconcileTransactionAsync(id, dto);
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
         }
 
-        /// <summary>
-        /// Remove reconciliation from a transaction
-        /// </summary>
-        /// <param name="id">The bank transaction ID</param>
-        /// <returns>No content</returns>
-        /// <response code="204">Reconciliation removed successfully</response>
-        /// <response code="400">Transaction is not reconciled</response>
-        /// <response code="404">Transaction not found</response>
         [HttpPost("{id}/unreconcile")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Unreconcile(Guid id)
         {
-            var result = await _service.UnreconcileTransactionAsync(id);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return NoContent();
+            var result = await _reconciliationService.UnreconcileTransactionAsync(id);
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
         }
 
-        /// <summary>
-        /// Get reconciliation suggestions for a transaction
-        /// </summary>
-        /// <param name="id">The bank transaction ID</param>
-        /// <param name="tolerance">Amount tolerance for matching (default 0.01)</param>
-        /// <param name="maxResults">Maximum number of suggestions (default 10)</param>
-        /// <returns>List of potential payment matches</returns>
-        /// <response code="200">Returns the list of suggestions</response>
-        /// <response code="404">Transaction not found</response>
         [HttpGet("{id}/reconciliation-suggestions")]
         [ProducesResponseType(typeof(IEnumerable<ReconciliationSuggestionDto>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetReconciliationSuggestions(
-            Guid id,
-            [FromQuery] decimal tolerance = 0.01m,
-            [FromQuery] int maxResults = 10)
+        public async Task<IActionResult> GetReconciliationSuggestions(Guid id, [FromQuery] decimal tolerance = 1000m, [FromQuery] int maxResults = 10)
         {
-            var result = await _service.GetReconciliationSuggestionsAsync(id, tolerance, maxResults);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            var result = await _reconciliationService.GetReconciliationSuggestionsAsync(id, tolerance, maxResults);
+            return HandleResult(result);
         }
 
-        // ==================== Import Endpoints ====================
+        [HttpGet("search-payments")]
+        [ProducesResponseType(typeof(IEnumerable<ReconciliationSuggestionDto>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SearchPayments([FromQuery] Guid companyId, [FromQuery] string? searchTerm = null, [FromQuery] decimal? amountMin = null, [FromQuery] decimal? amountMax = null, [FromQuery] int maxResults = 20)
+        {
+            var result = await _reconciliationService.SearchPaymentsAsync(companyId, searchTerm, amountMin, amountMax, maxResults);
+            return HandleResult(result);
+        }
 
-        /// <summary>
-        /// Import bank transactions from parsed CSV data
-        /// </summary>
-        /// <param name="request">The import request with transactions</param>
-        /// <returns>Import result with counts</returns>
-        /// <response code="200">Import completed</response>
-        /// <response code="400">Invalid input</response>
-        /// <response code="404">Bank account not found</response>
+        [HttpGet("{id}/debit-reconciliation-suggestions")]
+        [ProducesResponseType(typeof(IEnumerable<DebitReconciliationSuggestionDto>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetDebitReconciliationSuggestions(Guid id, [FromQuery] decimal tolerance = 1000m, [FromQuery] int maxResults = 10)
+        {
+            var result = await _reconciliationService.GetDebitReconciliationSuggestionsAsync(id, tolerance, maxResults);
+            return HandleResult(result);
+        }
+
+        [HttpPost("search-reconciliation-candidates")]
+        [ProducesResponseType(typeof(PagedResponse<DebitReconciliationSuggestionDto>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> SearchReconciliationCandidates([FromBody] ReconciliationSearchRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _reconciliationService.SearchReconciliationCandidatesAsync(request);
+            if (result.IsFailure) return HandleError(result.Error!);
+            var (items, totalCount) = result.Value;
+            return Ok(new PagedResponse<DebitReconciliationSuggestionDto>(items, totalCount, request.PageNumber, request.PageSize));
+        }
+
+        [HttpPost("by-account/{bankAccountId}/auto-reconcile")]
+        [ProducesResponseType(typeof(AutoReconcileResultDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> AutoReconcile(Guid bankAccountId, [FromQuery] int minMatchScore = 80, [FromQuery] decimal amountTolerance = 100m, [FromQuery] int dateTolerance = 3)
+        {
+            var result = await _reconciliationService.AutoReconcileAsync(bankAccountId, minMatchScore, amountTolerance, dateTolerance);
+            return HandleResult(result);
+        }
+
+        // ==================== Import Endpoints (via IBankStatementImportService) ====================
+
         [HttpPost("import")]
         [ProducesResponseType(typeof(ImportBankTransactionsResult), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Import([FromBody] ImportBankTransactionsRequest request)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var result = await _service.ImportTransactionsAsync(request);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _importService.ImportTransactionsAsync(request);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Get transactions from a specific import batch
-        /// </summary>
-        /// <param name="batchId">The import batch ID</param>
-        /// <returns>List of transactions from the batch</returns>
-        /// <response code="200">Returns the list of transactions</response>
         [HttpGet("by-batch/{batchId}")]
         [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> GetByImportBatch(Guid batchId)
         {
-            if (batchId == Guid.Empty)
-                return BadRequest("Batch ID cannot be empty");
-
-            var result = await _service.GetByImportBatchIdAsync(batchId);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return Ok(result.Value);
+            if (batchId == Guid.Empty) return BadRequest("Batch ID cannot be empty");
+            var result = await _importService.GetByImportBatchIdAsync(batchId);
+            return HandleResult(result);
         }
 
-        /// <summary>
-        /// Delete all transactions from a specific import batch (rollback import)
-        /// </summary>
-        /// <param name="batchId">The import batch ID</param>
-        /// <returns>No content</returns>
-        /// <response code="204">Batch deleted successfully</response>
-        /// <response code="400">Cannot delete batch with reconciled transactions</response>
-        /// <response code="404">Batch not found</response>
         [HttpDelete("batch/{batchId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteImportBatch(Guid batchId)
         {
-            var result = await _service.DeleteImportBatchAsync(batchId);
-
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.NotFound => NotFound(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
-
-            return NoContent();
+            var result = await _importService.DeleteImportBatchAsync(batchId);
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
         }
 
-        // ==================== Summary Endpoints ====================
+        // ==================== BRS Endpoints (via IBrsService) ====================
 
-        /// <summary>
-        /// Get summary statistics for a bank account
-        /// </summary>
-        /// <param name="bankAccountId">The bank account ID</param>
-        /// <param name="fromDate">Optional start date</param>
-        /// <param name="toDate">Optional end date</param>
-        /// <returns>Summary statistics</returns>
-        /// <response code="200">Returns the summary</response>
-        [HttpGet("summary/{bankAccountId}")]
-        [ProducesResponseType(typeof(BankTransactionSummaryDto), 200)]
+        [HttpGet("brs/{bankAccountId}")]
+        [ProducesResponseType(typeof(BankReconciliationStatementDto), 200)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> GetSummary(
-            Guid bankAccountId,
+        public async Task<IActionResult> GenerateBrs(Guid bankAccountId, [FromQuery] DateOnly? asOfDate = null)
+        {
+            var result = await _brsService.GenerateBrsAsync(bankAccountId, asOfDate ?? DateOnly.FromDateTime(DateTime.Today));
+            return HandleResult(result);
+        }
+
+        // ==================== Reversal Pairing Endpoints (via IReversalDetectionService) ====================
+
+        [HttpGet("{id}/detect-reversal")]
+        [ProducesResponseType(typeof(ReversalDetectionResultDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> DetectReversal(Guid id)
+        {
+            var result = await _reversalService.DetectReversalAsync(id);
+            return HandleResult(result);
+        }
+
+        [HttpGet("{id}/potential-originals")]
+        [ProducesResponseType(typeof(IEnumerable<ReversalMatchSuggestionDto>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> FindPotentialOriginals(Guid id, [FromQuery] int maxDaysBack = 90, [FromQuery] int maxResults = 10)
+        {
+            var result = await _reversalService.FindPotentialOriginalsAsync(id, maxDaysBack, maxResults);
+            return HandleResult(result);
+        }
+
+        [HttpPost("pair-reversal")]
+        [ProducesResponseType(typeof(PairReversalResultDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(409)]
+        public async Task<IActionResult> PairReversal([FromBody] PairReversalRequestDto request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _reversalService.PairReversalAsync(request);
+            return HandleResult(result);
+        }
+
+        [HttpPost("{id}/unpair-reversal")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UnpairReversal(Guid id)
+        {
+            var result = await _reversalService.UnpairReversalAsync(id);
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
+        }
+
+        [HttpGet("unpaired-reversals")]
+        [ProducesResponseType(typeof(IEnumerable<BankTransaction>), 200)]
+        public async Task<IActionResult> GetUnpairedReversals([FromQuery] Guid? bankAccountId = null)
+        {
+            var result = await _reversalService.GetUnpairedReversalsAsync(bankAccountId);
+            return HandleResult(result);
+        }
+
+        // ==================== Outgoing Payments Endpoints (via IOutgoingPaymentsService) ====================
+
+        [HttpGet("outgoing-payments")]
+        [ProducesResponseType(typeof(PagedResponse<OutgoingPaymentDto>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> GetOutgoingPayments(
+            [FromQuery] Guid companyId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] bool? reconciled = null,
+            [FromQuery] string? types = null,
             [FromQuery] DateOnly? fromDate = null,
             [FromQuery] DateOnly? toDate = null)
         {
-            if (bankAccountId == Guid.Empty)
-                return BadRequest("Bank account ID cannot be empty");
+            var typeList = string.IsNullOrEmpty(types) ? null : types.Split(',').ToList();
+            var result = await _outgoingPaymentsService.GetOutgoingPaymentsAsync(companyId, pageNumber, pageSize, reconciled, typeList, fromDate, toDate);
+            if (result.IsFailure) return HandleError(result.Error!);
+            var (items, totalCount) = result.Value;
+            return Ok(new PagedResponse<OutgoingPaymentDto>(items, totalCount, pageNumber, pageSize));
+        }
 
-            var result = await _service.GetSummaryAsync(bankAccountId, fromDate, toDate);
+        [HttpGet("outgoing-payments/summary")]
+        [ProducesResponseType(typeof(OutgoingPaymentsSummaryDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> GetOutgoingPaymentsSummary([FromQuery] Guid companyId, [FromQuery] DateOnly? fromDate = null, [FromQuery] DateOnly? toDate = null)
+        {
+            var result = await _outgoingPaymentsService.GetOutgoingPaymentsSummaryAsync(companyId, fromDate, toDate);
+            return HandleResult(result);
+        }
 
-            if (result.IsFailure)
-            {
-                return result.Error!.Type switch
-                {
-                    ErrorType.Validation => BadRequest(result.Error.Message),
-                    ErrorType.Internal => StatusCode(500, result.Error.Message),
-                    _ => BadRequest(result.Error.Message)
-                };
-            }
+        // ==================== Helper Methods ====================
 
+        private IActionResult HandleResult<T>(Result<T> result)
+        {
+            if (result.IsFailure) return HandleError(result.Error!);
             return Ok(result.Value);
+        }
+
+        private IActionResult HandleError(Error error)
+        {
+            return error.Type switch
+            {
+                ErrorType.Validation => BadRequest(error.Message),
+                ErrorType.NotFound => NotFound(error.Message),
+                ErrorType.Conflict => Conflict(error.Message),
+                ErrorType.Internal => StatusCode(500, error.Message),
+                _ => BadRequest(error.Message)
+            };
         }
     }
 }

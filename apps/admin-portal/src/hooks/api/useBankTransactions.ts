@@ -23,6 +23,11 @@ export const bankTransactionKeys = {
   byBatch: (batchId: string) => [...bankTransactionKeys.all, 'byBatch', batchId] as const,
   summary: (bankAccountId: string) => [...bankTransactionKeys.all, 'summary', bankAccountId] as const,
   suggestions: (id: string) => [...bankTransactionKeys.all, 'suggestions', id] as const,
+  debitSuggestions: (id: string) => [...bankTransactionKeys.all, 'debitSuggestions', id] as const,
+  // Reversal pairing keys
+  reversalDetection: (id: string) => [...bankTransactionKeys.all, 'reversalDetection', id] as const,
+  potentialOriginals: (id: string) => [...bankTransactionKeys.all, 'potentialOriginals', id] as const,
+  unpairedReversals: (bankAccountId?: string) => [...bankTransactionKeys.all, 'unpairedReversals', bankAccountId] as const,
 };
 
 /**
@@ -291,6 +296,113 @@ export const useDeleteBankTransactionBatch = () => {
     },
     onError: (error) => {
       console.error('Failed to delete bank transaction batch:', error);
+    },
+  });
+};
+
+/**
+ * Hook for fetching debit reconciliation suggestions (outgoing payments)
+ */
+export const useDebitReconciliationSuggestions = (
+  id: string,
+  tolerance?: number,
+  maxResults?: number,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.debitSuggestions(id),
+    queryFn: () => bankTransactionService.getDebitReconciliationSuggestions(id, tolerance, maxResults),
+    enabled: enabled && !!id,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+  });
+};
+
+// ==================== Reversal Pairing Hooks ====================
+
+/**
+ * Hook for detecting if a transaction is a reversal
+ */
+export const useReversalDetection = (id: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.reversalDetection(id),
+    queryFn: () => bankTransactionService.detectReversal(id),
+    enabled: enabled && !!id,
+    staleTime: 60 * 1000,
+    gcTime: 2 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook for finding potential original transactions for a reversal
+ */
+export const usePotentialOriginals = (
+  id: string,
+  maxDaysBack?: number,
+  maxResults?: number,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.potentialOriginals(id),
+    queryFn: () => bankTransactionService.findPotentialOriginals(id, maxDaysBack, maxResults),
+    enabled: enabled && !!id,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+  });
+};
+
+/**
+ * Hook for getting unpaired reversal transactions
+ */
+export const useUnpairedReversals = (bankAccountId?: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.unpairedReversals(bankAccountId),
+    queryFn: () => bankTransactionService.getUnpairedReversals(bankAccountId),
+    enabled,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+  });
+};
+
+/**
+ * Hook for pairing a reversal with its original transaction
+ */
+export const usePairReversal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: {
+      reversalTransactionId: string;
+      originalTransactionId: string;
+      originalWasPostedToLedger: boolean;
+      originalJournalEntryId?: string;
+      notes?: string;
+      pairedBy?: string;
+    }) => bankTransactionService.pairReversal(request),
+    onSuccess: () => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: bankTransactionKeys.all });
+    },
+    onError: (error) => {
+      console.error('Failed to pair reversal:', error);
+    },
+  });
+};
+
+/**
+ * Hook for unpairing a reversal from its original
+ */
+export const useUnpairReversal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => bankTransactionService.unpairReversal(id),
+    onSuccess: () => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: bankTransactionKeys.all });
+    },
+    onError: (error) => {
+      console.error('Failed to unpair reversal:', error);
     },
   });
 };
