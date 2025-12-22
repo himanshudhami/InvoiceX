@@ -20,6 +20,11 @@ export interface ExpenseCategory {
   code: string
   maxAmount?: number
   requiresReceipt: boolean
+  // GST defaults
+  isGstApplicable: boolean
+  defaultGstRate: number
+  defaultHsnSac?: string
+  itcEligible: boolean
 }
 
 export interface ExpenseClaim {
@@ -42,6 +47,26 @@ export interface ExpenseClaim {
   rejectionReason?: string
   reimbursedAt?: string
   reimbursementReference?: string
+  // GST/ITC Information
+  vendorName?: string
+  vendorGstin?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  isGstApplicable: boolean
+  supplyType: 'intra_state' | 'inter_state'
+  hsnSacCode?: string
+  gstRate: number
+  baseAmount?: number
+  cgstRate: number
+  cgstAmount: number
+  sgstRate: number
+  sgstAmount: number
+  igstRate: number
+  igstAmount: number
+  totalGstAmount: number
+  itcEligible: boolean
+  itcClaimed: boolean
+  itcClaimedInReturn?: string
   createdAt: string
   updatedAt: string
 }
@@ -66,6 +91,19 @@ export interface CreateExpenseClaimRequest {
   expenseDate: string
   amount: number
   currency?: string
+  // GST fields
+  vendorName?: string
+  vendorGstin?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  isGstApplicable?: boolean
+  supplyType?: 'intra_state' | 'inter_state'
+  hsnSacCode?: string
+  gstRate?: number
+  baseAmount?: number
+  cgstAmount?: number
+  sgstAmount?: number
+  igstAmount?: number
 }
 
 export interface UpdateExpenseClaimRequest {
@@ -74,6 +112,19 @@ export interface UpdateExpenseClaimRequest {
   categoryId?: string
   expenseDate?: string
   amount?: number
+  // GST fields
+  vendorName?: string
+  vendorGstin?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  isGstApplicable?: boolean
+  supplyType?: 'intra_state' | 'inter_state'
+  hsnSacCode?: string
+  gstRate?: number
+  baseAmount?: number
+  cgstAmount?: number
+  sgstAmount?: number
+  igstAmount?: number
 }
 
 export interface AddAttachmentRequest {

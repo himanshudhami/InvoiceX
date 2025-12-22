@@ -22,8 +22,8 @@ namespace Infrastructure.Data.Expense
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<ExpenseAttachment>(
                 @"SELECT ea.id, ea.expense_id, ea.file_storage_id, ea.description,
-                         ea.is_primary, ea.created_at,
-                         fs.original_filename, fs.mime_type, fs.file_size,
+                         ea.is_primary, ea.created_at, ea.attachment_type, ea.uploaded_by,
+                         fs.original_filename, fs.mime_type, fs.file_size, fs.storage_path,
                          '/api/files/download/' || REPLACE(fs.storage_path, '/', '%2F') as download_url
                   FROM expense_attachments ea
                   JOIN file_storage fs ON ea.file_storage_id = fs.id
@@ -36,13 +36,13 @@ namespace Infrastructure.Data.Expense
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<ExpenseAttachment>(
                 @"SELECT ea.id, ea.expense_id, ea.file_storage_id, ea.description,
-                         ea.is_primary, ea.created_at,
-                         fs.original_filename, fs.mime_type, fs.file_size,
+                         ea.is_primary, ea.created_at, ea.attachment_type, ea.uploaded_by,
+                         fs.original_filename, fs.mime_type, fs.file_size, fs.storage_path,
                          '/api/files/download/' || REPLACE(fs.storage_path, '/', '%2F') as download_url
                   FROM expense_attachments ea
                   JOIN file_storage fs ON ea.file_storage_id = fs.id
                   WHERE ea.expense_id = @expenseId
-                  ORDER BY ea.is_primary DESC, ea.created_at",
+                  ORDER BY ea.attachment_type, ea.is_primary DESC, ea.created_at",
                 new { expenseId });
         }
 
@@ -51,9 +51,9 @@ namespace Infrastructure.Data.Expense
             using var connection = new NpgsqlConnection(_connectionString);
 
             var sql = @"INSERT INTO expense_attachments
-                        (id, expense_id, file_storage_id, description, is_primary, created_at)
+                        (id, expense_id, file_storage_id, description, is_primary, created_at, attachment_type, uploaded_by)
                         VALUES
-                        (@Id, @ExpenseId, @FileStorageId, @Description, @IsPrimary, @CreatedAt)
+                        (@Id, @ExpenseId, @FileStorageId, @Description, @IsPrimary, @CreatedAt, @AttachmentType, @UploadedBy)
                         RETURNING id";
 
             attachment.Id = attachment.Id == Guid.Empty ? Guid.NewGuid() : attachment.Id;

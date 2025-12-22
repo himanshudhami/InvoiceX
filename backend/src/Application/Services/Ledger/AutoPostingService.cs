@@ -5,6 +5,7 @@ using Core.Interfaces.Expense;
 using Core.Interfaces.Ledger;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Application.Services.Ledger
 {
@@ -297,7 +298,7 @@ namespace Application.Services.Ledger
                     SourceType = sourceType,
                     SourceId = sourceId,
                     SourceNumber = sourceData.TryGetValue("source_number", out var srcNum) ? srcNum?.ToString() : null,
-                    Description = BuildDescription(template.DescriptionTemplate, sourceData),
+                    Description = BuildDescription(template.NarrationTemplate ?? template.DescriptionTemplate, sourceData),
                     Status = autoPost ? "posted" : "draft",
                     PostedAt = autoPost ? DateTime.UtcNow : null,
                     PostedBy = autoPost ? postedBy : null,
@@ -313,24 +314,59 @@ namespace Application.Services.Ledger
                 // Build journal lines
                 foreach (var lineTemplate in template.Lines)
                 {
-                    var account = await _accountRepository.GetByCodeAsync(companyId, lineTemplate.AccountCode);
+                    // Resolve account code from source data or static values
+                    var accountCode = ResolveAccountCode(lineTemplate, sourceData);
+                    if (string.IsNullOrEmpty(accountCode))
+                    {
+                        _logger.LogWarning("Could not resolve account code for template line");
+                        continue;
+                    }
+
+                    var account = await _accountRepository.GetByCodeAsync(companyId, accountCode);
                     if (account == null)
                     {
                         _logger.LogError(
                             "Account {AccountCode} not found for company {CompanyId}",
-                            lineTemplate.AccountCode, companyId);
+                            accountCode, companyId);
                         continue;
                     }
 
-                    var amount = GetAmountFromSourceData(sourceData, lineTemplate.AmountField);
-                    if (amount <= 0) continue;
+                    // Determine debit/credit amounts
+                    decimal debitAmount = 0;
+                    decimal creditAmount = 0;
+
+                    if (!string.IsNullOrEmpty(lineTemplate.DebitField))
+                    {
+                        debitAmount = GetAmountFromSourceData(sourceData, lineTemplate.DebitField);
+                    }
+                    else if (!string.IsNullOrEmpty(lineTemplate.CreditField))
+                    {
+                        creditAmount = GetAmountFromSourceData(sourceData, lineTemplate.CreditField);
+                    }
+                    else if (!string.IsNullOrEmpty(lineTemplate.AmountField))
+                    {
+                        // Legacy support for Side + AmountField
+                        var amount = GetAmountFromSourceData(sourceData, lineTemplate.AmountField);
+                        if (lineTemplate.Side == "debit")
+                            debitAmount = amount;
+                        else
+                            creditAmount = amount;
+                    }
+
+                    // Skip zero-amount lines
+                    if (debitAmount <= 0 && creditAmount <= 0) continue;
+
+                    // Build description from template
+                    var description = BuildDescription(
+                        lineTemplate.DescriptionTemplate ?? lineTemplate.Description,
+                        sourceData);
 
                     var line = new JournalEntryLine
                     {
                         AccountId = account.Id,
-                        DebitAmount = lineTemplate.Side == "debit" ? amount : 0,
-                        CreditAmount = lineTemplate.Side == "credit" ? amount : 0,
-                        Description = lineTemplate.Description,
+                        DebitAmount = debitAmount,
+                        CreditAmount = creditAmount,
+                        Description = description,
                         Currency = "INR",
                         ExchangeRate = 1
                     };
@@ -446,22 +482,102 @@ namespace Application.Services.Ledger
                 _ => 0
             };
         }
+
+        /// <summary>
+        /// Resolves account code from template line using source data
+        /// Priority: 1) AccountCodeField from source data, 2) AccountCode, 3) AccountCodeFallback
+        /// </summary>
+        private static string? ResolveAccountCode(PostingTemplateLine lineTemplate, Dictionary<string, object> sourceData)
+        {
+            // 1. Try to get account code from source data field
+            if (!string.IsNullOrEmpty(lineTemplate.AccountCodeField))
+            {
+                if (sourceData.TryGetValue(lineTemplate.AccountCodeField, out var fieldValue))
+                {
+                    var codeFromField = fieldValue?.ToString();
+                    if (!string.IsNullOrEmpty(codeFromField))
+                    {
+                        return codeFromField;
+                    }
+                }
+            }
+
+            // 2. Use static account code if specified
+            if (!string.IsNullOrEmpty(lineTemplate.AccountCode))
+            {
+                return lineTemplate.AccountCode;
+            }
+
+            // 3. Use fallback account code
+            if (!string.IsNullOrEmpty(lineTemplate.AccountCodeFallback))
+            {
+                return lineTemplate.AccountCodeFallback;
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
-    /// Posting template structure
+    /// Posting template structure - matches migration 091 template format
     /// </summary>
     internal class PostingTemplate
     {
+        [JsonPropertyName("description_template")]
         public string? DescriptionTemplate { get; set; }
+
+        [JsonPropertyName("narration_template")]
+        public string? NarrationTemplate { get; set; }
+
+        [JsonPropertyName("lines")]
         public List<PostingTemplateLine>? Lines { get; set; }
     }
 
+    /// <summary>
+    /// Template line supporting dynamic account resolution from source data
+    /// JSON property names match snake_case format from database
+    /// </summary>
     internal class PostingTemplateLine
     {
-        public string AccountCode { get; set; } = string.Empty;
-        public string Side { get; set; } = "debit";
-        public string AmountField { get; set; } = string.Empty;
+        // Account resolution - checked in order:
+        // 1. AccountCodeField - get from source data (e.g., "expense_account")
+        // 2. AccountCode - static account code (e.g., "1141")
+        // 3. AccountCodeFallback - fallback if above are empty (e.g., "5100")
+        [JsonPropertyName("account_code_field")]
+        public string? AccountCodeField { get; set; }
+
+        [JsonPropertyName("account_code")]
+        public string? AccountCode { get; set; }
+
+        [JsonPropertyName("account_code_fallback")]
+        public string? AccountCodeFallback { get; set; }
+
+        // Amount fields - one of these should be set to determine debit/credit
+        [JsonPropertyName("debit_field")]
+        public string? DebitField { get; set; }
+
+        [JsonPropertyName("credit_field")]
+        public string? CreditField { get; set; }
+
+        // Legacy support for simple templates
+        [JsonPropertyName("side")]
+        public string? Side { get; set; }
+
+        [JsonPropertyName("amount_field")]
+        public string? AmountField { get; set; }
+
+        // Description template with placeholders
+        [JsonPropertyName("description")]
         public string? Description { get; set; }
+
+        [JsonPropertyName("description_template")]
+        public string? DescriptionTemplate { get; set; }
+
+        // Subledger tracking
+        [JsonPropertyName("subledger_type")]
+        public string? SubledgerType { get; set; }
+
+        [JsonPropertyName("subledger_id_field")]
+        public string? SubledgerIdField { get; set; }
     }
 }

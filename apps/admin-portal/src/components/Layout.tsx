@@ -49,6 +49,7 @@ import {
   FileSearch,
   ShieldCheck,
   Clock,
+  Tags,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -115,6 +116,16 @@ const Layout: FC<Props> = ({ children }) => {
     },
     {
       type: 'group' as const,
+      name: 'Expenses',
+      icon: Receipt,
+      items: [
+        { name: 'Expense Claims', href: '/expense-claims', icon: FileText },
+        { name: 'Categories', href: '/expense-categories', icon: Tags },
+        { name: 'Reports', href: '/expense-dashboard', icon: BarChart3 },
+      ],
+    },
+    {
+      type: 'group' as const,
       name: 'Finance',
       icon: Landmark,
       items: [
@@ -122,7 +133,6 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Loans', href: '/loans', icon: Landmark },
         { name: 'EMI Payments', href: '/emi-payments', icon: CreditCard },
         { name: 'TDS Receivables', href: '/tds-receivables', icon: Receipt },
-        { name: 'Expense Reports', href: '/expense-dashboard', icon: BarChart3 },
         { name: 'Financial Report', href: '/financial-report', icon: FileSpreadsheet },
       ],
     },

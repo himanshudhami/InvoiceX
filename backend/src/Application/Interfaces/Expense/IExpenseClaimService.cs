@@ -72,7 +72,10 @@ namespace Application.Interfaces.Expense
         /// <summary>
         /// Mark an expense claim as reimbursed.
         /// </summary>
-        Task<Result<ExpenseClaimDto>> ReimburseAsync(Guid id, ReimburseExpenseClaimDto dto);
+        /// <param name="id">The expense claim ID.</param>
+        /// <param name="dto">Reimbursement details including optional proof attachments.</param>
+        /// <param name="reimbursedBy">User ID of the admin performing reimbursement.</param>
+        Task<Result<ExpenseClaimDto>> ReimburseAsync(Guid id, ReimburseExpenseClaimDto dto, Guid? reimbursedBy = null);
 
         /// <summary>
         /// Delete a draft expense claim.

@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import * as Select from '@radix-ui/react-select'
+import * as Switch from '@radix-ui/react-switch'
 import {
   ChevronDown,
   Check,
@@ -13,6 +14,8 @@ import {
   Image,
   File,
   IndianRupee,
+  ChevronRight,
+  Building2,
 } from 'lucide-react'
 import { expenseApi, ExpenseCategory } from '@/api/expense'
 import { PageHeader } from '@/components/layout'
@@ -26,6 +29,15 @@ interface FormValues {
   expenseDate: string
   amount: string
   description: string
+  // GST fields
+  vendorName: string
+  vendorGstin: string
+  invoiceNumber: string
+  invoiceDate: string
+  isGstApplicable: boolean
+  supplyType: 'intra_state' | 'inter_state'
+  gstRate: string
+  baseAmount: string
 }
 
 interface UploadedFile {
@@ -53,6 +65,7 @@ export function SubmitExpensePage() {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -61,22 +74,84 @@ export function SubmitExpensePage() {
       expenseDate: new Date().toISOString().split('T')[0],
       amount: '',
       description: '',
+      // GST defaults
+      vendorName: '',
+      vendorGstin: '',
+      invoiceNumber: '',
+      invoiceDate: '',
+      isGstApplicable: false,
+      supplyType: 'intra_state',
+      gstRate: '18',
+      baseAmount: '',
     },
   })
 
   const selectedCategoryId = watch('categoryId')
   const amount = watch('amount')
+  const isGstApplicable = watch('isGstApplicable')
+  const supplyType = watch('supplyType')
+  const gstRate = watch('gstRate')
+  const baseAmount = watch('baseAmount')
   const selectedCategory = categories?.find((c) => c.id === selectedCategoryId)
+  const [showGstSection, setShowGstSection] = useState(false)
+
+  // Auto-fill GST defaults when category changes
+  useEffect(() => {
+    if (selectedCategory) {
+      setValue('isGstApplicable', selectedCategory.isGstApplicable)
+      setValue('gstRate', String(selectedCategory.defaultGstRate || 18))
+      setShowGstSection(selectedCategory.isGstApplicable)
+    }
+  }, [selectedCategory, setValue])
+
+  // Calculate GST amounts
+  const gstCalculation = useMemo(() => {
+    const base = parseFloat(baseAmount) || 0
+    const rate = parseFloat(gstRate) || 0
+
+    if (!isGstApplicable || base <= 0) {
+      return { cgst: 0, sgst: 0, igst: 0, totalGst: 0, totalAmount: parseFloat(amount) || 0 }
+    }
+
+    if (supplyType === 'intra_state') {
+      const halfRate = rate / 2
+      const cgst = (base * halfRate) / 100
+      const sgst = (base * halfRate) / 100
+      return { cgst, sgst, igst: 0, totalGst: cgst + sgst, totalAmount: base + cgst + sgst }
+    } else {
+      const igst = (base * rate) / 100
+      return { cgst: 0, sgst: 0, igst, totalGst: igst, totalAmount: base + igst }
+    }
+  }, [baseAmount, gstRate, isGstApplicable, supplyType, amount])
+
+  // Sync total amount when GST is calculated
+  useEffect(() => {
+    if (isGstApplicable && baseAmount) {
+      setValue('amount', String(gstCalculation.totalAmount.toFixed(2)))
+    }
+  }, [gstCalculation.totalAmount, isGstApplicable, baseAmount, setValue])
 
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      // Create the expense claim
+      // Create the expense claim with GST data
       const expense = await expenseApi.create({
         title: data.title,
         categoryId: data.categoryId,
         expenseDate: data.expenseDate,
         amount: parseFloat(data.amount),
         description: data.description || undefined,
+        // GST fields
+        vendorName: data.vendorName || undefined,
+        vendorGstin: data.vendorGstin || undefined,
+        invoiceNumber: data.invoiceNumber || undefined,
+        invoiceDate: data.invoiceDate || undefined,
+        isGstApplicable: data.isGstApplicable,
+        supplyType: data.supplyType,
+        gstRate: parseFloat(data.gstRate) || 0,
+        baseAmount: parseFloat(data.baseAmount) || undefined,
+        cgstAmount: gstCalculation.cgst,
+        sgstAmount: gstCalculation.sgst,
+        igstAmount: gstCalculation.igst,
       })
 
       // Add attachments
@@ -297,8 +372,233 @@ export function SubmitExpensePage() {
           </div>
         </div>
 
-        {/* Amount Preview */}
-        {amount && parseFloat(amount) > 0 && (
+        {/* GST Details Section */}
+        <Card className="p-4 border-gray-200">
+          <button
+            type="button"
+            onClick={() => setShowGstSection(!showGstSection)}
+            className="flex items-center justify-between w-full"
+          >
+            <div className="flex items-center gap-2">
+              <Building2 size={18} className="text-gray-500" />
+              <span className="font-medium text-gray-700">GST Details</span>
+              {isGstApplicable && (
+                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                  GST @ {gstRate}%
+                </span>
+              )}
+            </div>
+            <ChevronRight
+              size={18}
+              className={cn('text-gray-400 transition-transform', showGstSection && 'rotate-90')}
+            />
+          </button>
+
+          {showGstSection && (
+            <div className="mt-4 space-y-4 border-t pt-4">
+              {/* GST Applicable Toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">GST Applicable</label>
+                  <p className="text-xs text-gray-500">Enable to claim Input Tax Credit</p>
+                </div>
+                <Controller
+                  name="isGstApplicable"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch.Root
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className={cn(
+                        'w-11 h-6 rounded-full relative transition-colors',
+                        field.value ? 'bg-primary-600' : 'bg-gray-300'
+                      )}
+                    >
+                      <Switch.Thumb className="block w-5 h-5 bg-white rounded-full shadow-md transition-transform data-[state=checked]:translate-x-5 translate-x-0.5" />
+                    </Switch.Root>
+                  )}
+                />
+              </div>
+
+              {isGstApplicable && (
+                <>
+                  {/* Vendor Details */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Vendor Name"
+                      placeholder="Business name"
+                      {...register('vendorName')}
+                    />
+                    <Input
+                      label="Vendor GSTIN"
+                      placeholder="15 characters"
+                      maxLength={15}
+                      {...register('vendorGstin', {
+                        pattern: {
+                          value: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
+                          message: 'Invalid GSTIN format',
+                        },
+                      })}
+                      error={errors.vendorGstin?.message}
+                    />
+                  </div>
+
+                  {/* Invoice Details */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Invoice Number"
+                      placeholder="INV-001"
+                      {...register('invoiceNumber')}
+                    />
+                    <Input
+                      type="date"
+                      label="Invoice Date"
+                      {...register('invoiceDate')}
+                    />
+                  </div>
+
+                  {/* Supply Type */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Supply Type
+                    </label>
+                    <Controller
+                      name="supplyType"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              checked={field.value === 'intra_state'}
+                              onChange={() => field.onChange('intra_state')}
+                              className="w-4 h-4 text-primary-600"
+                            />
+                            <span className="text-sm">Intra-State (CGST + SGST)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              checked={field.value === 'inter_state'}
+                              onChange={() => field.onChange('inter_state')}
+                              className="w-4 h-4 text-primary-600"
+                            />
+                            <span className="text-sm">Inter-State (IGST)</span>
+                          </label>
+                        </div>
+                      )}
+                    />
+                  </div>
+
+                  {/* Base Amount and GST Rate */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        Base Amount (Before GST)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <IndianRupee size={16} />
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                          {...register('baseAmount')}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                        GST Rate
+                      </label>
+                      <Controller
+                        name="gstRate"
+                        control={control}
+                        render={({ field }) => (
+                          <Select.Root value={field.value} onValueChange={field.onChange}>
+                            <Select.Trigger className="flex h-11 w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20">
+                              <Select.Value />
+                              <Select.Icon>
+                                <ChevronDown size={16} className="text-gray-400" />
+                              </Select.Icon>
+                            </Select.Trigger>
+                            <Select.Portal>
+                              <Select.Content className="overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                                <Select.Viewport className="p-1">
+                                  {['0', '5', '12', '18', '28'].map((rate) => (
+                                    <Select.Item
+                                      key={rate}
+                                      value={rate}
+                                      className="relative flex items-center px-4 py-2 text-sm rounded-lg cursor-pointer select-none hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                                    >
+                                      <Select.ItemText>{rate}%</Select.ItemText>
+                                      <Select.ItemIndicator className="absolute right-3">
+                                        <Check size={16} className="text-primary-600" />
+                                      </Select.ItemIndicator>
+                                    </Select.Item>
+                                  ))}
+                                </Select.Viewport>
+                              </Select.Content>
+                            </Select.Portal>
+                          </Select.Root>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* GST Calculation Summary */}
+                  {baseAmount && parseFloat(baseAmount) > 0 && (
+                    <Card className="p-3 bg-blue-50 border-blue-100">
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between text-gray-600">
+                          <span>Base Amount</span>
+                          <span>{formatCurrency(parseFloat(baseAmount))}</span>
+                        </div>
+                        {supplyType === 'intra_state' ? (
+                          <>
+                            <div className="flex justify-between text-gray-600">
+                              <span>CGST ({parseFloat(gstRate) / 2}%)</span>
+                              <span>{formatCurrency(gstCalculation.cgst)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600">
+                              <span>SGST ({parseFloat(gstRate) / 2}%)</span>
+                              <span>{formatCurrency(gstCalculation.sgst)}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-between text-gray-600">
+                            <span>IGST ({gstRate}%)</span>
+                            <span>{formatCurrency(gstCalculation.igst)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold text-blue-800 pt-1 border-t border-blue-200">
+                          <span>Total Amount</span>
+                          <span>{formatCurrency(gstCalculation.totalAmount)}</span>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* ITC Eligibility Warning */}
+                  {selectedCategory && !selectedCategory.itcEligible && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <AlertCircle className="text-amber-500 flex-shrink-0 mt-0.5" size={16} />
+                      <p className="text-sm text-amber-700">
+                        This category is not eligible for Input Tax Credit as per GST Act Section 17(5).
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </Card>
+
+        {/* Amount Preview (shown when GST is not applicable) */}
+        {!isGstApplicable && amount && parseFloat(amount) > 0 && (
           <Card className="p-4 bg-green-50 border-green-100">
             <div className="flex items-center justify-between">
               <span className="text-sm text-green-700">Total Amount</span>

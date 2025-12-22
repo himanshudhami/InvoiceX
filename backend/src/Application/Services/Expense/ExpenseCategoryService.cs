@@ -67,7 +67,12 @@ namespace Application.Services.Expense
                     Name = c.Name,
                     Code = c.Code,
                     MaxAmount = c.MaxAmount,
-                    RequiresReceipt = c.RequiresReceipt
+                    RequiresReceipt = c.RequiresReceipt,
+                    // GST defaults
+                    IsGstApplicable = c.IsGstApplicable,
+                    DefaultGstRate = c.DefaultGstRate,
+                    DefaultHsnSac = c.DefaultHsnSac,
+                    ItcEligible = c.ItcEligible ?? true
                 }));
         }
 
@@ -269,6 +274,11 @@ namespace Application.Services.Expense
                 RequiresApproval = category.RequiresApproval,
                 GlAccountCode = category.GlAccountCode,
                 DisplayOrder = category.DisplayOrder,
+                // GST defaults
+                IsGstApplicable = category.IsGstApplicable,
+                DefaultGstRate = category.DefaultGstRate,
+                DefaultHsnSac = category.DefaultHsnSac,
+                ItcEligible = category.ItcEligible ?? true,
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             };

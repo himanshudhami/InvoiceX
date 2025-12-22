@@ -21,6 +21,15 @@ public class ExpenseClaimsController : CompanyAuthorizedController
     private readonly IExpenseClaimService _expenseService;
     private readonly ILogger<ExpenseClaimsController> _logger;
 
+    private Guid? CurrentUserId
+    {
+        get
+        {
+            var claim = User.FindFirst("user_id");
+            return claim != null && Guid.TryParse(claim.Value, out var userId) ? userId : null;
+        }
+    }
+
     public ExpenseClaimsController(
         IExpenseClaimService expenseService,
         ILogger<ExpenseClaimsController> logger)
@@ -166,7 +175,7 @@ public class ExpenseClaimsController : CompanyAuthorizedController
             return AccessDeniedDifferentCompanyResponse("Expense claim");
         }
 
-        var result = await _expenseService.ReimburseAsync(id, dto);
+        var result = await _expenseService.ReimburseAsync(id, dto, CurrentUserId);
 
         if (result.IsFailure)
         {

@@ -16,6 +16,13 @@ namespace Application.DTOs.Expense
         public bool RequiresApproval { get; set; }
         public string? GlAccountCode { get; set; }
         public int DisplayOrder { get; set; }
+
+        // GST defaults
+        public bool IsGstApplicable { get; set; }
+        public decimal DefaultGstRate { get; set; }
+        public string? DefaultHsnSac { get; set; }
+        public bool ItcEligible { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
@@ -52,7 +59,7 @@ namespace Application.DTOs.Expense
     }
 
     /// <summary>
-    /// Simplified DTO for dropdowns.
+    /// Simplified DTO for dropdowns with GST defaults.
     /// </summary>
     public class ExpenseCategorySelectDto
     {
@@ -61,5 +68,11 @@ namespace Application.DTOs.Expense
         public string Code { get; set; } = string.Empty;
         public decimal? MaxAmount { get; set; }
         public bool RequiresReceipt { get; set; }
+
+        // GST defaults for auto-populating form fields
+        public bool IsGstApplicable { get; set; }
+        public decimal DefaultGstRate { get; set; }
+        public string? DefaultHsnSac { get; set; }
+        public bool ItcEligible { get; set; }
     }
 }

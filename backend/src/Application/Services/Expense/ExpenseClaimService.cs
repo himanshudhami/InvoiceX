@@ -488,7 +488,7 @@ namespace Application.Services.Expense
             return Result<ExpenseClaimDto>.Success(MapToDto(updated!));
         }
 
-        public async Task<Result<ExpenseClaimDto>> ReimburseAsync(Guid id, ReimburseExpenseClaimDto dto)
+        public async Task<Result<ExpenseClaimDto>> ReimburseAsync(Guid id, ReimburseExpenseClaimDto dto, Guid? reimbursedBy = null)
         {
             var claim = await _claimRepository.GetByIdAsync(id);
             if (claim == null)
@@ -507,6 +507,29 @@ namespace Application.Services.Expense
             claim.ReimbursementNotes = dto.Notes?.Trim();
 
             await _claimRepository.UpdateAsync(claim);
+
+            // Add reimbursement proof attachments if provided
+            if (dto.ProofAttachmentIds != null && dto.ProofAttachmentIds.Any())
+            {
+                foreach (var fileStorageId in dto.ProofAttachmentIds)
+                {
+                    var attachment = new ExpenseAttachment
+                    {
+                        Id = Guid.NewGuid(),
+                        ExpenseId = id,
+                        FileStorageId = fileStorageId,
+                        Description = "Reimbursement proof",
+                        IsPrimary = false,
+                        AttachmentType = ExpenseAttachmentType.ReimbursementProof,
+                        UploadedBy = reimbursedBy,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _attachmentRepository.AddAsync(attachment);
+                }
+                _logger.LogInformation(
+                    "Added {Count} reimbursement proof attachments for claim: {ClaimNumber}",
+                    dto.ProofAttachmentIds.Count, claim.ClaimNumber);
+            }
 
             _logger.LogInformation(
                 "Expense claim reimbursed: {ClaimNumber}, Reference: {Reference}",

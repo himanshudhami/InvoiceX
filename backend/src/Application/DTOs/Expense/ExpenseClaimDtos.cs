@@ -137,6 +137,11 @@ namespace Application.DTOs.Expense
     {
         public string? Reference { get; set; }
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// File storage IDs for reimbursement proof (bank screenshots, receipts, etc.)
+        /// </summary>
+        public List<Guid>? ProofAttachmentIds { get; set; }
     }
 
     /// <summary>
@@ -153,7 +158,18 @@ namespace Application.DTOs.Expense
         public string? MimeType { get; set; }
         public long? FileSize { get; set; }
         public string? DownloadUrl { get; set; }
+        public string? StoragePath { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// Type of attachment: employee_receipt, reimbursement_proof, approval_note
+        /// </summary>
+        public string AttachmentType { get; set; } = "employee_receipt";
+
+        /// <summary>
+        /// User who uploaded the attachment
+        /// </summary>
+        public Guid? UploadedBy { get; set; }
     }
 
     /// <summary>
@@ -164,6 +180,12 @@ namespace Application.DTOs.Expense
         public Guid FileStorageId { get; set; }
         public string? Description { get; set; }
         public bool IsPrimary { get; set; }
+
+        /// <summary>
+        /// Type of attachment: employee_receipt, reimbursement_proof, approval_note
+        /// Default is employee_receipt
+        /// </summary>
+        public string AttachmentType { get; set; } = "employee_receipt";
     }
 
     /// <summary>

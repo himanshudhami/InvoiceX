@@ -57,6 +57,10 @@ export interface ExpenseAttachment {
   description?: string;
   isPrimary: boolean;
   createdAt: string;
+  /** Type of attachment: employee_receipt, reimbursement_proof, approval_note */
+  attachmentType: string;
+  /** User who uploaded the attachment */
+  uploadedBy?: string;
 }
 
 export interface CreateExpenseClaimDto {
@@ -82,6 +86,9 @@ export interface RejectExpenseClaimDto {
 
 export interface ReimburseExpenseClaimDto {
   reimbursementReference?: string;
+  notes?: string;
+  /** File storage IDs for reimbursement proof (bank screenshots, receipts, etc.) */
+  proofAttachmentIds?: string[];
 }
 
 export interface ExpenseClaimFilterParams extends PaginationParams {

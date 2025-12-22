@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
@@ -16,6 +16,9 @@ import {
   Calendar,
   IndianRupee,
   Paperclip,
+  Upload,
+  X,
+  Loader2,
 } from 'lucide-react'
 import { useCompanyContext } from '@/contexts/CompanyContext'
 import {
@@ -55,6 +58,13 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
+interface UploadedProofFile {
+  file: File
+  id?: string
+  uploading: boolean
+  error?: string
+}
+
 const ExpenseClaimsManagement = () => {
   const { selectedCompanyId, selectedCompany } = useCompanyContext()
   const [pageNumber, setPageNumber] = useState(1)
@@ -66,6 +76,8 @@ const ExpenseClaimsManagement = () => {
   const [reimbursingClaim, setReimbursingClaim] = useState<ExpenseClaim | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [reimbursementReference, setReimbursementReference] = useState('')
+  const [proofFiles, setProofFiles] = useState<UploadedProofFile[]>([])
+  const proofFileInputRef = useRef<HTMLInputElement>(null)
 
   const filters: ExpenseClaimFilterParams = {
     companyId: selectedCompanyId || undefined,
@@ -127,16 +139,66 @@ const ExpenseClaimsManagement = () => {
   const handleReimburse = async () => {
     if (!reimbursingClaim) return
     try {
+      // Collect IDs of successfully uploaded proof files
+      const proofAttachmentIds = proofFiles
+        .filter((f) => f.id && !f.error)
+        .map((f) => f.id!)
+
       await reimburseClaim.mutateAsync({
         id: reimbursingClaim.id,
-        data: { reimbursementReference: reimbursementReference || undefined },
+        data: {
+          reimbursementReference: reimbursementReference || undefined,
+          proofAttachmentIds: proofAttachmentIds.length > 0 ? proofAttachmentIds : undefined,
+        },
       })
       setReimbursingClaim(null)
       setReimbursementReference('')
+      setProofFiles([])
       refetch()
     } catch (error) {
       console.error('Failed to reimburse claim:', error)
     }
+  }
+
+  const handleProofFileSelect = async (files: FileList | null) => {
+    if (!files || !selectedCompanyId) return
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+      if (!allowedTypes.includes(file.type)) {
+        continue
+      }
+
+      // Validate file size (10 MB)
+      if (file.size > 10 * 1024 * 1024) {
+        continue
+      }
+
+      const uploadedFile: UploadedProofFile = { file, uploading: true }
+      setProofFiles((prev) => [...prev, uploadedFile])
+
+      try {
+        const result = await fileService.upload(file, selectedCompanyId, 'reimbursement_proof')
+        setProofFiles((prev) =>
+          prev.map((f) =>
+            f.file === file ? { ...f, id: result.id, uploading: false } : f
+          )
+        )
+      } catch {
+        setProofFiles((prev) =>
+          prev.map((f) =>
+            f.file === file ? { ...f, uploading: false, error: 'Upload failed' } : f
+          )
+        )
+      }
+    }
+  }
+
+  const removeProofFile = (file: File) => {
+    setProofFiles((prev) => prev.filter((f) => f.file !== file))
   }
 
   const columns: ColumnDef<ExpenseClaim>[] = [
@@ -497,9 +559,10 @@ const ExpenseClaimsManagement = () => {
         onClose={() => {
           setReimbursingClaim(null)
           setReimbursementReference('')
+          setProofFiles([])
         }}
         title="Mark as Reimbursed"
-        size="sm"
+        size="md"
       >
         {reimbursingClaim && (
           <div className="space-y-4">
@@ -523,11 +586,83 @@ const ExpenseClaimsManagement = () => {
                 placeholder="e.g., Bank transaction ID, cheque number"
               />
             </div>
-            <div className="flex justify-end space-x-3">
+
+            {/* Payment Proof Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Proof (Optional)
+              </label>
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-purple-400 transition-colors"
+                onClick={() => proofFileInputRef.current?.click()}
+              >
+                <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-600">
+                  <span className="text-purple-600 font-medium">Click to upload</span> bank screenshot or receipt
+                </p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, PDF up to 10MB each</p>
+                <input
+                  ref={proofFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleProofFileSelect(e.target.files)}
+                />
+              </div>
+
+              {/* Uploaded Files List */}
+              {proofFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {proofFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        'flex items-center justify-between p-2 rounded-lg border',
+                        file.error ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'
+                      )}
+                    >
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <Paperclip className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-700 truncate">
+                            {file.file.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(file.file.size / 1024).toFixed(1)} KB
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {file.uploading && (
+                          <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                        )}
+                        {file.error && (
+                          <span className="text-xs text-red-600">{file.error}</span>
+                        )}
+                        {file.id && !file.uploading && (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeProofFile(file.file)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-2">
               <button
                 onClick={() => {
                   setReimbursingClaim(null)
                   setReimbursementReference('')
+                  setProofFiles([])
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
@@ -535,7 +670,7 @@ const ExpenseClaimsManagement = () => {
               </button>
               <button
                 onClick={handleReimburse}
-                disabled={reimburseClaim.isPending}
+                disabled={reimburseClaim.isPending || proofFiles.some((f) => f.uploading)}
                 className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 disabled:opacity-50"
               >
                 {reimburseClaim.isPending ? 'Processing...' : 'Confirm Reimbursement'}
