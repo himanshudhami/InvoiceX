@@ -588,6 +588,11 @@ public class PayrollCalculationService
         // Formula: YTD (actual past) + Current month (actual) + Future months (projected at standard rate)
         // remainingMonths represents months AFTER current month (e.g., 11 for April = May→March)
         var projectedAnnualIncome = ytdGross + currentMonthGross + (salaryStructure.MonthlyGross * remainingMonths);
+
+        // For TDS distribution, we need to include the current month
+        // Per Section 192 and Rule 26B, TDS should be spread over all months INCLUDING the current month
+        // e.g., for April (1st month of FY), TDS should be divided by 12, not 11
+        var tdsDistributionMonths = remainingMonths + 1;
         var annualBasic = salaryStructure.BasicSalary * 12;
         var annualHra = salaryStructure.Hra * 12;
 
@@ -626,7 +631,7 @@ public class PayrollCalculationService
             declarationDto?.PrevEmployerIncome ?? 0,
             declarationDto?.PrevEmployerTds ?? 0,
             ytdTds,
-            remainingMonths,
+            tdsDistributionMonths,  // Use tdsDistributionMonths (includes current month) for TDS division
             declarationDto,
             payrollInfo.DateOfBirth);
     }

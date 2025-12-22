@@ -125,12 +125,22 @@ public class TdsCalculationService
             taxParams,
             taxSlabs.ToList());
 
-        // Calculate cess (parameterized) on tax after rebate and surcharge
-        var cessRate = taxParams.GetValueOrDefault("CESS_RATE", DEFAULT_CESS_RATE) / 100m;
-        result.Cess = Math.Round((result.TaxOnIncomeAfterRebate + result.Surcharge) * cessRate, 0, MidpointRounding.AwayFromZero);
+        // Apply Section 87A marginal relief BEFORE calculating cess
+        // This caps tax (before cess) at excess income when income slightly exceeds rebate threshold
+        // Per Indian tax law, cess is calculated AFTER marginal relief is applied
+        var taxBeforeCess = result.TaxOnIncomeAfterRebate + result.Surcharge;
+        var taxAfterMarginalRelief = ApplySection87aMarginalRelief(
+            result.TaxableIncome,
+            taxBeforeCess,
+            taxRegime,
+            taxParams);
 
-        // Total tax liability (after rebate, surcharge, and cess)
-        result.TotalTaxLiability = result.TaxOnIncomeAfterRebate + result.Surcharge + result.Cess;
+        // Calculate cess (parameterized) on tax AFTER marginal relief
+        var cessRate = taxParams.GetValueOrDefault("CESS_RATE", DEFAULT_CESS_RATE) / 100m;
+        result.Cess = Math.Round(taxAfterMarginalRelief * cessRate, 0, MidpointRounding.AwayFromZero);
+
+        // Total tax liability (after marginal relief and cess)
+        result.TotalTaxLiability = taxAfterMarginalRelief + result.Cess;
 
         // Remaining tax after credits
         result.RemainingTaxLiability = Math.Max(0, result.TotalTaxLiability - previousEmployerTds - tdsPaidYtd);
@@ -299,6 +309,50 @@ public class TdsCalculationService
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Apply marginal relief for Section 87A rebate threshold.
+    /// When income slightly exceeds the rebate threshold, the total tax payable
+    /// should not exceed the amount by which income exceeds the threshold.
+    /// This prevents the "tax cliff" effect at the rebate boundary.
+    ///
+    /// Example (FY 2025-26 New Regime, threshold ₹12L):
+    /// - At ₹12,00,000: Tax = ₹60,000, Rebate = ₹60,000, Net = ₹0
+    /// - At ₹12,69,000: Tax = ₹70,350 + Cess = ₹73,164
+    /// - Excess income = ₹69,000
+    /// - With marginal relief: Tax capped at ₹69,000
+    /// </summary>
+    /// <param name="taxableIncome">Total taxable income</param>
+    /// <param name="totalTaxLiability">Total tax including cess (before marginal relief)</param>
+    /// <param name="taxRegime">Tax regime (new/old)</param>
+    /// <param name="taxParams">Tax parameters from database</param>
+    /// <returns>Tax liability after applying marginal relief (may be reduced)</returns>
+    private decimal ApplySection87aMarginalRelief(
+        decimal taxableIncome,
+        decimal totalTaxLiability,
+        string taxRegime,
+        Dictionary<string, decimal> taxParams)
+    {
+        var threshold = taxRegime == "new"
+            ? taxParams.GetValueOrDefault("REBATE_87A_THRESHOLD", DEFAULT_REBATE_THRESHOLD_NEW)
+            : taxParams.GetValueOrDefault("REBATE_87A_THRESHOLD", DEFAULT_REBATE_THRESHOLD_OLD);
+
+        // Marginal relief only applies when income exceeds threshold
+        if (taxableIncome <= threshold)
+            return totalTaxLiability;
+
+        // Calculate excess income above threshold
+        var excessIncome = taxableIncome - threshold;
+
+        // If total tax exceeds excess income, cap it at excess income
+        // This ensures taxpayer doesn't pay more tax than their excess income
+        if (totalTaxLiability > excessIncome)
+        {
+            return excessIncome;
+        }
+
+        return totalTaxLiability;
     }
 
     /// <summary>
