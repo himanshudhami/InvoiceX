@@ -81,6 +81,8 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
                               Application.Services.ReversalDetectionService>();
             services.AddScoped<Application.Interfaces.IOutgoingPaymentsService,
                               Application.Services.OutgoingPaymentsService>();
+            services.AddScoped<Application.Interfaces.IJournalEntryLinkingService,
+                              Application.Services.JournalEntryLinkingService>();
 
             // TDS Receivable service
             services.AddScoped<Application.Interfaces.ITdsReceivableService,

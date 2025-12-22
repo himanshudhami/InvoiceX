@@ -15,7 +15,10 @@ import {
   ReversalDetectionResult,
   ReversalMatchSuggestion,
   PairReversalRequest,
-  PairReversalResult
+  PairReversalResult,
+  ReconcileToJournalDto,
+  BankReconciliationStatement,
+  EnhancedBrsReport
 } from '../../types';
 
 export class BankTransactionService {
@@ -193,6 +196,38 @@ export class BankTransactionService {
   async getUnpairedReversals(bankAccountId?: string): Promise<BankTransaction[]> {
     const params = bankAccountId ? `?bankAccountId=${bankAccountId}` : '';
     return apiClient.get<BankTransaction[]>(`${this.endpoint}/unpaired-reversals${params}`);
+  }
+
+  // ==================== Journal Entry Reconciliation ====================
+
+  // Reconcile a bank transaction directly to a journal entry
+  async reconcileToJournal(id: string, data: ReconcileToJournalDto): Promise<void> {
+    return apiClient.post(`${this.endpoint}/${id}/reconcile-to-journal`, data);
+  }
+
+  // ==================== Bank Reconciliation Statement (BRS) ====================
+
+  // Generate basic BRS for a bank account
+  async getBrs(bankAccountId: string, asOfDate: string): Promise<BankReconciliationStatement> {
+    const params = new URLSearchParams({ asOfDate });
+    return apiClient.get<BankReconciliationStatement>(
+      `${this.endpoint}/brs/${bankAccountId}?${params.toString()}`
+    );
+  }
+
+  // Generate enhanced BRS with ledger balance, TDS summary, and audit metrics
+  async getEnhancedBrs(
+    bankAccountId: string,
+    asOfDate?: string,
+    periodStart?: string
+  ): Promise<EnhancedBrsReport> {
+    const params = new URLSearchParams();
+    if (asOfDate) params.append('asOfDate', asOfDate);
+    if (periodStart) params.append('periodStart', periodStart);
+    const query = params.toString();
+    return apiClient.get<EnhancedBrsReport>(
+      `${this.endpoint}/brs/${bankAccountId}/enhanced${query ? `?${query}` : ''}`
+    );
   }
 }
 

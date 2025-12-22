@@ -122,6 +122,18 @@ namespace Core.Entities
         /// </summary>
         public Guid? ReconciliationAdjustmentJournalId { get; set; }
 
+        // ==================== Journal Entry Linking (Hybrid Reconciliation) ====================
+
+        /// <summary>
+        /// Journal Entry ID for the source document's JE (enables BRS from ledger perspective)
+        /// </summary>
+        public Guid? ReconciledJournalEntryId { get; set; }
+
+        /// <summary>
+        /// Specific JE line ID that affects the bank account (for complete audit trail)
+        /// </summary>
+        public Guid? ReconciledJeLineId { get; set; }
+
         // ==================== Reversal Pairing ====================
 
         /// <summary>

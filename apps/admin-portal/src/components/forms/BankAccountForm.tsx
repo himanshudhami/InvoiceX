@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { BankAccount, CreateBankAccountDto } from '@/services/api/types'
 import { useCreateBankAccount, useUpdateBankAccount } from '@/hooks/api/useBankAccounts'
 import { useCompanies } from '@/hooks/api/useCompanies'
+import { useAccounts } from '@/features/ledger/hooks/useLedger'
 import { cn } from '@/lib/utils'
 import { CompanySelect } from '@/components/ui/CompanySelect'
 
@@ -50,12 +51,35 @@ export const BankAccountForm = ({
     isPrimary: false,
     isActive: true,
     notes: '',
+    linkedAccountId: '',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const createBankAccount = useCreateBankAccount()
   const updateBankAccount = useUpdateBankAccount()
   const { data: companies = [] } = useCompanies()
+
+  // Fetch chart of accounts for the selected company
+  const { data: chartOfAccounts = [] } = useAccounts(formData.companyId || '', !!formData.companyId)
+
+  // Filter for bank/cash accounts (asset accounts starting with 111 or containing 'bank' in name)
+  const bankLedgerAccounts = useMemo(() => {
+    return chartOfAccounts.filter(account => {
+      const code = account.accountCode?.toLowerCase() || ''
+      const name = account.accountName?.toLowerCase() || ''
+      // Bank accounts typically have codes like 111xxx or 112xxx (cash/bank in Indian CoA)
+      // Or contain 'bank' or 'cash' in the name
+      // Asset accounts that are bank/cash related
+      return (
+        account.accountType === 'asset' && (
+          code.startsWith('111') ||
+          code.startsWith('112') ||
+          name.includes('bank') ||
+          name.includes('cash')
+        )
+      )
+    })
+  }, [chartOfAccounts])
 
   const isEditing = !!bankAccount
   const isLoading = createBankAccount.isPending || updateBankAccount.isPending
@@ -78,6 +102,7 @@ export const BankAccountForm = ({
         isPrimary: bankAccount.isPrimary || false,
         isActive: bankAccount.isActive ?? true,
         notes: bankAccount.notes || '',
+        linkedAccountId: bankAccount.linkedAccountId || '',
       })
     }
   }, [bankAccount])
@@ -326,6 +351,32 @@ export const BankAccountForm = ({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
+
+      {/* Linked Ledger Account (for BRS) */}
+      {formData.companyId && (
+        <div>
+          <label htmlFor="linkedAccountId" className="block text-sm font-medium text-gray-700 mb-1">
+            Linked Ledger Account
+            <span className="ml-1 text-xs text-gray-500">(for BRS generation)</span>
+          </label>
+          <select
+            id="linkedAccountId"
+            value={formData.linkedAccountId || ''}
+            onChange={(e) => handleChange('linkedAccountId', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Select a ledger account...</option>
+            {bankLedgerAccounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.accountCode} - {account.accountName}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Link this bank account to a ledger account to enable Bank Reconciliation Statement generation.
+          </p>
+        </div>
+      )}
 
       {/* Status Checkboxes */}
       <div className="flex space-x-6">

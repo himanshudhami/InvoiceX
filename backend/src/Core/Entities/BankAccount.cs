@@ -90,6 +90,13 @@ namespace Core.Entities
         /// </summary>
         public string? Notes { get; set; }
 
+        // ==================== Ledger Integration ====================
+
+        /// <summary>
+        /// Linked Chart of Account ID for this bank account (required for BRS generation)
+        /// </summary>
+        public Guid? LinkedAccountId { get; set; }
+
         // ==================== Timestamps ====================
 
         public DateTime? CreatedAt { get; set; }

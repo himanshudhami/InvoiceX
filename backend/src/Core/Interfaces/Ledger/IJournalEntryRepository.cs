@@ -113,5 +113,14 @@ namespace Core.Interfaces.Ledger
         /// Update lines (for draft entries only)
         /// </summary>
         Task UpdateLinesAsync(Guid journalEntryId, IEnumerable<JournalEntryLine> lines);
+
+        // ==================== Balance Queries ====================
+
+        /// <summary>
+        /// Get the balance for a specific account as of a date.
+        /// Calculates sum of debits - sum of credits from posted journal entries.
+        /// Used for BRS generation to get book balance from ledger perspective.
+        /// </summary>
+        Task<decimal> GetAccountBalanceAsync(Guid companyId, Guid accountId, DateOnly asOfDate);
     }
 }

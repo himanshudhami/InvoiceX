@@ -221,6 +221,21 @@ namespace WebApi.Controllers
             return HandleResult(result);
         }
 
+        /// <summary>
+        /// Reconcile a bank transaction directly to a journal entry.
+        /// Used for manual JE reconciliation (opening entries, adjustments) without source documents.
+        /// </summary>
+        [HttpPost("{id}/reconcile-to-journal")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ReconcileToJournal(Guid id, [FromBody] ReconcileToJournalDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var result = await _reconciliationService.ReconcileToJournalAsync(id, dto);
+            return result.IsFailure ? HandleError(result.Error!) : NoContent();
+        }
+
         // ==================== Import Endpoints (via IBankStatementImportService) ====================
 
         [HttpPost("import")]
@@ -262,6 +277,25 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GenerateBrs(Guid bankAccountId, [FromQuery] DateOnly? asOfDate = null)
         {
             var result = await _brsService.GenerateBrsAsync(bankAccountId, asOfDate ?? DateOnly.FromDateTime(DateTime.Today));
+            return HandleResult(result);
+        }
+
+        /// <summary>
+        /// Generate enhanced BRS with journal entry perspective for CA compliance.
+        /// Includes ledger balance, TDS summary, and audit metrics.
+        /// </summary>
+        [HttpGet("brs/{bankAccountId}/enhanced")]
+        [ProducesResponseType(typeof(EnhancedBrsReportDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> GenerateEnhancedBrs(
+            Guid bankAccountId,
+            [FromQuery] DateOnly? asOfDate = null,
+            [FromQuery] DateOnly? periodStart = null)
+        {
+            var result = await _brsService.GenerateEnhancedBrsAsync(
+                bankAccountId,
+                asOfDate ?? DateOnly.FromDateTime(DateTime.Today),
+                periodStart);
             return HandleResult(result);
         }
 

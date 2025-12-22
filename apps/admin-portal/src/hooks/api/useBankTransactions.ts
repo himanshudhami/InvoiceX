@@ -4,6 +4,7 @@ import {
   CreateBankTransactionDto,
   UpdateBankTransactionDto,
   ReconcileTransactionDto,
+  ReconcileToJournalDto,
   ImportBankTransactionsRequest,
   BankTransactionFilterParams
 } from '@/services/api/types';
@@ -28,6 +29,10 @@ export const bankTransactionKeys = {
   reversalDetection: (id: string) => [...bankTransactionKeys.all, 'reversalDetection', id] as const,
   potentialOriginals: (id: string) => [...bankTransactionKeys.all, 'potentialOriginals', id] as const,
   unpairedReversals: (bankAccountId?: string) => [...bankTransactionKeys.all, 'unpairedReversals', bankAccountId] as const,
+  // BRS keys
+  brs: (bankAccountId: string, asOfDate: string) => [...bankTransactionKeys.all, 'brs', bankAccountId, asOfDate] as const,
+  enhancedBrs: (bankAccountId: string, asOfDate?: string, periodStart?: string) =>
+    [...bankTransactionKeys.all, 'enhancedBrs', bankAccountId, asOfDate, periodStart] as const,
 };
 
 /**
@@ -404,5 +409,60 @@ export const useUnpairReversal = () => {
     onError: (error) => {
       console.error('Failed to unpair reversal:', error);
     },
+  });
+};
+
+// ==================== Journal Entry Reconciliation Hooks ====================
+
+/**
+ * Hook for reconciling a bank transaction directly to a journal entry
+ */
+export const useReconcileToJournal = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ReconcileToJournalDto }) =>
+      bankTransactionService.reconcileToJournal(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: bankTransactionKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: bankTransactionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: bankTransactionKeys.unreconciled() });
+    },
+    onError: (error) => {
+      console.error('Failed to reconcile to journal:', error);
+    },
+  });
+};
+
+// ==================== BRS (Bank Reconciliation Statement) Hooks ====================
+
+/**
+ * Hook for fetching basic BRS
+ */
+export const useBrs = (bankAccountId: string, asOfDate: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.brs(bankAccountId, asOfDate),
+    queryFn: () => bankTransactionService.getBrs(bankAccountId, asOfDate),
+    enabled: enabled && !!bankAccountId && !!asOfDate,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+  });
+};
+
+/**
+ * Hook for fetching enhanced BRS with ledger balance, TDS summary, and audit metrics
+ */
+export const useEnhancedBrs = (
+  bankAccountId: string,
+  asOfDate?: string,
+  periodStart?: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: bankTransactionKeys.enhancedBrs(bankAccountId, asOfDate, periodStart),
+    queryFn: () => bankTransactionService.getEnhancedBrs(bankAccountId, asOfDate, periodStart),
+    enabled: enabled && !!bankAccountId,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
   });
 };

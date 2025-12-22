@@ -55,5 +55,11 @@ namespace Application.Interfaces
             int minMatchScore = 80,
             decimal amountTolerance = 100m,
             int dateTolerance = 3);
+
+        /// <summary>
+        /// Reconcile a bank transaction directly to a journal entry.
+        /// Used for manual JE reconciliation (opening entries, adjustments) without source documents.
+        /// </summary>
+        Task<Result> ReconcileToJournalAsync(Guid transactionId, ReconcileToJournalDto dto);
     }
 }

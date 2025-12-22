@@ -1291,6 +1291,8 @@ export interface BankAccount {
   isPrimary: boolean;
   isActive: boolean;
   notes?: string;
+  // Ledger integration for BRS
+  linkedAccountId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -1310,6 +1312,7 @@ export interface CreateBankAccountDto {
   isPrimary?: boolean;
   isActive?: boolean;
   notes?: string;
+  linkedAccountId?: string;
 }
 
 export interface UpdateBankAccountDto {
@@ -1327,6 +1330,7 @@ export interface UpdateBankAccountDto {
   isPrimary?: boolean;
   isActive?: boolean;
   notes?: string;
+  linkedAccountId?: string;
 }
 
 export interface UpdateBalanceDto {
@@ -1352,6 +1356,15 @@ export interface BankTransaction {
   reconciledId?: string;
   reconciledAt?: string;
   reconciledBy?: string;
+  // Reconciliation difference handling
+  reconciliationDifferenceAmount?: number;
+  reconciliationDifferenceType?: string;
+  reconciliationDifferenceNotes?: string;
+  reconciliationTdsSection?: string;
+  reconciliationAdjustmentJournalId?: string;
+  // Journal Entry linking (hybrid reconciliation for BRS)
+  reconciledJournalEntryId?: string;
+  reconciledJeLineId?: string;
   // Reversal pairing fields
   pairedTransactionId?: string;
   pairType?: 'original' | 'reversal';
@@ -1492,6 +1505,88 @@ export interface ReconciliationSuggestion {
   matchScore: number;
   amountDifference: number;
   dateDifferenceInDays: number;
+}
+
+// Bank Reconciliation Statement types
+export interface BrsItem {
+  id: string;
+  date: string;
+  description: string;
+  referenceNumber?: string;
+  amount: number;
+  type: string;
+}
+
+export interface BankReconciliationStatement {
+  bankAccountId: string;
+  bankAccountName: string;
+  asOfDate: string;
+  generatedAt: string;
+  bankStatementBalance: number;
+  depositsInTransit: number;
+  depositsInTransitItems: BrsItem[];
+  outstandingCheques: number;
+  outstandingChequeItems: BrsItem[];
+  adjustedBankBalance: number;
+  bookBalance: number;
+  bankCreditsNotInBooks: number;
+  bankCreditsNotInBooksItems: BrsItem[];
+  bankDebitsNotInBooks: number;
+  bankDebitsNotInBooksItems: BrsItem[];
+  adjustedBookBalance: number;
+  difference: number;
+  isReconciled: boolean;
+  totalTransactions: number;
+  reconciledTransactions: number;
+  unreconciledTransactions: number;
+}
+
+// Reconcile to Journal Entry (for manual JE reconciliation)
+export interface ReconcileToJournalDto {
+  journalEntryId: string;
+  journalEntryLineId: string;
+  reconciledBy?: string;
+  notes?: string;
+  differenceAmount?: number;
+  differenceType?: ReconciliationDifferenceType;
+  differenceNotes?: string;
+  tdsSection?: string;
+}
+
+// Enhanced BRS with journal entry perspective
+export interface EnhancedBrsReport extends BankReconciliationStatement {
+  // Ledger perspective
+  ledgerBalance: number;
+  hasLedgerLink: boolean;
+  linkedAccountId?: string;
+  linkedAccountName?: string;
+  // TDS summary
+  tdsSummary: TdsSummaryItem[];
+  totalTdsDeducted: number;
+  // Audit metrics
+  unlinkedJeCount: number;
+  unlinkedJeTransactionIds: string[];
+  directJeReconciliationCount: number;
+  // Date range
+  periodStart?: string;
+  periodEnd: string;
+  // Differences
+  bankToLedgerDifference: number;
+  differenceTypeSummary: DifferenceTypeSummary[];
+}
+
+export interface TdsSummaryItem {
+  section: string;
+  description: string;
+  transactionCount: number;
+  totalAmount: number;
+}
+
+export interface DifferenceTypeSummary {
+  differenceType: string;
+  description: string;
+  count: number;
+  totalAmount: number;
 }
 
 export interface BankTransactionSummary {

@@ -10,6 +10,7 @@ import { useCompanies } from '@/hooks/api/useCompanies'
 import { BankTransaction } from '@/services/api/types'
 import { ReconciliationDrawer } from '@/components/banking/ReconciliationDrawer'
 import { ReversalPairingDrawer } from '@/components/banking/ReversalPairingDrawer'
+import { ReconcileToJournalDialog } from '@/components/banking/ReconcileToJournalDialog'
 import { CompanySelect } from '@/components/ui/CompanySelect'
 import {
   ArrowLeft,
@@ -22,7 +23,9 @@ import {
   RefreshCw,
   Filter,
   Search,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  BarChart3
 } from 'lucide-react'
 
 // Simple reversal detection for UI (matches backend ReversalDetector patterns)
@@ -68,6 +71,8 @@ const BankTransactionsPage = () => {
   }, [preselectedAccountId, selectedAccountId])
   const [reconcilingTransaction, setReconcilingTransaction] = useState<BankTransaction | null>(null)
   const [reversalTransaction, setReversalTransaction] = useState<BankTransaction | null>(null)
+  const [journalReconcilingTransaction, setJournalReconcilingTransaction] = useState<BankTransaction | null>(null)
+  const [showBrsReport, setShowBrsReport] = useState(false)
 
   // Handle reconciliation click - detect if it's a reversal
   const handleReconcileClick = (transaction: BankTransaction) => {
@@ -217,13 +222,22 @@ const BankTransactionsPage = () => {
             </select>
           </div>
           {selectedAccountId && (
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </button>
+            <>
+              <button
+                onClick={() => refetch()}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+              <Link
+                to={`/bank/brs/${selectedAccountId}`}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md flex items-center gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                View BRS
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -387,30 +401,46 @@ const BankTransactionsPage = () => {
                         </td>
                         <td className="px-4 py-3 text-center">
                           {transaction.isReconciled ? (
-                            <button
-                              onClick={() => handleUnreconcile(transaction)}
-                              disabled={unreconcileTransaction.isPending}
-                              className="text-gray-500 hover:text-red-600 p-1 rounded hover:bg-red-50"
-                              title="Unreconcile"
-                            >
-                              <Unlink className="h-4 w-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleReconcileClick(transaction)}
-                              className={`p-1 rounded ${
-                                isLikelyReversal(transaction)
-                                  ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50'
-                                  : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
-                              }`}
-                              title={isLikelyReversal(transaction) ? 'Pair Reversal' : 'Reconcile'}
-                            >
-                              {isLikelyReversal(transaction) ? (
-                                <AlertTriangle className="h-4 w-4" />
-                              ) : (
-                                <Link2 className="h-4 w-4" />
+                            <div className="flex items-center justify-center gap-1">
+                              {transaction.reconciledJournalEntryId && (
+                                <span className="text-xs text-purple-600" title="Linked to Journal Entry">
+                                  <FileText className="h-3 w-3" />
+                                </span>
                               )}
-                            </button>
+                              <button
+                                onClick={() => handleUnreconcile(transaction)}
+                                disabled={unreconcileTransaction.isPending}
+                                className="text-gray-500 hover:text-red-600 p-1 rounded hover:bg-red-50"
+                                title="Unreconcile"
+                              >
+                                <Unlink className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleReconcileClick(transaction)}
+                                className={`p-1 rounded ${
+                                  isLikelyReversal(transaction)
+                                    ? 'text-amber-600 hover:text-amber-800 hover:bg-amber-50'
+                                    : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50'
+                                }`}
+                                title={isLikelyReversal(transaction) ? 'Pair Reversal' : 'Reconcile to Source'}
+                              >
+                                {isLikelyReversal(transaction) ? (
+                                  <AlertTriangle className="h-4 w-4" />
+                                ) : (
+                                  <Link2 className="h-4 w-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setJournalReconcilingTransaction(transaction)}
+                                className="p-1 rounded text-purple-600 hover:text-purple-800 hover:bg-purple-50"
+                                title="Reconcile to Journal Entry"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -441,6 +471,19 @@ const BankTransactionsPage = () => {
         onClose={() => setReversalTransaction(null)}
         onPaired={() => {
           setReversalTransaction(null)
+          refetch()
+        }}
+        formatCurrency={formatCurrency}
+      />
+
+      {/* Reconcile to Journal Entry Dialog */}
+      <ReconcileToJournalDialog
+        transaction={journalReconcilingTransaction}
+        companyId={selectedAccount?.companyId || selectedCompanyId}
+        linkedAccountId={selectedAccount?.linkedAccountId}
+        onClose={() => setJournalReconcilingTransaction(null)}
+        onReconciled={() => {
+          setJournalReconcilingTransaction(null)
           refetch()
         }}
         formatCurrency={formatCurrency}

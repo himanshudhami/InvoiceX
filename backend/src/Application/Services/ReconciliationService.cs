@@ -18,6 +18,7 @@ namespace Application.Services
         private readonly IBankAccountRepository _bankAccountRepository;
         private readonly IJournalEntryRepository _journalEntryRepository;
         private readonly IChartOfAccountRepository _chartOfAccountRepository;
+        private readonly IJournalEntryLinkingService _journalEntryLinkingService;
 
         // Account codes for adjustment entries (matching your Chart of Accounts)
         private static class AccountCodes
@@ -39,12 +40,14 @@ namespace Application.Services
             IBankTransactionRepository repository,
             IBankAccountRepository bankAccountRepository,
             IJournalEntryRepository journalEntryRepository,
-            IChartOfAccountRepository chartOfAccountRepository)
+            IChartOfAccountRepository chartOfAccountRepository,
+            IJournalEntryLinkingService journalEntryLinkingService)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _bankAccountRepository = bankAccountRepository ?? throw new ArgumentNullException(nameof(bankAccountRepository));
             _journalEntryRepository = journalEntryRepository ?? throw new ArgumentNullException(nameof(journalEntryRepository));
             _chartOfAccountRepository = chartOfAccountRepository ?? throw new ArgumentNullException(nameof(chartOfAccountRepository));
+            _journalEntryLinkingService = journalEntryLinkingService ?? throw new ArgumentNullException(nameof(journalEntryLinkingService));
         }
 
         /// <inheritdoc />
@@ -113,6 +116,10 @@ namespace Application.Services
                 dto.TdsSection,
                 adjustmentJournalId
             );
+
+            // Auto-link to journal entry (hybrid reconciliation)
+            // This enables BRS generation from ledger perspective
+            await _journalEntryLinkingService.AutoLinkJournalEntryAsync(transactionId);
 
             return Result.Success();
         }
@@ -552,6 +559,89 @@ namespace Application.Services
             }
 
             return Result<AutoReconcileResultDto>.Success(result);
+        }
+
+        /// <inheritdoc />
+        public async Task<Result> ReconcileToJournalAsync(Guid transactionId, ReconcileToJournalDto dto)
+        {
+            var validation = ServiceExtensions.ValidateGuid(transactionId);
+            if (validation.IsFailure)
+                return validation.Error!;
+
+            if (dto == null)
+                return Error.Validation("Reconciliation data is required");
+
+            var transaction = await _repository.GetByIdAsync(transactionId);
+            if (transaction == null)
+                return Error.NotFound($"Bank transaction with ID {transactionId} not found");
+
+            if (transaction.IsReconciled)
+                return Error.Validation("Transaction is already reconciled");
+
+            // Validate that the journal entry and line exist
+            var journalEntry = await _journalEntryRepository.GetByIdAsync(dto.JournalEntryId);
+            if (journalEntry == null)
+                return Error.NotFound($"Journal entry with ID {dto.JournalEntryId} not found");
+
+            var lines = await _journalEntryRepository.GetLinesAsync(dto.JournalEntryId);
+            var lineList = lines.ToList();
+            var targetLine = lineList.FirstOrDefault(l => l.Id == dto.JournalEntryLineId);
+            if (targetLine == null)
+                return Error.NotFound($"Journal entry line with ID {dto.JournalEntryLineId} not found");
+
+            // Get bank account to validate the JE line affects the correct ledger account
+            var bankAccount = await _bankAccountRepository.GetByIdAsync(transaction.BankAccountId);
+            if (bankAccount == null)
+                return Error.NotFound("Bank account not found");
+
+            if (!bankAccount.CompanyId.HasValue)
+                return Error.Validation("Bank account is not linked to a company");
+
+            // If bank account has a linked ledger account, validate the JE line affects it
+            if (bankAccount.LinkedAccountId.HasValue)
+            {
+                if (targetLine.AccountId != bankAccount.LinkedAccountId.Value)
+                    return Error.Validation(
+                        "The selected journal entry line does not affect the bank account's linked ledger account. " +
+                        "Please select a line that affects the bank account.");
+            }
+
+            // Handle difference amount if provided
+            Guid? adjustmentJournalId = null;
+            if (!string.IsNullOrEmpty(dto.DifferenceType) && dto.DifferenceAmount.HasValue && Math.Abs(dto.DifferenceAmount.Value) > 0.01m)
+            {
+                var validDifferenceTypes = new[] {
+                    "bank_interest", "bank_charges", "tds_deducted", "round_off",
+                    "forex_gain", "forex_loss", "other_income", "other_expense"
+                };
+                if (!validDifferenceTypes.Contains(dto.DifferenceType.ToLower()))
+                    return Error.Validation($"Invalid difference type. Must be one of: {string.Join(", ", validDifferenceTypes)}");
+
+                // Create adjustment journal entry
+                var journalResult = await CreateAdjustmentJournalEntryAsync(
+                    bankAccount.CompanyId.Value,
+                    transaction,
+                    dto.DifferenceAmount.Value,
+                    dto.DifferenceType,
+                    dto.DifferenceNotes,
+                    dto.TdsSection);
+
+                if (journalResult.IsFailure)
+                    return journalResult.Error!;
+
+                adjustmentJournalId = journalResult.Value;
+            }
+
+            // Reconcile directly to the journal entry
+            await _repository.ReconcileToJournalAsync(
+                transactionId,
+                dto.JournalEntryId,
+                dto.JournalEntryLineId,
+                adjustmentJournalId,
+                dto.ReconciledBy,
+                dto.Notes);
+
+            return Result.Success();
         }
 
         #region Helper Methods

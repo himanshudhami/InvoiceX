@@ -118,6 +118,34 @@ namespace Core.Interfaces
         /// Get all unpaired reversal transactions
         /// </summary>
         Task<IEnumerable<BankTransaction>> GetUnpairedReversalsAsync(Guid? bankAccountId = null);
+
+        // ==================== Journal Entry Linking (Hybrid Reconciliation) ====================
+
+        /// <summary>
+        /// Update the journal entry link for a bank transaction.
+        /// Called during reconciliation to link bank txn to JE line.
+        /// </summary>
+        Task UpdateJournalEntryLinkAsync(
+            Guid transactionId,
+            Guid journalEntryId,
+            Guid journalEntryLineId);
+
+        /// <summary>
+        /// Reconcile a bank transaction directly to a journal entry (for manual JEs without source documents).
+        /// </summary>
+        Task ReconcileToJournalAsync(
+            Guid transactionId,
+            Guid journalEntryId,
+            Guid journalEntryLineId,
+            Guid? adjustmentJournalId = null,
+            string? reconciledBy = null,
+            string? notes = null);
+
+        /// <summary>
+        /// Get reconciled transactions that don't have a JE link yet.
+        /// Used for backfill migration.
+        /// </summary>
+        Task<IEnumerable<BankTransaction>> GetReconciledWithoutJeLinkAsync(Guid companyId);
     }
 
     /// <summary>

@@ -563,5 +563,28 @@ namespace Infrastructure.Data.Ledger
                 await connection.ExecuteAsync(lineSql, line, transaction);
             }
         }
+
+        // ==================== Balance Queries ====================
+
+        /// <summary>
+        /// Get the balance for a specific account as of a date.
+        /// Calculates sum of debits - sum of credits from posted journal entries.
+        /// Used for BRS generation to get book balance from ledger perspective.
+        /// </summary>
+        public async Task<decimal> GetAccountBalanceAsync(Guid companyId, Guid accountId, DateOnly asOfDate)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT COALESCE(SUM(jel.debit_amount) - SUM(jel.credit_amount), 0)
+                FROM journal_entry_lines jel
+                INNER JOIN journal_entries je ON jel.journal_entry_id = je.id
+                WHERE je.company_id = @companyId
+                  AND jel.account_id = @accountId
+                  AND je.status = 'posted'
+                  AND je.journal_date <= @asOfDate";
+
+            return await connection.ExecuteScalarAsync<decimal>(sql, new { companyId, accountId, asOfDate });
+        }
     }
 }

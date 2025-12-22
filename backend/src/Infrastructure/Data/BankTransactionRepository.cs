@@ -1242,5 +1242,95 @@ namespace Infrastructure.Data
 
             return await connection.QueryAsync<BankTransaction>(sql, new { bankAccountId });
         }
+
+        // ==================== Journal Entry Linking (Hybrid Reconciliation) ====================
+
+        /// <summary>
+        /// Update the journal entry link for a bank transaction.
+        /// Called during reconciliation to link bank txn to JE line.
+        /// </summary>
+        public async Task UpdateJournalEntryLinkAsync(
+            Guid transactionId,
+            Guid journalEntryId,
+            Guid journalEntryLineId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                UPDATE bank_transactions
+                SET reconciled_journal_entry_id = @journalEntryId,
+                    reconciled_je_line_id = @journalEntryLineId,
+                    updated_at = @now
+                WHERE id = @transactionId";
+
+            await connection.ExecuteAsync(sql, new
+            {
+                transactionId,
+                journalEntryId,
+                journalEntryLineId,
+                now = DateTime.UtcNow
+            });
+        }
+
+        /// <summary>
+        /// Reconcile a bank transaction directly to a journal entry (for manual JEs without source documents).
+        /// </summary>
+        public async Task ReconcileToJournalAsync(
+            Guid transactionId,
+            Guid journalEntryId,
+            Guid journalEntryLineId,
+            Guid? adjustmentJournalId = null,
+            string? reconciledBy = null,
+            string? notes = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                UPDATE bank_transactions
+                SET is_reconciled = true,
+                    reconciled_type = 'journal_entry',
+                    reconciled_id = @journalEntryId,
+                    reconciled_at = @now,
+                    reconciled_by = @reconciledBy,
+                    reconciled_journal_entry_id = @journalEntryId,
+                    reconciled_je_line_id = @journalEntryLineId,
+                    reconciliation_adjustment_journal_id = @adjustmentJournalId,
+                    reconciliation_difference_notes = @notes,
+                    updated_at = @now
+                WHERE id = @transactionId";
+
+            await connection.ExecuteAsync(sql, new
+            {
+                transactionId,
+                journalEntryId,
+                journalEntryLineId,
+                adjustmentJournalId,
+                reconciledBy,
+                notes,
+                now = DateTime.UtcNow
+            });
+        }
+
+        /// <summary>
+        /// Get reconciled transactions that don't have a JE link yet.
+        /// Used for backfill migration.
+        /// </summary>
+        public async Task<IEnumerable<BankTransaction>> GetReconciledWithoutJeLinkAsync(Guid companyId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT bt.*
+                FROM bank_transactions bt
+                INNER JOIN bank_accounts ba ON bt.bank_account_id = ba.id
+                WHERE ba.company_id = @companyId
+                  AND bt.is_reconciled = true
+                  AND bt.reconciled_journal_entry_id IS NULL
+                  AND bt.reconciled_type IS NOT NULL
+                  AND bt.reconciled_type != 'journal_entry'
+                ORDER BY bt.transaction_date";
+
+            return await connection.QueryAsync<BankTransaction>(sql, new { companyId });
+        }
     }
 }

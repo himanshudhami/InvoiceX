@@ -203,4 +203,142 @@ namespace Application.Interfaces
         public decimal Amount { get; set; }
         public string Type { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Enhanced BRS with journal entry perspective for CA compliance
+    /// Includes TDS summary and audit metrics
+    /// </summary>
+    public class EnhancedBrsReportDto : BankReconciliationStatementDto
+    {
+        // ==================== Ledger Perspective ====================
+
+        /// <summary>
+        /// Book balance calculated from journal entries (not bank transactions)
+        /// This is the "true" book balance per ledger
+        /// </summary>
+        public decimal LedgerBalance { get; set; }
+
+        /// <summary>
+        /// Whether the bank account is linked to a ledger account
+        /// </summary>
+        public bool HasLedgerLink { get; set; }
+
+        /// <summary>
+        /// Linked ledger account ID (if any)
+        /// </summary>
+        public Guid? LinkedAccountId { get; set; }
+
+        /// <summary>
+        /// Linked ledger account name (for display)
+        /// </summary>
+        public string? LinkedAccountName { get; set; }
+
+        // ==================== TDS Summary ====================
+
+        /// <summary>
+        /// TDS deductions by section (for compliance reporting)
+        /// </summary>
+        public List<TdsSummaryItemDto> TdsSummary { get; set; } = new();
+
+        /// <summary>
+        /// Total TDS deducted across all sections
+        /// </summary>
+        public decimal TotalTdsDeducted { get; set; }
+
+        // ==================== Audit Metrics ====================
+
+        /// <summary>
+        /// Count of reconciled transactions without JE link
+        /// Should be 0 for full compliance
+        /// </summary>
+        public int UnlinkedJeCount { get; set; }
+
+        /// <summary>
+        /// IDs of transactions without JE link (for remediation)
+        /// </summary>
+        public List<Guid> UnlinkedJeTransactionIds { get; set; } = new();
+
+        /// <summary>
+        /// Count of transactions reconciled directly to journal entries
+        /// (manual JE reconciliation without source documents)
+        /// </summary>
+        public int DirectJeReconciliationCount { get; set; }
+
+        // ==================== Date Range ====================
+
+        /// <summary>
+        /// Start of period covered by this BRS
+        /// </summary>
+        public DateOnly? PeriodStart { get; set; }
+
+        /// <summary>
+        /// End of period (same as AsOfDate)
+        /// </summary>
+        public DateOnly PeriodEnd => AsOfDate;
+
+        // ==================== Differences Analysis ====================
+
+        /// <summary>
+        /// Difference between bank balance and ledger balance
+        /// Used for BRS reconciliation
+        /// </summary>
+        public decimal BankToLedgerDifference => BankStatementBalance - LedgerBalance;
+
+        /// <summary>
+        /// Summary of difference types (bank_interest, bank_charges, etc.)
+        /// </summary>
+        public List<DifferenceTypeSummaryDto> DifferenceTypeSummary { get; set; } = new();
+    }
+
+    /// <summary>
+    /// TDS summary by section for compliance reporting
+    /// </summary>
+    public class TdsSummaryItemDto
+    {
+        /// <summary>
+        /// TDS section (e.g., 194C, 194J, 194A)
+        /// </summary>
+        public string Section { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Human-readable section description
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Number of transactions with this TDS section
+        /// </summary>
+        public int TransactionCount { get; set; }
+
+        /// <summary>
+        /// Total TDS amount for this section
+        /// </summary>
+        public decimal TotalAmount { get; set; }
+    }
+
+    /// <summary>
+    /// Summary of reconciliation difference types
+    /// </summary>
+    public class DifferenceTypeSummaryDto
+    {
+        /// <summary>
+        /// Type of difference (bank_interest, bank_charges, tds_deducted, etc.)
+        /// </summary>
+        public string DifferenceType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Human-readable description
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Number of occurrences
+        /// </summary>
+        public int Count { get; set; }
+
+        /// <summary>
+        /// Total amount (can be positive or negative)
+        /// </summary>
+        public decimal TotalAmount { get; set; }
+    }
 }
