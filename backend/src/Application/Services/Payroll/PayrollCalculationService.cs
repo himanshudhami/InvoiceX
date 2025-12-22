@@ -585,7 +585,9 @@ public class PayrollCalculationService
         var ytdTds = ytdSummary.TryGetValue("YtdTds", out var t) ? t : 0;
 
         // Project annual income
-        var projectedAnnualIncome = ytdGross + currentMonthGross + (salaryStructure.MonthlyGross * (remainingMonths - 1));
+        // Formula: YTD (actual past) + Current month (actual) + Future months (projected at standard rate)
+        // remainingMonths represents months AFTER current month (e.g., 11 for April = May→March)
+        var projectedAnnualIncome = ytdGross + currentMonthGross + (salaryStructure.MonthlyGross * remainingMonths);
         var annualBasic = salaryStructure.BasicSalary * 12;
         var annualHra = salaryStructure.Hra * 12;
 
