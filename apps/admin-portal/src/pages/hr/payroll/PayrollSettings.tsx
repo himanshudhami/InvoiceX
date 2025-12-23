@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryState, parseAsString } from 'nuqs'
+import { useQuery } from '@tanstack/react-query'
 import { useCompanyStatutoryConfig, useUpdateStatutoryConfig, useCreateStatutoryConfig } from '@/features/payroll/hooks'
+import { taxRulePackService } from '@/services/api/finance/tax/taxRulePackService'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Info, ExternalLink } from 'lucide-react'
 
 import type { PfCalculationMode, PfTrustType } from '@/features/payroll/types/payroll'
 
@@ -42,6 +44,12 @@ const PayrollSettings = () => {
   const { data: config, isLoading } = useCompanyStatutoryConfig(selectedCompanyId, !!selectedCompanyId)
   const updateConfig = useUpdateStatutoryConfig()
   const createConfig = useCreateStatutoryConfig()
+
+  // Fetch statutory rates from Tax Rule Packs (read-only government rates)
+  const { data: pfEsiRates } = useQuery({
+    queryKey: ['pf-esi-rates', '2025-26'],
+    queryFn: () => taxRulePackService.getPfEsiRates('2025-26'),
+  })
 
   const [formData, setFormData] = useState(defaultFormData)
 
@@ -120,8 +128,23 @@ const PayrollSettings = () => {
         </Button>
       </div>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payroll Settings</h1>
-        <p className="text-gray-600 mt-1">Configure company statutory settings for PF, ESI, PT, and TDS</p>
+        <h1 className="text-2xl font-bold text-gray-900">Company Statutory Settings</h1>
+        <p className="text-gray-600 mt-1">Configure company-specific choices for PF, ESI, PT, and Gratuity</p>
+      </div>
+
+      {/* Architecture Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-800">
+            <p className="font-medium mb-1">Configuration Hierarchy</p>
+            <ul className="list-disc list-inside space-y-1 text-blue-700">
+              <li><strong>Government Rates</strong> (PF 12%, ESI 0.75%/3.25%) are set in <a href="/tax-rule-packs" className="underline hover:text-blue-900 inline-flex items-center gap-1">Tax Rule Packs<ExternalLink className="h-3 w-3" /></a></li>
+              <li><strong>Company Settings</strong> (this page) control which components are enabled and company-specific choices</li>
+              <li><strong>Custom Formulas</strong> for edge cases can be configured in <a href="/payroll/calculation-rules" className="underline hover:text-blue-900 inline-flex items-center gap-1">Calculation Rules<ExternalLink className="h-3 w-3" /></a></li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-6">
@@ -143,7 +166,7 @@ const PayrollSettings = () => {
           <Card>
             <CardHeader>
               <CardTitle>Provident Fund (PF) Configuration</CardTitle>
-              <CardDescription>Employee and employer PF contribution settings</CardDescription>
+              <CardDescription>Company choices for PF - statutory rates are set by government</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
@@ -154,7 +177,7 @@ const PayrollSettings = () => {
                   onChange={(e) => setFormData({ ...formData, pfEnabled: e.target.checked })}
                 />
                 <label htmlFor="pfEnabled" className="text-sm font-medium">
-                  Enable PF
+                  Enable PF for this company
                 </label>
               </div>
 
@@ -173,46 +196,28 @@ const PayrollSettings = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Employee Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2"
-                        value={formData.pfEmployeeRate}
-                        onChange={(e) => setFormData({ ...formData, pfEmployeeRate: parseFloat(e.target.value) })}
-                      />
+                  {/* Statutory Rates from Tax Rule Packs (Read-Only) */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">Government Statutory Rates (FY 2025-26)</span>
+                      <a href="/tax-rule-packs" className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        View in Tax Rule Packs <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Employer Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2"
-                        value={formData.pfEmployerRate}
-                        onChange={(e) => setFormData({ ...formData, pfEmployerRate: parseFloat(e.target.value) })}
-                      />
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Employee Rate</span>
+                        <div className="font-semibold text-gray-900">{pfEsiRates?.pf?.employee_contribution || 12}%</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Employer Rate</span>
+                        <div className="font-semibold text-gray-900">{pfEsiRates?.pf?.employer_contribution || 12}%</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Wage Ceiling</span>
+                        <div className="font-semibold text-gray-900">₹{(pfEsiRates?.pf?.wage_ceiling || 15000).toLocaleString('en-IN')}</div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      PF Wage Ceiling
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2"
-                      value={formData.pfWageCeiling}
-                      onChange={(e) => setFormData({ ...formData, pfWageCeiling: parseFloat(e.target.value) })}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      PF is calculated on basic salary up to this amount (currently ₹15,000)
-                    </p>
                   </div>
 
                   {/* PF Calculation Mode */}
@@ -344,7 +349,7 @@ const PayrollSettings = () => {
           <Card>
             <CardHeader>
               <CardTitle>Employee State Insurance (ESI) Configuration</CardTitle>
-              <CardDescription>ESI contribution settings</CardDescription>
+              <CardDescription>Company choices for ESI - statutory rates are set by government</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2">
@@ -355,7 +360,7 @@ const PayrollSettings = () => {
                   onChange={(e) => setFormData({ ...formData, esiEnabled: e.target.checked })}
                 />
                 <label htmlFor="esiEnabled" className="text-sm font-medium">
-                  Enable ESI
+                  Enable ESI for this company
                 </label>
               </div>
 
@@ -374,45 +379,30 @@ const PayrollSettings = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Employee Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2"
-                        value={formData.esiEmployeeRate}
-                        onChange={(e) => setFormData({ ...formData, esiEmployeeRate: parseFloat(e.target.value) })}
-                      />
+                  {/* Statutory Rates from Tax Rule Packs (Read-Only) */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-700">Government Statutory Rates (FY 2025-26)</span>
+                      <a href="/tax-rule-packs" className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                        View in Tax Rule Packs <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Employer Rate (%)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2"
-                        value={formData.esiEmployerRate}
-                        onChange={(e) => setFormData({ ...formData, esiEmployerRate: parseFloat(e.target.value) })}
-                      />
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Employee Rate</span>
+                        <div className="font-semibold text-gray-900">{pfEsiRates?.esi?.employee_contribution || 0.75}%</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Employer Rate</span>
+                        <div className="font-semibold text-gray-900">{pfEsiRates?.esi?.employer_contribution || 3.25}%</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Wage Ceiling</span>
+                        <div className="font-semibold text-gray-900">₹{(pfEsiRates?.esi?.wage_ceiling || 21000).toLocaleString('en-IN')}</div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ESI Gross Ceiling
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2"
-                      value={formData.esiWageCeiling}
-                      onChange={(e) => setFormData({ ...formData, esiWageCeiling: parseFloat(e.target.value) })}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      ESI applicable if gross salary is less than or equal to this amount (currently ₹21,000)
+                    <p className="text-xs text-gray-500 mt-2">
+                      ESI is applicable only if employee's monthly gross salary is ≤ ₹{(pfEsiRates?.esi?.wage_ceiling || 21000).toLocaleString('en-IN')}
                     </p>
                   </div>
                 </>

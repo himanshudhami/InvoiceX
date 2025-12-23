@@ -26,7 +26,9 @@ import {
   Code,
   Percent,
   IndianRupee,
-  Layers
+  Layers,
+  AlertTriangle,
+  ExternalLink
 } from 'lucide-react'
 import CalculationRuleForm from '@/components/forms/CalculationRuleForm'
 
@@ -590,7 +592,7 @@ const CalculationRulesPage = () => {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Calculation Rules</h1>
-          <p className="text-gray-600 mt-2">Configure flexible payroll calculation rules for earnings, deductions, and employer contributions</p>
+          <p className="text-gray-600 mt-2">Advanced formula-based rules for custom payroll calculations</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -618,6 +620,25 @@ const CalculationRulesPage = () => {
             <Plus size={16} />
             Create Rule
           </button>
+        </div>
+      </div>
+
+      {/* Info Banner - When to use */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-amber-800">
+            <p className="font-medium mb-1">Advanced Feature - Use Only When Needed</p>
+            <p className="text-amber-700 mb-2">
+              Calculation Rules are for <strong>custom formulas</strong> when standard calculations don't apply.
+              Most companies don't need this - statutory rates are configured elsewhere.
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-amber-700">
+              <li><strong>Government Rates</strong> (Tax slabs, PF 12%, ESI 0.75%): Use <a href="/tax-rule-packs" className="underline hover:text-amber-900 inline-flex items-center gap-1">Tax Rule Packs<ExternalLink className="h-3 w-3" /></a></li>
+              <li><strong>Company Settings</strong> (Enable/disable PF/ESI, calculation mode): Use <a href="/payroll/settings" className="underline hover:text-amber-900 inline-flex items-center gap-1">Payroll Settings<ExternalLink className="h-3 w-3" /></a></li>
+              <li><strong>Custom Formulas</strong> (e.g., special PT logic, conditional bonuses): Use this page</li>
+            </ul>
+          </div>
         </div>
       </div>
 

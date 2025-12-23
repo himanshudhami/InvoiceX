@@ -188,15 +188,31 @@ export default function TaxRulePacksManagement() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Tax Rule Packs</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Government Tax Rule Packs</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Manage versioned tax configurations for Indian compliance (TDS, Income Tax, PF/ESI)
+            Official government statutory rates for Indian compliance - versioned by Financial Year
           </p>
         </div>
         <div className="text-right">
           <Badge variant="outline" className="text-lg px-4 py-2">
             Current FY: {currentFyData?.financialYear || '2025-26'}
           </Badge>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <FileText className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-green-800">
+            <p className="font-medium mb-1">Source of Truth for Statutory Rates</p>
+            <p className="text-green-700">
+              Tax Rule Packs contain <strong>government-mandated rates</strong> that apply to all companies.
+              These are updated annually when the Union Budget is announced. Individual companies configure
+              their <strong>company-specific choices</strong> (e.g., which components are enabled, calculation modes)
+              in <a href="/payroll/settings" className="underline hover:text-green-900">Payroll Settings</a>.
+            </p>
+          </div>
         </div>
       </div>
 
