@@ -3078,3 +3078,680 @@ export interface RealizationAlert {
   alertLevel: 'approaching' | 'imminent' | 'overdue';
   alertMessage: string;
 }
+
+// ==================== GST Compliance Types ====================
+
+// ITC Blocked Category (Section 17(5))
+export interface ItcBlockedCategory {
+  id?: string;
+  categoryCode: string;
+  categoryName: string;
+  sectionReference: string;
+  hsnSacCodes?: string;
+  description?: string;
+  isActive: boolean;
+}
+
+// ITC Blocked Check Request/Result
+export interface ItcBlockedCheckRequest {
+  hsnSacCode?: string;
+  expenseCategory?: string;
+  description?: string;
+  gstAmount: number;
+}
+
+export interface ItcBlockedCheckResult {
+  isBlocked: boolean;
+  blockedCategoryCode?: string;
+  blockedCategoryName?: string;
+  sectionReference?: string;
+  reason?: string;
+}
+
+// ITC Blocked Request for posting
+export interface ItcBlockedRequest {
+  companyId: string;
+  transactionDate: string;
+  sourceType?: string;
+  sourceId?: string;
+  sourceNumber?: string;
+  blockedCategoryCode: string;
+  hsnSacCode?: string;
+  description?: string;
+  taxableValue: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  cessAmount: number;
+  notes?: string;
+}
+
+// Credit Note GST Request
+export interface CreditNoteGstRequest {
+  companyId: string;
+  creditNoteDate: string;
+  creditNoteNumber: string;
+  originalInvoiceId?: string;
+  originalInvoiceNumber?: string;
+  taxableValue: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  cessAmount: number;
+  supplyType: 'intra_state' | 'inter_state';
+  partyName?: string;
+  partyGstin?: string;
+  reason?: string;
+  notes?: string;
+}
+
+// Debit Note GST Request
+export interface DebitNoteGstRequest {
+  companyId: string;
+  debitNoteDate: string;
+  debitNoteNumber: string;
+  originalInvoiceId?: string;
+  originalInvoiceNumber?: string;
+  taxableValue: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  cessAmount: number;
+  supplyType: 'intra_state' | 'inter_state';
+  partyName?: string;
+  partyGstin?: string;
+  reason?: string;
+  notes?: string;
+}
+
+// ITC Reversal Calculation Request/Result
+export interface ItcReversalCalculationRequest {
+  companyId: string;
+  financialYear: string;
+  returnPeriod: string;
+  reversalRule: 'Rule42' | 'Rule43';
+  totalTurnover?: number;
+  exemptTurnover?: number;
+  totalCommonCredit?: number;
+  capitalGoodsValue?: number;
+  usefulLife?: number;
+  exemptUsePercentage?: number;
+}
+
+export interface ItcReversalCalculation {
+  reversalRule: string;
+  totalItcAvailable: number;
+  itcToReverse: number;
+  cgstReversal: number;
+  sgstReversal: number;
+  igstReversal: number;
+  cessReversal: number;
+  calculationDetails?: string;
+}
+
+// ITC Reversal Request
+export interface ItcReversalRequest {
+  companyId: string;
+  reversalDate: string;
+  reversalRule: 'Rule42' | 'Rule43';
+  returnPeriod: string;
+  cgstReversal: number;
+  sgstReversal: number;
+  igstReversal: number;
+  cessReversal: number;
+  reason?: string;
+  notes?: string;
+}
+
+// UTGST Request
+export interface UtgstRequest {
+  companyId: string;
+  transactionDate: string;
+  transactionType: 'input' | 'output';
+  sourceType?: string;
+  sourceId?: string;
+  sourceNumber?: string;
+  taxableValue: number;
+  cgstRate: number;
+  cgstAmount: number;
+  utgstRate: number;
+  utgstAmount: number;
+  partyName?: string;
+  partyGstin?: string;
+  unionTerritory?: string;
+  notes?: string;
+}
+
+// GST TDS Request (Section 51)
+export interface GstTdsRequest {
+  companyId: string;
+  transactionDate: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  taxableValue: number;
+  tdsRate: number;
+  cgstTdsAmount: number;
+  sgstTdsAmount: number;
+  igstTdsAmount: number;
+  supplyType: 'intra_state' | 'inter_state';
+  deductorName: string;
+  deductorGstin?: string;
+  deductorTan?: string;
+  notes?: string;
+}
+
+// GST TCS Request (Section 52)
+export interface GstTcsRequest {
+  companyId: string;
+  transactionDate: string;
+  netValue: number;
+  tcsRate: number;
+  cgstTcsAmount: number;
+  sgstTcsAmount: number;
+  igstTcsAmount: number;
+  supplyType: 'intra_state' | 'inter_state';
+  operatorName: string;
+  operatorGstin?: string;
+  notes?: string;
+}
+
+// GST Posting Result
+export interface GstPostingResult {
+  success: boolean;
+  journalEntry?: {
+    id: string;
+    journalNumber?: string;
+    totalDebit: number;
+    totalCredit: number;
+  };
+  errorMessage?: string;
+}
+
+// ITC Blocked Summary
+export interface ItcBlockedSummary {
+  returnPeriod: string;
+  totalBlockedCgst: number;
+  totalBlockedSgst: number;
+  totalBlockedIgst: number;
+  totalBlockedCess: number;
+  totalBlockedAmount: number;
+  transactionCount: number;
+  categoryBreakdown: ItcBlockedCategorySummary[];
+}
+
+export interface ItcBlockedCategorySummary {
+  categoryCode: string;
+  categoryName: string;
+  blockedAmount: number;
+  transactionCount: number;
+}
+
+// ITC Availability Report
+export interface ItcAvailabilityReport {
+  returnPeriod: string;
+  totalItcAvailed: number;
+  itcBlocked: number;
+  itcReversed: number;
+  netItcAvailable: number;
+  itcUtilized: number;
+  itcBalance: number;
+}
+
+// ==================== TDS Returns Types (Form 26Q/24Q) ====================
+
+// Form 26Q Data (Non-salary TDS)
+export interface Form26QData {
+  companyId: string;
+  financialYear: string;
+  quarter: string;
+  deductorDetails: DeductorDetails;
+  challanDetails: ChallanDetail[];
+  deducteeRecords: Form26QDeducteeRecord[];
+  summary: Form26QSummary;
+}
+
+export interface DeductorDetails {
+  tan: string;
+  pan: string;
+  name: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface ChallanDetail {
+  bsrCode: string;
+  challanDate: string;
+  challanSerialNumber: string;
+  challanAmount: number;
+  tdsSection: string;
+  tdsAmount: number;
+  surcharge: number;
+  educationCess: number;
+  interest: number;
+  penalty: number;
+  totalDeposited: number;
+}
+
+export interface Form26QDeducteeRecord {
+  serialNumber: number;
+  deducteePan: string;
+  deducteeName: string;
+  tdsSection: string;
+  dateOfPayment: string;
+  grossAmount: number;
+  tdsRate: number;
+  tdsAmount: number;
+  certificateNumber?: string;
+  certificateDate?: string;
+  remarks?: string;
+}
+
+export interface Form26QSummary {
+  totalDeductees: number;
+  totalGrossAmount: number;
+  totalTdsDeducted: number;
+  totalTdsDeposited: number;
+  variance: number;
+  sectionWiseBreakdown: SectionBreakdown[];
+  monthWiseBreakdown: MonthBreakdown[];
+}
+
+export interface SectionBreakdown {
+  section: string;
+  sectionName: string;
+  deducteeCount: number;
+  grossAmount: number;
+  tdsAmount: number;
+}
+
+export interface MonthBreakdown {
+  month: number;
+  year: number;
+  monthName: string;
+  grossAmount: number;
+  tdsAmount: number;
+  transactionCount: number;
+}
+
+// Form 24Q Data (Salary TDS)
+export interface Form24QData {
+  companyId: string;
+  financialYear: string;
+  quarter: string;
+  deductorDetails: DeductorDetails;
+  challanDetails: ChallanDetail[];
+  employeeRecords: Form24QEmployeeRecord[];
+  summary: Form24QSummary;
+}
+
+export interface Form24QEmployeeRecord {
+  serialNumber: number;
+  employeePan: string;
+  employeeName: string;
+  employeeCode: string;
+  dateOfJoining?: string;
+  dateOfLeaving?: string;
+  grossSalary: number;
+  tdsDeducted: number;
+  monthlyDetails: MonthlySalaryTds[];
+}
+
+export interface MonthlySalaryTds {
+  month: number;
+  year: number;
+  grossSalary: number;
+  tdsDeducted: number;
+}
+
+export interface Form24QSummary {
+  totalEmployees: number;
+  totalGrossSalary: number;
+  totalTdsDeducted: number;
+  totalTdsDeposited: number;
+  variance: number;
+  monthWiseBreakdown: MonthBreakdown[];
+}
+
+// Form 24Q Annexure II (Q4 Annual Salary Details)
+export interface Form24QAnnexureII {
+  companyId: string;
+  financialYear: string;
+  employeeAnnualDetails: EmployeeAnnualSalaryDetail[];
+}
+
+export interface EmployeeAnnualSalaryDetail {
+  employeePan: string;
+  employeeName: string;
+  employeeCode: string;
+  dateOfJoining?: string;
+  dateOfLeaving?: string;
+  totalGrossSalary: number;
+  totalTdsDeducted: number;
+  section10Exemptions?: number;
+  standardDeduction?: number;
+  professionalTax?: number;
+  chapter6Deductions?: number;
+  taxableIncome?: number;
+  taxPayable?: number;
+  rebate87A?: number;
+  surcharge?: number;
+  educationCess?: number;
+  netTaxPayable?: number;
+}
+
+// TDS Return Validation
+export interface TdsReturnValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationError[];
+}
+
+export interface ValidationError {
+  errorCode: string;
+  errorMessage: string;
+  field?: string;
+  recordNumber?: number;
+}
+
+// TDS Return Due Dates
+export interface TdsReturnDueDate {
+  formType: '26Q' | '24Q';
+  quarter: string;
+  dueDate: string;
+  isPastDue: boolean;
+  daysUntilDue: number;
+}
+
+// Pending TDS Returns
+export interface PendingTdsReturn {
+  formType: '26Q' | '24Q';
+  financialYear: string;
+  quarter: string;
+  dueDate: string;
+  status: 'pending' | 'overdue' | 'filed';
+  daysOverdue?: number;
+}
+
+// Mark Return Filed Request
+export interface MarkReturnFiledRequest {
+  companyId: string;
+  formType: '26Q' | '24Q';
+  financialYear: string;
+  quarter: string;
+  acknowledgementNumber: string;
+  tokenNumber?: string;
+  filingDate: string;
+  notes?: string;
+}
+
+// TDS Return Filing History
+export interface TdsReturnFilingHistory {
+  id: string;
+  companyId: string;
+  formType: '26Q' | '24Q';
+  financialYear: string;
+  quarter: string;
+  acknowledgementNumber: string;
+  tokenNumber?: string;
+  filingDate: string;
+  filedBy?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+// Challan Reconciliation
+export interface ChallanReconciliationResult {
+  totalDeducted: number;
+  totalDeposited: number;
+  variance: number;
+  isReconciled: boolean;
+  mismatches: ChallanMismatch[];
+}
+
+export interface ChallanMismatch {
+  section: string;
+  deductedAmount: number;
+  depositedAmount: number;
+  variance: number;
+  mismatchType: 'under_deposited' | 'over_deposited' | 'missing_challan';
+}
+
+// Combined TDS Summary
+export interface CombinedTdsSummary {
+  financialYear: string;
+  quarter: string;
+  form26Q: Form26QSummary;
+  form24Q: Form24QSummary;
+  totalTdsDeducted: number;
+  totalTdsDeposited: number;
+  totalVariance: number;
+}
+
+// ==================== RCM Types ====================
+
+export interface RcmTransaction {
+  id: string;
+  companyId: string;
+  transactionDate: string;
+  vendorName: string;
+  vendorGstin?: string;
+  rcmCategory: 'legal' | 'security' | 'gta' | 'import_service' | 'other';
+  description?: string;
+  taxableValue: number;
+  cgstRate: number;
+  cgstAmount: number;
+  sgstRate: number;
+  sgstAmount: number;
+  igstRate: number;
+  igstAmount: number;
+  cessAmount: number;
+  totalGstAmount: number;
+  status: 'pending' | 'rcm_paid' | 'itc_claimed';
+  rcmPaidDate?: string;
+  rcmChallanNumber?: string;
+  itcClaimDate?: string;
+  itcClaimPeriod?: string;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
+  sourceDocumentNumber?: string;
+  journalEntryId?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateRcmTransactionDto {
+  companyId: string;
+  transactionDate: string;
+  vendorName: string;
+  vendorGstin?: string;
+  rcmCategory: string;
+  description?: string;
+  taxableValue: number;
+  cgstRate: number;
+  sgstRate: number;
+  igstRate: number;
+  cessAmount?: number;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
+  sourceDocumentNumber?: string;
+  notes?: string;
+}
+
+export interface RcmPaymentRequest {
+  rcmTransactionId: string;
+  paymentDate: string;
+  challanNumber: string;
+  bankAccountId?: string;
+  notes?: string;
+}
+
+export interface RcmItcClaimRequest {
+  rcmTransactionId: string;
+  claimDate: string;
+  returnPeriod: string;
+  notes?: string;
+}
+
+export interface RcmSummary {
+  companyId: string;
+  returnPeriod: string;
+  totalTaxableValue: number;
+  totalRcmLiability: number;
+  rcmPaid: number;
+  rcmPending: number;
+  itcClaimed: number;
+  itcPending: number;
+  categoryBreakdown: RcmCategoryBreakdown[];
+}
+
+export interface RcmCategoryBreakdown {
+  category: string;
+  categoryName: string;
+  transactionCount: number;
+  taxableValue: number;
+  gstAmount: number;
+}
+
+// ==================== Lower Deduction Certificate (LDC) Types ====================
+
+export interface LowerDeductionCertificate {
+  id: string;
+  companyId: string;
+  deducteePan: string;
+  deducteeName: string;
+  certificateNumber: string;
+  certificateType: 'lower' | 'nil';
+  tdsSection: string;
+  normalRate: number;
+  certificateRate: number;
+  validFromDate: string;
+  validToDate: string;
+  thresholdAmount?: number;
+  utilizedAmount: number;
+  remainingAmount?: number;
+  issuingAuthority?: string;
+  status: 'active' | 'expired' | 'exhausted' | 'cancelled';
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateLdcDto {
+  companyId: string;
+  deducteePan: string;
+  deducteeName: string;
+  certificateNumber: string;
+  certificateType: 'lower' | 'nil';
+  tdsSection: string;
+  normalRate: number;
+  certificateRate: number;
+  validFromDate: string;
+  validToDate: string;
+  thresholdAmount?: number;
+  issuingAuthority?: string;
+  notes?: string;
+}
+
+export interface UpdateLdcDto {
+  certificateRate?: number;
+  validToDate?: string;
+  thresholdAmount?: number;
+  status?: string;
+  notes?: string;
+}
+
+export interface LdcValidationResult {
+  isValid: boolean;
+  certificateId?: string;
+  certificateNumber?: string;
+  certificateType?: string;
+  normalRate: number;
+  certificateRate: number;
+  remainingThreshold?: number;
+  validationMessage?: string;
+}
+
+export interface LdcUsageRecord {
+  id: string;
+  certificateId: string;
+  companyId: string;
+  transactionDate: string;
+  transactionType: string;
+  transactionId?: string;
+  grossAmount: number;
+  normalTdsAmount: number;
+  actualTdsAmount: number;
+  tdsSavings: number;
+  createdAt: string;
+}
+
+// ==================== TCS Types ====================
+
+export interface TcsTransaction {
+  id: string;
+  companyId: string;
+  transactionDate: string;
+  customerId?: string;
+  customerName: string;
+  customerPan?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  tcsSection: string;
+  netSaleValue: number;
+  tcsRate: number;
+  tcsAmount: number;
+  status: 'collected' | 'remitted';
+  remittanceDate?: string;
+  challanNumber?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateTcsTransactionDto {
+  companyId: string;
+  transactionDate: string;
+  customerId?: string;
+  customerName: string;
+  customerPan?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  tcsSection: string;
+  netSaleValue: number;
+  tcsRate: number;
+  notes?: string;
+}
+
+export interface TcsRemittanceRequest {
+  tcsTransactionIds: string[];
+  remittanceDate: string;
+  challanNumber: string;
+  bankAccountId?: string;
+  notes?: string;
+}
+
+export interface TcsSummary {
+  companyId: string;
+  financialYear: string;
+  quarter?: string;
+  totalSaleValue: number;
+  totalTcsCollected: number;
+  tcsRemitted: number;
+  tcsPending: number;
+  transactionCount: number;
+  sectionBreakdown: TcsSectionBreakdown[];
+}
+
+export interface TcsSectionBreakdown {
+  section: string;
+  sectionName: string;
+  transactionCount: number;
+  saleValue: number;
+  tcsAmount: number;
+}

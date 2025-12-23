@@ -50,6 +50,11 @@ import {
   ShieldCheck,
   Clock,
   Tags,
+  RotateCcw,
+  Award,
+  Coins,
+  FileX,
+  ArrowDownUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -134,6 +139,20 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'EMI Payments', href: '/emi-payments', icon: CreditCard },
         { name: 'TDS Receivables', href: '/tds-receivables', icon: Receipt },
         { name: 'Financial Report', href: '/financial-report', icon: FileSpreadsheet },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'GST & TDS Compliance',
+      icon: ShieldCheck,
+      items: [
+        { name: 'Compliance Dashboard', href: '/gst', icon: BarChart3 },
+        { name: 'RCM Management', href: '/gst/rcm', icon: RotateCcw },
+        { name: 'TDS Returns (26Q/24Q)', href: '/gst/tds-returns', icon: FileText },
+        { name: 'LDC Certificates', href: '/gst/ldc', icon: Award },
+        { name: 'TCS Management', href: '/gst/tcs', icon: Coins },
+        { name: 'ITC Blocked', href: '/gst/itc-blocked', icon: FileX },
+        { name: 'ITC Reversal', href: '/gst/itc-reversal', icon: ArrowDownUp },
       ],
     },
     {

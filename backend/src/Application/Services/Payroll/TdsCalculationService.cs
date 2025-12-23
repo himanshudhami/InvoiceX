@@ -1,5 +1,6 @@
 using Application.DTOs.Payroll;
 using Core.Interfaces.Payroll;
+using Core.Interfaces.Tax;
 
 namespace Application.Services.Payroll;
 
@@ -7,10 +8,12 @@ namespace Application.Services.Payroll;
 /// Service for Tax Deducted at Source (TDS) calculations
 /// Supports both Old and New tax regimes for Indian income tax
 /// Tax parameters are loaded from ITaxRateProvider (supports both Rule Packs and Legacy tables)
+/// Integrates with Lower Deduction Certificates (Form 13) for reduced rate TDS
 /// </summary>
 public class TdsCalculationService
 {
     private readonly ITaxRateProvider _taxRateProvider;
+    private readonly ILowerDeductionCertificateRepository? _ldcRepository;
 
     // Default fallback values (used if provider returns no data)
     private const decimal DEFAULT_STANDARD_DEDUCTION_NEW = 75000m;
@@ -27,6 +30,15 @@ public class TdsCalculationService
     public TdsCalculationService(ITaxRateProvider taxRateProvider)
     {
         _taxRateProvider = taxRateProvider ?? throw new ArgumentNullException(nameof(taxRateProvider));
+    }
+
+    /// <summary>
+    /// Create TdsCalculationService with ITaxRateProvider and LDC Repository for Form 13 integration
+    /// </summary>
+    public TdsCalculationService(ITaxRateProvider taxRateProvider, ILowerDeductionCertificateRepository ldcRepository)
+    {
+        _taxRateProvider = taxRateProvider ?? throw new ArgumentNullException(nameof(taxRateProvider));
+        _ldcRepository = ldcRepository ?? throw new ArgumentNullException(nameof(ldcRepository));
     }
 
     /// <summary>
@@ -623,6 +635,166 @@ public class TdsCalculationService
             _ => 10.0m
         };
     }
+
+    // ==================== LDC Integration Methods ====================
+
+    /// <summary>
+    /// Calculate contractor TDS with automatic Lower Deduction Certificate (Form 13) check.
+    /// If a valid LDC exists for the deductee, applies the certificate rate instead of normal rate.
+    /// This is the recommended method for all contractor/vendor payments.
+    /// </summary>
+    /// <param name="companyId">Company ID (deductor)</param>
+    /// <param name="grossAmount">Gross payment amount</param>
+    /// <param name="section">TDS section: '194C', '194J', '194I', etc.</param>
+    /// <param name="deducteePan">Deductee's PAN number</param>
+    /// <param name="payeeType">Type of payee: "individual", "company", etc.</param>
+    /// <param name="transactionDate">Transaction date for FY and LDC validation</param>
+    /// <param name="recordUsage">If true, records LDC usage for audit trail</param>
+    /// <param name="transactionType">Transaction type for usage record (e.g., 'contractor_payment')</param>
+    /// <param name="transactionId">Transaction ID for usage record linking</param>
+    /// <returns>TDS calculation result with LDC information</returns>
+    public async Task<ContractorTdsWithLdcResult> CalculateContractorTdsWithCertificateAsync(
+        Guid companyId,
+        decimal grossAmount,
+        string section = "194J",
+        string? deducteePan = null,
+        string payeeType = "individual",
+        DateTime? transactionDate = null,
+        bool recordUsage = false,
+        string? transactionType = null,
+        Guid? transactionId = null)
+    {
+        var date = transactionDate ?? DateTime.Today;
+        var dateOnly = DateOnly.FromDateTime(date);
+        var hasPan = !string.IsNullOrWhiteSpace(deducteePan);
+
+        var result = new ContractorTdsWithLdcResult
+        {
+            SectionCode = section,
+            GrossAmount = grossAmount,
+            TransactionDate = date
+        };
+
+        // Check for valid LDC if repository is available and PAN is provided
+        LdcValidationResult? ldcValidation = null;
+        if (_ldcRepository != null && hasPan)
+        {
+            ldcValidation = await _ldcRepository.ValidateCertificateAsync(
+                companyId,
+                deducteePan!,
+                section,
+                dateOnly,
+                grossAmount);
+
+            if (ldcValidation.IsValid)
+            {
+                result.LdcApplied = true;
+                result.LdcCertificateId = ldcValidation.CertificateId;
+                result.LdcCertificateNumber = ldcValidation.CertificateNumber;
+                result.LdcCertificateType = ldcValidation.CertificateType;
+                result.NormalRate = ldcValidation.NormalRate;
+                result.EffectiveRate = ldcValidation.CertificateRate;
+                result.RemainingThreshold = ldcValidation.RemainingThreshold;
+                result.ValidationMessage = ldcValidation.ValidationMessage;
+
+                // Calculate TDS at certificate rate
+                result.TdsAmount = Math.Round(grossAmount * ldcValidation.CertificateRate / 100, 0, MidpointRounding.AwayFromZero);
+                result.TdsSavings = Math.Round(grossAmount * ldcValidation.NormalRate / 100, 0, MidpointRounding.AwayFromZero) - result.TdsAmount;
+                result.IsExempt = ldcValidation.CertificateType == "nil";
+
+                // Record LDC usage if requested
+                if (recordUsage && ldcValidation.CertificateId.HasValue)
+                {
+                    var usageRecord = new LdcUsageRecord
+                    {
+                        CertificateId = ldcValidation.CertificateId.Value,
+                        CompanyId = companyId,
+                        TransactionDate = dateOnly,
+                        TransactionType = transactionType ?? "contractor_payment",
+                        TransactionId = transactionId,
+                        GrossAmount = grossAmount,
+                        NormalTdsAmount = Math.Round(grossAmount * ldcValidation.NormalRate / 100, 0, MidpointRounding.AwayFromZero),
+                        ActualTdsAmount = result.TdsAmount,
+                        TdsSavings = result.TdsSavings,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    result.LdcUsageRecordId = await _ldcRepository.RecordUsageAsync(usageRecord);
+                    await _ldcRepository.UpdateUtilizedAmountAsync(ldcValidation.CertificateId.Value, grossAmount);
+                }
+
+                result.RulePackId = await _taxRateProvider.GetActiveRulePackIdAsync(GetFinancialYear(date));
+                return result;
+            }
+        }
+
+        // No valid LDC - use standard TDS calculation
+        var standardResult = await CalculateContractorTdsWithSectionAsync(
+            grossAmount,
+            section,
+            deducteePan,
+            payeeType,
+            transactionDate);
+
+        result.TdsAmount = standardResult.TdsAmount;
+        result.EffectiveRate = standardResult.EffectiveRate;
+        result.NormalRate = standardResult.EffectiveRate;
+        result.ThresholdAmount = standardResult.ThresholdAmount;
+        result.IsExempt = standardResult.IsExempt;
+        result.RulePackId = standardResult.RulePackId;
+        result.LdcApplied = false;
+        result.TdsSavings = 0;
+
+        if (ldcValidation != null && !ldcValidation.IsValid)
+        {
+            result.ValidationMessage = ldcValidation.ValidationMessage;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Check if a valid Lower Deduction Certificate exists for a deductee
+    /// </summary>
+    /// <param name="companyId">Company ID (deductor)</param>
+    /// <param name="deducteePan">Deductee's PAN number</param>
+    /// <param name="section">TDS section</param>
+    /// <param name="transactionDate">Transaction date</param>
+    /// <returns>True if valid certificate exists</returns>
+    public async Task<bool> HasValidLdcAsync(
+        Guid companyId,
+        string deducteePan,
+        string section,
+        DateTime? transactionDate = null)
+    {
+        if (_ldcRepository == null)
+            return false;
+
+        var date = transactionDate ?? DateTime.Today;
+        var dateOnly = DateOnly.FromDateTime(date);
+
+        return await _ldcRepository.HasValidCertificateAsync(companyId, deducteePan, section, dateOnly);
+    }
+
+    /// <summary>
+    /// Get LDC validation details for a potential transaction
+    /// Useful for pre-checking certificate availability before making payment
+    /// </summary>
+    public async Task<LdcValidationResult?> ValidateLdcForTransactionAsync(
+        Guid companyId,
+        string deducteePan,
+        string section,
+        decimal amount,
+        DateTime? transactionDate = null)
+    {
+        if (_ldcRepository == null)
+            return null;
+
+        var date = transactionDate ?? DateTime.Today;
+        var dateOnly = DateOnly.FromDateTime(date);
+
+        return await _ldcRepository.ValidateCertificateAsync(companyId, deducteePan, section, dateOnly, amount);
+    }
 }
 
 /// <summary>
@@ -654,4 +826,82 @@ public class ContractorTdsResult
     public bool IsExempt { get; set; }
     public string SectionCode { get; set; } = string.Empty;
     public Guid? RulePackId { get; set; }
+}
+
+/// <summary>
+/// Result of contractor TDS calculation with Lower Deduction Certificate (Form 13) integration
+/// </summary>
+public class ContractorTdsWithLdcResult
+{
+    // ==================== Basic TDS Info ====================
+    public decimal TdsAmount { get; set; }
+    public decimal EffectiveRate { get; set; }
+    public decimal NormalRate { get; set; }
+    public decimal? ThresholdAmount { get; set; }
+    public bool IsExempt { get; set; }
+    public string SectionCode { get; set; } = string.Empty;
+    public Guid? RulePackId { get; set; }
+    public decimal GrossAmount { get; set; }
+    public DateTime TransactionDate { get; set; }
+
+    // ==================== LDC Information ====================
+
+    /// <summary>
+    /// True if a valid Lower Deduction Certificate was applied
+    /// </summary>
+    public bool LdcApplied { get; set; }
+
+    /// <summary>
+    /// Certificate ID if LDC was applied
+    /// </summary>
+    public Guid? LdcCertificateId { get; set; }
+
+    /// <summary>
+    /// Certificate number from IT department
+    /// </summary>
+    public string? LdcCertificateNumber { get; set; }
+
+    /// <summary>
+    /// Certificate type: 'lower' or 'nil'
+    /// </summary>
+    public string? LdcCertificateType { get; set; }
+
+    /// <summary>
+    /// TDS savings due to LDC (normal TDS minus actual TDS)
+    /// </summary>
+    public decimal TdsSavings { get; set; }
+
+    /// <summary>
+    /// Remaining threshold on the certificate (if applicable)
+    /// </summary>
+    public decimal? RemainingThreshold { get; set; }
+
+    /// <summary>
+    /// Usage record ID if usage was recorded
+    /// </summary>
+    public Guid? LdcUsageRecordId { get; set; }
+
+    /// <summary>
+    /// Validation message (e.g., why LDC was not applied)
+    /// </summary>
+    public string? ValidationMessage { get; set; }
+
+    // ==================== Summary Properties ====================
+
+    /// <summary>
+    /// Rate reduction percentage due to LDC
+    /// </summary>
+    public decimal RateReduction => LdcApplied ? NormalRate - EffectiveRate : 0;
+
+    /// <summary>
+    /// Savings percentage (TDS savings as percentage of normal TDS)
+    /// </summary>
+    public decimal SavingsPercentage
+    {
+        get
+        {
+            var normalTds = Math.Round(GrossAmount * NormalRate / 100, 0);
+            return normalTds > 0 ? Math.Round(TdsSavings / normalTds * 100, 2) : 0;
+        }
+    }
 }

@@ -298,6 +298,55 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Forex.IForexTransactionRepository>(sp =>
                 new Infrastructure.Data.Forex.ForexTransactionRepository(connectionString));
 
+            // RCM Transaction repository (Reverse Charge Mechanism)
+            services.AddScoped<Core.Interfaces.Gst.IRcmTransactionRepository>(sp =>
+                new Infrastructure.Data.Gst.RcmTransactionRepository(connectionString));
+
+            // TCS Transaction repository (Tax Collected at Source)
+            services.AddScoped<Core.Interfaces.Tax.ITcsTransactionRepository>(sp =>
+                new Infrastructure.Data.Tax.TcsTransactionRepository(connectionString));
+
+            // Lower Deduction Certificate repository (Form 13)
+            services.AddScoped<Core.Interfaces.Tax.ILowerDeductionCertificateRepository>(sp =>
+                new Infrastructure.Data.Tax.LowerDeductionCertificateRepository(connectionString));
+
+            // RCM Posting service (two-stage journal entries for RCM)
+            services.AddScoped<Core.Interfaces.Gst.IRcmPostingService>(sp =>
+                new Application.Services.Gst.RcmPostingService(
+                    sp.GetRequiredService<Core.Interfaces.Gst.IRcmTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseClaimRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Gst.RcmPostingService>>()
+                ));
+
+            // TCS service (Tax Collected at Source)
+            services.AddScoped<Core.Interfaces.Tax.ITcsService>(sp =>
+                new Application.Services.Tax.TcsService(
+                    sp.GetRequiredService<Core.Interfaces.Tax.ITcsTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Tax.TcsService>>()
+                ));
+
+            // GST Posting service (ITC Blocked, Credit/Debit Notes, ITC Reversal)
+            services.AddScoped<Core.Interfaces.Gst.IGstPostingService>(sp =>
+                new Application.Services.Gst.GstPostingService(
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Gst.GstPostingService>>()
+                ));
+
+            // TDS Return service (Form 26Q and Form 24Q preparation)
+            services.AddScoped<Core.Interfaces.Tax.ITdsReturnService>(sp =>
+                new Application.Services.Tax.TdsReturnService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IContractorPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IEmployeesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Tax.ILowerDeductionCertificateRepository>()
+                ));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();
