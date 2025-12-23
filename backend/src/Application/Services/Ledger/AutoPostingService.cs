@@ -1,7 +1,6 @@
 using Application.Interfaces.Ledger;
 using Core.Entities.Ledger;
 using Core.Interfaces;
-using Core.Interfaces.Expense;
 using Core.Interfaces.Ledger;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -10,8 +9,11 @@ using System.Text.Json.Serialization;
 namespace Application.Services.Ledger
 {
     /// <summary>
-    /// Service for automatically posting journal entries based on business events
-    /// Uses posting rules to determine account mappings
+    /// Service for automatically posting journal entries based on business events.
+    /// Uses posting rules to determine account mappings.
+    ///
+    /// Note: Expense claim posting has been moved to dedicated ExpensePostingService
+    /// following SOLID/SRP principles for better separation of concerns.
     /// </summary>
     public class AutoPostingService : IAutoPostingService
     {
@@ -20,8 +22,6 @@ namespace Application.Services.Ledger
         private readonly IPostingRuleRepository _ruleRepository;
         private readonly IInvoicesRepository _invoiceRepository;
         private readonly IPaymentsRepository _paymentRepository;
-        private readonly IExpenseClaimRepository _expenseClaimRepository;
-        private readonly IExpenseCategoryRepository _expenseCategoryRepository;
         private readonly ILogger<AutoPostingService> _logger;
 
         public AutoPostingService(
@@ -30,8 +30,6 @@ namespace Application.Services.Ledger
             IPostingRuleRepository ruleRepository,
             IInvoicesRepository invoiceRepository,
             IPaymentsRepository paymentRepository,
-            IExpenseClaimRepository expenseClaimRepository,
-            IExpenseCategoryRepository expenseCategoryRepository,
             ILogger<AutoPostingService> logger)
         {
             _accountRepository = accountRepository;
@@ -39,8 +37,6 @@ namespace Application.Services.Ledger
             _ruleRepository = ruleRepository;
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
-            _expenseClaimRepository = expenseClaimRepository;
-            _expenseCategoryRepository = expenseCategoryRepository;
             _logger = logger;
         }
 
@@ -138,82 +134,19 @@ namespace Application.Services.Ledger
             }
         }
 
-        public async Task<JournalEntry?> PostPayrollAsync(
-            Guid payrollRunId,
-            Guid? postedBy = null,
-            bool autoPost = true)
-        {
-            // TODO: Implement payroll posting when payroll entity is available
-            _logger.LogWarning("Payroll auto-posting not yet implemented");
-            return null;
-        }
+        // Note: Dedicated posting services exist for specific domains (SOLID/SRP):
+        // - IPayrollPostingService: Payroll journal entries (accrual, disbursement, statutory)
+        // - IContractorPostingService: Contractor payment journal entries
+        // - IExpensePostingService: Expense claim journal entries
 
         public async Task<JournalEntry?> PostExpenseAsync(
             Guid expenseId,
             Guid? postedBy = null,
             bool autoPost = true)
         {
-            // TODO: Implement expense posting when expense entity is available
-            _logger.LogWarning("Expense auto-posting not yet implemented");
+            // TODO: Implement general expense posting (not expense claims)
+            _logger.LogWarning("General expense auto-posting not yet implemented");
             return null;
-        }
-
-        public async Task<JournalEntry?> PostExpenseClaimAsync(
-            Guid expenseClaimId,
-            Guid? postedBy = null,
-            bool autoPost = true)
-        {
-            try
-            {
-                var claim = await _expenseClaimRepository.GetByIdAsync(expenseClaimId);
-                if (claim == null)
-                {
-                    _logger.LogWarning("Expense claim {ExpenseClaimId} not found for auto-posting", expenseClaimId);
-                    return null;
-                }
-
-                // Get expense category for GL account
-                var category = await _expenseCategoryRepository.GetByIdAsync(claim.CategoryId);
-                var expenseAccount = category?.GlAccountCode ?? "5100"; // Default to general expense
-
-                // Build source data from expense claim
-                var sourceData = new Dictionary<string, object>
-                {
-                    ["company_id"] = claim.CompanyId.ToString(),
-                    ["is_gst_applicable"] = claim.IsGstApplicable,
-                    ["supply_type"] = claim.SupplyType ?? "intra_state",
-                    ["amount"] = claim.Amount,
-                    ["base_amount"] = claim.BaseAmount ?? claim.Amount - claim.TotalGstAmount,
-                    ["cgst_amount"] = claim.CgstAmount,
-                    ["sgst_amount"] = claim.SgstAmount,
-                    ["igst_amount"] = claim.IgstAmount,
-                    ["cgst_rate"] = claim.CgstRate,
-                    ["sgst_rate"] = claim.SgstRate,
-                    ["igst_rate"] = claim.IgstRate,
-                    ["total_gst_amount"] = claim.TotalGstAmount,
-                    ["employee_id"] = claim.EmployeeId.ToString(),
-                    ["employee_name"] = claim.EmployeeName ?? "Employee",
-                    ["title"] = claim.Title,
-                    ["vendor_name"] = claim.VendorName ?? "Vendor",
-                    ["vendor_invoice_number"] = claim.InvoiceNumber ?? claim.ClaimNumber,
-                    ["expense_account"] = expenseAccount,
-                    ["claim_number"] = claim.ClaimNumber,
-                    ["source_number"] = claim.ClaimNumber
-                };
-
-                return await PostFromSourceWithTriggerAsync(
-                    "expense_claim",
-                    expenseClaimId,
-                    sourceData,
-                    "on_reimburse", // Specific trigger for expense claims
-                    postedBy,
-                    autoPost);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error auto-posting expense claim {ExpenseClaimId}", expenseClaimId);
-                throw;
-            }
         }
 
         public async Task<JournalEntry?> PostFromSourceAsync(

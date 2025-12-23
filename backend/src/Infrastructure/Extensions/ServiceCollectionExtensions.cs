@@ -198,7 +198,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.TrialBalanceService>>()
                 ));
 
-            // Auto-Posting service
+            // Auto-Posting service (for invoices, payments, etc.)
+            // Note: Expense claim posting uses dedicated ExpensePostingService
             services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService>(sp =>
                 new Application.Services.Ledger.AutoPostingService(
                     sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
@@ -206,8 +207,6 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Ledger.IPostingRuleRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IInvoicesRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IPaymentsRepository>(),
-                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseClaimRepository>(),
-                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseCategoryRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
                 ));
 
@@ -233,6 +232,16 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
                     sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Payroll.ContractorPostingService>>()
+                ));
+
+            // Expense Posting service (journal entries for expense claims)
+            services.AddScoped<Core.Interfaces.Expense.IExpensePostingService>(sp =>
+                new Application.Services.Expense.ExpensePostingService(
+                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseClaimRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Expense.IExpenseCategoryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Expense.ExpensePostingService>>()
                 ));
 
             // E-Invoice repositories

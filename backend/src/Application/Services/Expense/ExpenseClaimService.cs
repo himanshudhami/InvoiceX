@@ -1,7 +1,6 @@
 using Application.DTOs.Expense;
 using Application.Interfaces.Approval;
 using Application.Interfaces.Expense;
-using Application.Interfaces.Ledger;
 using Core.Common;
 using Core.Entities.Expense;
 using Core.Entities.Ledger;
@@ -22,7 +21,7 @@ namespace Application.Services.Expense
         private readonly IExpenseAttachmentRepository _attachmentRepository;
         private readonly IApprovalWorkflowService _workflowService;
         private readonly IGstInputCreditRepository _gstInputCreditRepository;
-        private readonly IAutoPostingService _autoPostingService;
+        private readonly IExpensePostingService _expensePostingService;
         private readonly ILogger<ExpenseClaimService> _logger;
 
         public ExpenseClaimService(
@@ -31,7 +30,7 @@ namespace Application.Services.Expense
             IExpenseAttachmentRepository attachmentRepository,
             IApprovalWorkflowService workflowService,
             IGstInputCreditRepository gstInputCreditRepository,
-            IAutoPostingService autoPostingService,
+            IExpensePostingService expensePostingService,
             ILogger<ExpenseClaimService> logger)
         {
             _claimRepository = claimRepository ?? throw new ArgumentNullException(nameof(claimRepository));
@@ -39,7 +38,7 @@ namespace Application.Services.Expense
             _attachmentRepository = attachmentRepository ?? throw new ArgumentNullException(nameof(attachmentRepository));
             _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
             _gstInputCreditRepository = gstInputCreditRepository ?? throw new ArgumentNullException(nameof(gstInputCreditRepository));
-            _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
+            _expensePostingService = expensePostingService ?? throw new ArgumentNullException(nameof(expensePostingService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -535,20 +534,23 @@ namespace Application.Services.Expense
                 "Expense claim reimbursed: {ClaimNumber}, Reference: {Reference}",
                 claim.ClaimNumber, dto.Reference);
 
-            // Trigger auto-posting for the expense claim
+            // Post journal entry for the expense claim
             try
             {
-                await _autoPostingService.PostExpenseClaimAsync(claim.Id);
-                _logger.LogInformation(
-                    "Auto-posting triggered for expense claim: {ClaimNumber}",
-                    claim.ClaimNumber);
+                var journalEntry = await _expensePostingService.PostReimbursementAsync(claim.Id);
+                if (journalEntry != null)
+                {
+                    _logger.LogInformation(
+                        "Posted journal entry {JournalNumber} for expense claim: {ClaimNumber}",
+                        journalEntry.JournalNumber, claim.ClaimNumber);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
-                    "Auto-posting failed for expense claim: {ClaimNumber}",
+                    "Journal posting failed for expense claim: {ClaimNumber}. Reimbursement succeeded but journal entry not created.",
                     claim.ClaimNumber);
-                // Don't fail the reimbursement if auto-posting fails
+                // Don't fail the reimbursement if journal posting fails
             }
 
             // Create GST Input Credit record if GST is applicable and ITC is eligible

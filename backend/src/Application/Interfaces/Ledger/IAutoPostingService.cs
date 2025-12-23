@@ -23,27 +23,15 @@ namespace Application.Interfaces.Ledger
             Guid? postedBy = null,
             bool autoPost = true);
 
-        /// <summary>
-        /// Create and post a journal entry for a payroll run
-        /// </summary>
-        Task<JournalEntry?> PostPayrollAsync(
-            Guid payrollRunId,
-            Guid? postedBy = null,
-            bool autoPost = true);
+        // Note: Payroll posting uses dedicated IPayrollPostingService
+        // Note: Expense claim posting uses dedicated IExpensePostingService
+        // Note: Contractor payment posting uses dedicated IContractorPostingService
 
         /// <summary>
         /// Create and post a journal entry for an expense
         /// </summary>
         Task<JournalEntry?> PostExpenseAsync(
             Guid expenseId,
-            Guid? postedBy = null,
-            bool autoPost = true);
-
-        /// <summary>
-        /// Create and post a journal entry for an expense claim reimbursement
-        /// </summary>
-        Task<JournalEntry?> PostExpenseClaimAsync(
-            Guid expenseClaimId,
             Guid? postedBy = null,
             bool autoPost = true);
 
