@@ -211,6 +211,30 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
                 ));
 
+            // Statutory Payment repository
+            services.AddScoped<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(sp =>
+                new Infrastructure.Data.Payroll.StatutoryPaymentRepository(connectionString));
+
+            // Payroll Posting service (three-stage journal entries for payroll)
+            services.AddScoped<Core.Interfaces.Payroll.IPayrollPostingService>(sp =>
+                new Application.Services.Payroll.PayrollPostingService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollRunRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Payroll.PayrollPostingService>>()
+                ));
+
+            // Contractor Posting service (two-stage journal entries for contractor payments)
+            services.AddScoped<Core.Interfaces.Payroll.IContractorPostingService>(sp =>
+                new Application.Services.Payroll.ContractorPostingService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IContractorPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Payroll.ContractorPostingService>>()
+                ));
+
             // E-Invoice repositories
             services.AddScoped<Core.Interfaces.EInvoice.IEInvoiceCredentialsRepository>(sp =>
                 new Infrastructure.Data.EInvoice.EInvoiceCredentialsRepository(connectionString));

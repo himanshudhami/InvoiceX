@@ -144,14 +144,16 @@ namespace Infrastructure.Data.Payroll
                 (employee_id, company_id, payment_month, payment_year, invoice_number,
                  contract_reference, gross_amount, tds_rate, tds_amount, other_deductions,
                  net_payable, gst_applicable, gst_rate, gst_amount, total_invoice_amount,
-                 status, payment_date, payment_method, payment_reference, description,
-                 remarks, created_at, updated_at, created_by, updated_by)
+                 status, payment_date, payment_method, payment_reference, bank_account_id,
+                 accrual_journal_entry_id, disbursement_journal_entry_id,
+                 description, remarks, created_at, updated_at, created_by, updated_by)
                 VALUES
                 (@EmployeeId, @CompanyId, @PaymentMonth, @PaymentYear, @InvoiceNumber,
                  @ContractReference, @GrossAmount, @TdsRate, @TdsAmount, @OtherDeductions,
                  @NetPayable, @GstApplicable, @GstRate, @GstAmount, @TotalInvoiceAmount,
-                 @Status, @PaymentDate, @PaymentMethod, @PaymentReference, @Description,
-                 @Remarks, NOW(), NOW(), @CreatedBy, @UpdatedBy)
+                 @Status, @PaymentDate, @PaymentMethod, @PaymentReference, @BankAccountId,
+                 @AccrualJournalEntryId, @DisbursementJournalEntryId,
+                 @Description, @Remarks, NOW(), NOW(), @CreatedBy, @UpdatedBy)
                 RETURNING *";
 
             return await connection.QuerySingleAsync<ContractorPayment>(sql, entity);
@@ -180,6 +182,9 @@ namespace Infrastructure.Data.Payroll
                 payment_date = @PaymentDate,
                 payment_method = @PaymentMethod,
                 payment_reference = @PaymentReference,
+                bank_account_id = @BankAccountId,
+                accrual_journal_entry_id = @AccrualJournalEntryId,
+                disbursement_journal_entry_id = @DisbursementJournalEntryId,
                 description = @Description,
                 remarks = @Remarks,
                 updated_at = NOW(),

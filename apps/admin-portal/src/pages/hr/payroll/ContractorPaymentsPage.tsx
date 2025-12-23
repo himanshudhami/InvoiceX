@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -21,6 +21,13 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ContractorPaymentForm } from '@/components/forms/ContractorPaymentForm'
+import {
+  MarkAsPaidDrawer,
+  createContractorPaymentEntity,
+  type PaymentEntity,
+  type MarkAsPaidFormData,
+  type MarkAsPaidResult,
+} from '@/components/payments'
 
 const ContractorPaymentsPage = () => {
   const navigate = useNavigate()
@@ -28,8 +35,8 @@ const ContractorPaymentsPage = () => {
   const [editingPayment, setEditingPayment] = useState<ContractorPayment | null>(null)
   const [deletingPayment, setDeletingPayment] = useState<ContractorPayment | null>(null)
   const [approvingPayment, setApprovingPayment] = useState<ContractorPayment | null>(null)
-  const [payingPayment, setPayingPayment] = useState<ContractorPayment | null>(null)
-  const [paymentData, setPaymentData] = useState({ paymentReference: '', paymentMode: '', remarks: '' })
+  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
+  const [paymentEntity, setPaymentEntity] = useState<PaymentEntity | null>(null)
 
   const [urlState, setUrlState] = useQueryStates(
     {
@@ -96,28 +103,46 @@ const ContractorPaymentsPage = () => {
     }
   }
 
-  const handleMarkAsPaid = (payment: ContractorPayment) => {
-    setPayingPayment(payment)
+  const handleOpenPaymentDrawer = (payment: ContractorPayment) => {
+    const entity = createContractorPaymentEntity({
+      id: payment.id,
+      companyId: payment.companyId,
+      contractorName: payment.employeeName || 'Contractor',
+      invoiceNumber: payment.invoiceNumber,
+      totalAmount: payment.netPayable,
+    })
+    setPaymentEntity(entity)
+    setPaymentDrawerOpen(true)
   }
 
-  const handleMarkAsPaidConfirm = async () => {
-    if (payingPayment) {
-      try {
-        await markContractorPaymentAsPaid.mutateAsync({
-          id: payingPayment.id,
-          data: {
-            paymentReference: paymentData.paymentReference,
-            paymentMethod: paymentData.paymentMode,
-            paymentDate: new Date().toISOString(),
-            updatedBy: 'current-user', // TODO: Get from auth context
-          },
-        })
-        setPayingPayment(null)
-        setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
-      } catch (error) {
-        console.error('Failed to mark contractor payment as paid:', error)
+  const handlePaymentSubmit = useCallback(async (data: MarkAsPaidFormData): Promise<MarkAsPaidResult> => {
+    try {
+      await markContractorPaymentAsPaid.mutateAsync({
+        id: data.entityId,
+        data: {
+          paymentReference: data.referenceNumber,
+          paymentMethod: data.paymentMethod,
+          paymentDate: data.paymentDate,
+          remarks: data.notes,
+          bankAccountId: data.bankAccountId,
+          updatedBy: 'current-user', // TODO: Get from auth context
+        },
+      })
+      return {
+        success: true,
+        message: 'Contractor payment marked as paid successfully',
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.message || 'Failed to mark contractor payment as paid',
       }
     }
+  }, [markContractorPaymentAsPaid])
+
+  const handlePaymentSuccess = () => {
+    setPaymentDrawerOpen(false)
+    setPaymentEntity(null)
   }
 
   const getStatusBadge = (status: string) => {
@@ -199,7 +224,7 @@ const ContractorPaymentsPage = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleMarkAsPaid(payment)}
+                onClick={() => handleOpenPaymentDrawer(payment)}
                 title="Mark as Paid"
                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
               >
@@ -358,63 +383,17 @@ const ContractorPaymentsPage = () => {
         </div>
       </Modal>
 
-      {/* Mark as Paid Modal */}
-      <Modal
-        isOpen={!!payingPayment}
+      {/* Mark as Paid Drawer */}
+      <MarkAsPaidDrawer
+        isOpen={paymentDrawerOpen}
         onClose={() => {
-          setPayingPayment(null)
-          setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
+          setPaymentDrawerOpen(false)
+          setPaymentEntity(null)
         }}
-        title="Mark Contractor Payment as Paid"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Reference
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
-              value={paymentData.paymentReference}
-              onChange={(e) => setPaymentData({ ...paymentData, paymentReference: e.target.value })}
-              placeholder="Transaction ID, cheque number, etc."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Mode
-            </label>
-            <select
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
-              value={paymentData.paymentMode}
-              onChange={(e) => setPaymentData({ ...paymentData, paymentMode: e.target.value })}
-            >
-              <option value="">Select payment mode</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cheque">Cheque</option>
-              <option value="cash">Cash</option>
-              <option value="online">Online</option>
-            </select>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPayingPayment(null)
-                setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleMarkAsPaidConfirm}
-              disabled={markContractorPaymentAsPaid.isPending}
-            >
-              {markContractorPaymentAsPaid.isPending ? 'Saving...' : 'Mark as Paid'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        entity={paymentEntity}
+        onSubmit={handlePaymentSubmit}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   )
 }

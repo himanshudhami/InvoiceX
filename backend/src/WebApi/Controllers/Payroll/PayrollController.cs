@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WebApi.DTOs;
 using WebApi.DTOs.Common;
+using Core.Interfaces.Ledger;
 
 namespace WebApi.Controllers.Payroll;
 
@@ -31,6 +32,7 @@ public class PayrollController : ControllerBase
     private readonly ITaxParameterRepository _taxParameterRepository;
     private readonly ISalaryComponentRepository _salaryComponentRepository;
     private readonly PayrollCalculationService _calculationService;
+    private readonly IPayrollPostingService _postingService;
     private readonly IMapper _mapper;
     private readonly ILogger<PayrollController> _logger;
 
@@ -46,6 +48,7 @@ public class PayrollController : ControllerBase
         ITaxParameterRepository taxParameterRepository,
         ISalaryComponentRepository salaryComponentRepository,
         PayrollCalculationService calculationService,
+        IPayrollPostingService postingService,
         IMapper mapper,
         ILogger<PayrollController> logger)
     {
@@ -60,6 +63,7 @@ public class PayrollController : ControllerBase
         _taxParameterRepository = taxParameterRepository;
         _salaryComponentRepository = salaryComponentRepository;
         _calculationService = calculationService;
+        _postingService = postingService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -427,8 +431,12 @@ public class PayrollController : ControllerBase
     /// <summary>
     /// Approve a payroll run
     /// </summary>
+    /// <remarks>
+    /// Approving a payroll run also automatically creates the accrual journal entry
+    /// (expense recognition) in the general ledger.
+    /// </remarks>
     [HttpPost("runs/{id}/approve")]
-    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(PayrollApprovalResultDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ApprovePayrollRun(Guid id, [FromQuery] string? approvedBy)
@@ -440,15 +448,55 @@ public class PayrollController : ControllerBase
         if (payrollRun.Status != "computed")
             return BadRequest("Only computed payroll runs can be approved");
 
+        // Update status to approved
         await _payrollRunRepository.UpdateStatusAsync(id, "approved", approvedBy);
-        return NoContent();
+
+        // Auto-post accrual journal entry (expense recognition)
+        Guid? journalEntryId = null;
+        string? postingMessage = null;
+
+        try
+        {
+            Guid? postedByGuid = null;
+            if (!string.IsNullOrEmpty(approvedBy) && Guid.TryParse(approvedBy, out var parsed))
+            {
+                postedByGuid = parsed;
+            }
+
+            var journalEntry = await _postingService.PostAccrualAsync(id, postedByGuid);
+            if (journalEntry != null)
+            {
+                journalEntryId = journalEntry.Id;
+                _logger.LogInformation("Auto-posted accrual journal entry {JournalEntryId} for payroll run {PayrollRunId}",
+                    journalEntry.Id, id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to auto-post accrual journal entry for payroll run {PayrollRunId}. " +
+                "Manual posting may be required via /api/payroll-posting/{id}/accrual", id);
+            postingMessage = "Payroll approved but accrual journal entry could not be created automatically. " +
+                "Please use the posting API to create the journal entry manually.";
+        }
+
+        return Ok(new PayrollApprovalResultDto
+        {
+            PayrollRunId = id,
+            Status = "approved",
+            AccrualJournalEntryId = journalEntryId,
+            Message = postingMessage ?? "Payroll approved and accrual journal entry created successfully"
+        });
     }
 
     /// <summary>
     /// Mark payroll as paid
     /// </summary>
+    /// <remarks>
+    /// Marking payroll as paid also automatically creates the disbursement journal entry
+    /// (salary payment) in the general ledger if a bank account ID is provided.
+    /// </remarks>
     [HttpPost("runs/{id}/pay")]
-    [ProducesResponseType(204)]
+    [ProducesResponseType(typeof(PayrollPaymentResultDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> MarkPayrollAsPaid(Guid id, [FromBody] UpdatePayrollRunDto dto)
@@ -474,7 +522,49 @@ public class PayrollController : ControllerBase
             await _transactionRepository.UpdateStatusAsync(txn.Id, "paid");
         }
 
-        return NoContent();
+        // Auto-post disbursement journal entry (salary payment) if bank account provided
+        Guid? journalEntryId = null;
+        string? postingMessage = null;
+
+        if (dto.BankAccountId.HasValue && dto.BankAccountId != Guid.Empty)
+        {
+            try
+            {
+                Guid? paidByGuid = null;
+                if (!string.IsNullOrEmpty(dto.UpdatedBy) && Guid.TryParse(dto.UpdatedBy, out var parsed))
+                {
+                    paidByGuid = parsed;
+                }
+
+                var journalEntry = await _postingService.PostDisbursementAsync(id, dto.BankAccountId.Value, paidByGuid);
+                if (journalEntry != null)
+                {
+                    journalEntryId = journalEntry.Id;
+                    _logger.LogInformation("Auto-posted disbursement journal entry {JournalEntryId} for payroll run {PayrollRunId}",
+                        journalEntry.Id, id);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to auto-post disbursement journal entry for payroll run {PayrollRunId}. " +
+                    "Manual posting may be required via /api/payroll-posting/{id}/disbursement", id);
+                postingMessage = "Payroll marked as paid but disbursement journal entry could not be created automatically. " +
+                    "Please use the posting API to create the journal entry manually.";
+            }
+        }
+        else
+        {
+            postingMessage = "Payroll marked as paid. No bank account provided - disbursement journal entry not created. " +
+                "Use /api/payroll-posting/{id}/disbursement to create the journal entry when ready.";
+        }
+
+        return Ok(new PayrollPaymentResultDto
+        {
+            PayrollRunId = id,
+            Status = "paid",
+            DisbursementJournalEntryId = journalEntryId,
+            Message = postingMessage ?? "Payroll paid and disbursement journal entry created successfully"
+        });
     }
 
     // ==================== Transactions ====================

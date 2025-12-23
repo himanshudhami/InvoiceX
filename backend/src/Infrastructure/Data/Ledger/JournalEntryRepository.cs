@@ -140,16 +140,18 @@ namespace Infrastructure.Data.Ledger
                         company_id, journal_number, journal_date,
                         financial_year, period_month, entry_type,
                         source_type, source_id, source_number,
-                        description, total_debit, total_credit,
-                        status, rule_pack_version,
+                        description, narration, total_debit, total_credit,
+                        status, posted_at, posted_by,
+                        rule_pack_version, rule_code, idempotency_key,
                         created_by, created_at, updated_at
                     )
                     VALUES (
                         @CompanyId, @JournalNumber, @JournalDate,
                         @FinancialYear, @PeriodMonth, @EntryType,
                         @SourceType, @SourceId, @SourceNumber,
-                        @Description, @TotalDebit, @TotalCredit,
-                        @Status, @RulePackVersion,
+                        @Description, @Narration, @TotalDebit, @TotalCredit,
+                        @Status, @PostedAt, @PostedBy,
+                        @RulePackVersion, @RuleCode, @IdempotencyKey,
                         @CreatedBy, NOW(), NOW()
                     )
                     RETURNING *";
@@ -285,6 +287,30 @@ namespace Infrastructure.Data.Ledger
                   WHERE source_type = @sourceType AND source_id = @sourceId",
                 new { sourceType, sourceId });
             return count > 0;
+        }
+
+        public async Task<IEnumerable<JournalEntry>> GetBySourceAsync(
+            string sourceType,
+            Guid sourceId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<JournalEntry>(
+                @"SELECT * FROM journal_entries
+                  WHERE source_type = @sourceType
+                  AND source_id = @sourceId
+                  ORDER BY created_at",
+                new { sourceType, sourceId });
+        }
+
+        // ==================== Idempotency ====================
+
+        public async Task<JournalEntry?> GetByIdempotencyKeyAsync(string idempotencyKey)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<JournalEntry>(
+                @"SELECT * FROM journal_entries
+                  WHERE idempotency_key = @idempotencyKey",
+                new { idempotencyKey });
         }
 
         // ==================== Status Operations ====================

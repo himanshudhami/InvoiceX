@@ -49,6 +49,33 @@ public class UpdatePayrollRunDto
     public string? PaymentMode { get; set; }
     public string? Remarks { get; set; }
     public string? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// Bank account ID for disbursement journal entry auto-posting
+    /// </summary>
+    public Guid? BankAccountId { get; set; }
+}
+
+/// <summary>
+/// Result DTO for payroll approval operation
+/// </summary>
+public class PayrollApprovalResultDto
+{
+    public Guid PayrollRunId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public Guid? AccrualJournalEntryId { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Result DTO for payroll payment operation
+/// </summary>
+public class PayrollPaymentResultDto
+{
+    public Guid PayrollRunId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public Guid? DisbursementJournalEntryId { get; set; }
+    public string Message { get; set; } = string.Empty;
 }
 
 public class ProcessPayrollDto

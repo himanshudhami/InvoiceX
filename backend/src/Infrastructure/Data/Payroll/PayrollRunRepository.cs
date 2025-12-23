@@ -116,13 +116,13 @@ namespace Infrastructure.Data.Payroll
                  total_contractors, total_gross_salary, total_deductions, total_net_salary,
                  total_employer_pf, total_employer_esi, total_employer_cost, computed_by, computed_at,
                  approved_by, approved_at, paid_by, paid_at, payment_reference, payment_mode,
-                 remarks, created_at, updated_at, created_by, updated_by)
+                 remarks, bank_account_id, created_at, updated_at, created_by, updated_by)
                 VALUES
                 (@CompanyId, @PayrollMonth, @PayrollYear, @FinancialYear, @Status, @TotalEmployees,
                  @TotalContractors, @TotalGrossSalary, @TotalDeductions, @TotalNetSalary,
                  @TotalEmployerPf, @TotalEmployerEsi, @TotalEmployerCost, @ComputedBy, @ComputedAt,
                  @ApprovedBy, @ApprovedAt, @PaidBy, @PaidAt, @PaymentReference, @PaymentMode,
-                 @Remarks, NOW(), NOW(), @CreatedBy, @UpdatedBy)
+                 @Remarks, @BankAccountId, NOW(), NOW(), @CreatedBy, @UpdatedBy)
                 RETURNING *";
 
             return await connection.QuerySingleAsync<PayrollRun>(sql, entity);
@@ -154,6 +154,9 @@ namespace Infrastructure.Data.Payroll
                 payment_reference = @PaymentReference,
                 payment_mode = @PaymentMode,
                 remarks = @Remarks,
+                accrual_journal_entry_id = @AccrualJournalEntryId,
+                disbursement_journal_entry_id = @DisbursementJournalEntryId,
+                bank_account_id = @BankAccountId,
                 updated_at = NOW(),
                 updated_by = @UpdatedBy
                 WHERE id = @Id";

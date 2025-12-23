@@ -62,9 +62,25 @@ namespace Core.Interfaces.Ledger
             Guid sourceId);
 
         /// <summary>
+        /// Get journal entries by source type and ID (without company filter)
+        /// Used for payroll posting where company is derived from source
+        /// </summary>
+        Task<IEnumerable<JournalEntry>> GetBySourceAsync(
+            string sourceType,
+            Guid sourceId);
+
+        /// <summary>
         /// Check if a source already has journal entries
         /// </summary>
         Task<bool> HasEntriesForSourceAsync(string sourceType, Guid sourceId);
+
+        // ==================== Idempotency ====================
+
+        /// <summary>
+        /// Get journal entry by idempotency key
+        /// Used to prevent duplicate entries for the same event
+        /// </summary>
+        Task<JournalEntry?> GetByIdempotencyKeyAsync(string idempotencyKey);
 
         // ==================== Status Operations ====================
 

@@ -10,15 +10,22 @@ import { Button } from '@/components/ui/button'
 import { formatINR } from '@/lib/currency'
 import { ArrowLeft, CheckCircle, DollarSign, Download, Eye } from 'lucide-react'
 import { format } from 'date-fns'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { exportPayrollRunToExcel } from '@/services/export/payrollExportService'
+import {
+  MarkAsPaidDrawer,
+  createPayrollPaymentEntity,
+  type PaymentEntity,
+  type MarkAsPaidFormData,
+  type MarkAsPaidResult,
+} from '@/components/payments'
 
 const PayrollRunDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [approvingRun, setApprovingRun] = useState(false)
-  const [payingRun, setPayingRun] = useState(false)
-  const [paymentData, setPaymentData] = useState({ paymentReference: '', paymentMode: '', remarks: '' })
+  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
+  const [paymentEntity, setPaymentEntity] = useState<PaymentEntity | null>(null)
 
   const { data: run, isLoading: isLoadingRun } = usePayrollRun(id!, !!id)
   const { data: summary } = usePayrollRunSummary(id!, !!id)
@@ -60,23 +67,47 @@ const PayrollRunDetail = () => {
     }
   }
 
-  const handleMarkAsPaid = async () => {
+  const handleOpenPaymentDrawer = () => {
     if (!run) return
+    const entity = createPayrollPaymentEntity({
+      id: run.id,
+      companyId: run.companyId,
+      payrollMonth: run.payrollMonth,
+      payrollYear: run.payrollYear,
+      totalNetSalary: run.totalNetSalary,
+    })
+    setPaymentEntity(entity)
+    setPaymentDrawerOpen(true)
+  }
+
+  const handlePaymentSubmit = useCallback(async (data: MarkAsPaidFormData): Promise<MarkAsPaidResult> => {
     try {
-      await markPayrollAsPaid.mutateAsync({
-        id: run.id,
+      const result = await markPayrollAsPaid.mutateAsync({
+        id: data.entityId,
         data: {
-          paymentReference: paymentData.paymentReference,
-          paymentMode: paymentData.paymentMode,
-          remarks: paymentData.remarks,
+          paymentReference: data.referenceNumber,
+          paymentMode: data.paymentMethod,
+          remarks: data.notes,
+          bankAccountId: data.bankAccountId,
           updatedBy: 'current-user', // TODO: Get from auth context
         },
       })
-      setPayingRun(false)
-      setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
-    } catch (error) {
-      console.error('Failed to mark payroll as paid:', error)
+      return {
+        success: true,
+        journalEntryId: result?.disbursementJournalEntryId,
+        message: result?.message || 'Payroll marked as paid successfully',
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error?.message || 'Failed to mark payroll as paid',
+      }
     }
+  }, [markPayrollAsPaid])
+
+  const handlePaymentSuccess = () => {
+    setPaymentDrawerOpen(false)
+    setPaymentEntity(null)
   }
 
   const handleViewPayslip = (transactionId: string) => {
@@ -191,7 +222,7 @@ const PayrollRunDetail = () => {
             </Button>
           )}
           {run.status === 'approved' && (
-            <Button onClick={() => setPayingRun(true)}>
+            <Button onClick={handleOpenPaymentDrawer}>
               <DollarSign className="w-4 h-4 mr-2" />
               Mark as Paid
             </Button>
@@ -341,72 +372,17 @@ const PayrollRunDetail = () => {
         </div>
       </Modal>
 
-      {/* Mark as Paid Modal */}
-      <Modal
-        isOpen={payingRun}
+      {/* Mark as Paid Drawer */}
+      <MarkAsPaidDrawer
+        isOpen={paymentDrawerOpen}
         onClose={() => {
-          setPayingRun(false)
-          setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
+          setPaymentDrawerOpen(false)
+          setPaymentEntity(null)
         }}
-        title="Mark Payroll as Paid"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Reference
-            </label>
-            <input
-              type="text"
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
-              value={paymentData.paymentReference}
-              onChange={(e) => setPaymentData({ ...paymentData, paymentReference: e.target.value })}
-              placeholder="Transaction ID, cheque number, etc."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Mode
-            </label>
-            <select
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
-              value={paymentData.paymentMode}
-              onChange={(e) => setPaymentData({ ...paymentData, paymentMode: e.target.value })}
-            >
-              <option value="">Select payment mode</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cheque">Cheque</option>
-              <option value="cash">Cash</option>
-              <option value="online">Online</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Remarks
-            </label>
-            <textarea
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
-              value={paymentData.remarks}
-              onChange={(e) => setPaymentData({ ...paymentData, remarks: e.target.value })}
-              rows={3}
-              placeholder="Additional notes..."
-            />
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPayingRun(false)
-                setPaymentData({ paymentReference: '', paymentMode: '', remarks: '' })
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleMarkAsPaid} disabled={markPayrollAsPaid.isPending}>
-              {markPayrollAsPaid.isPending ? 'Saving...' : 'Mark as Paid'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        entity={paymentEntity}
+        onSubmit={handlePaymentSubmit}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   )
 }

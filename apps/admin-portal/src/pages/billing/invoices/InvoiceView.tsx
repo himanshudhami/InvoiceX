@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useInvoice, useInvoiceItems } from '@/hooks/api/useInvoices'
 import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
@@ -21,7 +21,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TemplateSelectModal } from '@/components/modals/TemplateSelectModal'
-import { RecordPaymentModal } from '@/components/modals/RecordPaymentModal'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +31,15 @@ import {
 import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 import { IrnGenerationButton } from '@/components/invoice/IrnGenerationButton'
 import { QrCodeDisplay } from '@/components/invoice/QrCodeDisplay'
-import { InvoicePaymentStatus } from '@/components/payments/InvoicePaymentStatus'
+import {
+  InvoicePaymentStatus,
+  MarkAsPaidDrawer,
+  createInvoicePaymentEntity,
+  type PaymentEntity,
+  type MarkAsPaidFormData,
+  type MarkAsPaidResult,
+} from '@/components/payments'
+import { invoiceService } from '@/services/api/billing/invoiceService'
 
 const InvoiceView = () => {
   const { id } = useParams<{ id: string }>()
@@ -47,7 +54,8 @@ const InvoiceView = () => {
   const customer = customers.find(c => c.id === invoice?.customerId)
   const company = companies.find(c => c.id === invoice?.companyId)
   const [templateModal, setTemplateModal] = useState(false)
-  const [paymentModal, setPaymentModal] = useState(false)
+  const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
+  const [paymentEntity, setPaymentEntity] = useState<PaymentEntity | null>(null)
 
   const handleEdit = () => {
     navigate(`/invoices/${id}/edit`)
@@ -63,10 +71,45 @@ const InvoiceView = () => {
   }
 
   const handleMarkAsPaid = () => {
-    setPaymentModal(true)
+    if (!invoice) return
+    const entity = createInvoicePaymentEntity({
+      id: invoice.id,
+      companyId: invoice.companyId,
+      invoiceNumber: invoice.invoiceNumber,
+      customerName: customer?.name,
+      totalAmount: invoice.totalAmount,
+      paidAmount: invoice.paidAmount,
+      currency: invoice.currency,
+    })
+    setPaymentEntity(entity)
+    setPaymentDrawerOpen(true)
   }
 
+  const handlePaymentSubmit = useCallback(async (data: MarkAsPaidFormData): Promise<MarkAsPaidResult> => {
+    try {
+      await invoiceService.recordPayment(data.entityId, {
+        amount: data.amount,
+        paymentDate: data.paymentDate,
+        paymentMethod: data.paymentMethod,
+        referenceNumber: data.referenceNumber,
+        notes: data.notes,
+        bankAccountId: data.bankAccountId,
+      })
+      return {
+        success: true,
+        message: 'Payment recorded successfully',
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.message || 'Failed to record payment',
+      }
+    }
+  }, [])
+
   const handlePaymentSuccess = () => {
+    setPaymentDrawerOpen(false)
+    setPaymentEntity(null)
     // Refetch invoice data to update payment status
     window.location.reload() // Simple refresh for now
   }
@@ -567,14 +610,16 @@ const InvoiceView = () => {
         company={company}
       />
 
-      {invoice && (
-        <RecordPaymentModal
-          isOpen={paymentModal}
-          onClose={() => setPaymentModal(false)}
-          invoice={invoice}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
+      <MarkAsPaidDrawer
+        isOpen={paymentDrawerOpen}
+        onClose={() => {
+          setPaymentDrawerOpen(false)
+          setPaymentEntity(null)
+        }}
+        entity={paymentEntity}
+        onSubmit={handlePaymentSubmit}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   )
 }

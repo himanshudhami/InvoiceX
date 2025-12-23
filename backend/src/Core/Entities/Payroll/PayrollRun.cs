@@ -70,6 +70,35 @@ namespace Core.Entities.Payroll
 
         public string? Remarks { get; set; }
 
+        // ==================== Journal Entry Linkage ====================
+
+        /// <summary>
+        /// Journal entry created on payroll approval (expense recognition)
+        /// </summary>
+        public Guid? AccrualJournalEntryId { get; set; }
+
+        /// <summary>
+        /// Journal entry created on salary disbursement (liability settlement)
+        /// </summary>
+        public Guid? DisbursementJournalEntryId { get; set; }
+
+        /// <summary>
+        /// Bank account used for salary disbursement
+        /// </summary>
+        public Guid? BankAccountId { get; set; }
+
+        // ==================== Rule Pack ====================
+
+        /// <summary>
+        /// Tax rule pack used for calculations
+        /// </summary>
+        public Guid? RulePackId { get; set; }
+
+        /// <summary>
+        /// Snapshot of rules used for audit trail
+        /// </summary>
+        public string? RulesSnapshot { get; set; }
+
         // ==================== Metadata ====================
 
         public DateTime? CreatedAt { get; set; }

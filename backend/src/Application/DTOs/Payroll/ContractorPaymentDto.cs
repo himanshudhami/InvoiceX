@@ -67,6 +67,11 @@ public class UpdateContractorPaymentDto
     public string? Description { get; set; }
     public string? Remarks { get; set; }
     public string? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// Bank account ID for payment tracking and journal entries
+    /// </summary>
+    public Guid? BankAccountId { get; set; }
 }
 
 public class ContractorPaymentSummaryDto

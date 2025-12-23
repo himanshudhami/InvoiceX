@@ -95,6 +95,25 @@ namespace Core.Entities.Payroll
         public string? PaymentMethod { get; set; }
         public string? PaymentReference { get; set; }
 
+        /// <summary>
+        /// Bank account used for contractor payment
+        /// </summary>
+        public Guid? BankAccountId { get; set; }
+
+        // ==================== Journal Entry Linkage ====================
+
+        /// <summary>
+        /// Journal entry created on approval (expense recognition)
+        /// Dr. Professional Fees, Cr. TDS Payable + Contractor Payable
+        /// </summary>
+        public Guid? AccrualJournalEntryId { get; set; }
+
+        /// <summary>
+        /// Journal entry created on payment (liability settlement)
+        /// Dr. Contractor Payable, Cr. Bank
+        /// </summary>
+        public Guid? DisbursementJournalEntryId { get; set; }
+
         // ==================== Notes ====================
 
         /// <summary>

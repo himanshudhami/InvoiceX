@@ -45,6 +45,7 @@ export interface UpdatePayrollRunDto {
   paymentMode?: string;
   remarks?: string;
   updatedBy?: string;
+  bankAccountId?: string;
 }
 
 export interface ProcessPayrollDto {
@@ -546,6 +547,7 @@ export interface UpdateContractorPaymentDto {
   paymentMethod?: string;
   paymentReference?: string;
   updatedBy?: string;
+  bankAccountId?: string;
 }
 
 export interface ContractorPaymentSummary {

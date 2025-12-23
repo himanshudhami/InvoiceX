@@ -5,6 +5,7 @@ using Core.Interfaces;
 using Core.Interfaces.Payroll;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using WebApi.DTOs;
 using WebApi.DTOs.Common;
 
@@ -22,20 +23,26 @@ public class ContractorPaymentsController : ControllerBase
     private readonly PayrollCalculationService _calculationService;
     private readonly IEmployeesRepository _employeesRepository;
     private readonly ICompaniesRepository _companiesRepository;
+    private readonly IContractorPostingService _postingService;
     private readonly IMapper _mapper;
+    private readonly ILogger<ContractorPaymentsController> _logger;
 
     public ContractorPaymentsController(
         IContractorPaymentRepository repository,
         PayrollCalculationService calculationService,
         IEmployeesRepository employeesRepository,
         ICompaniesRepository companiesRepository,
-        IMapper mapper)
+        IContractorPostingService postingService,
+        IMapper mapper,
+        ILogger<ContractorPaymentsController> logger)
     {
         _repository = repository;
         _calculationService = calculationService;
         _employeesRepository = employeesRepository;
         _companiesRepository = companiesRepository;
+        _postingService = postingService;
         _mapper = mapper;
+        _logger = logger;
     }
 
     /// <summary>
@@ -281,8 +288,13 @@ public class ContractorPaymentsController : ControllerBase
     }
 
     /// <summary>
-    /// Approve a contractor payment
+    /// Approve a contractor payment and post accrual journal entry
     /// </summary>
+    /// <remarks>
+    /// Posts accrual journal entry following Indian accounting standards:
+    /// Dr. Professional Fees (Gross), Dr. Input GST (if applicable)
+    /// Cr. TDS Payable (194J/194C), Cr. Contractor Payable (Net)
+    /// </remarks>
     [HttpPost("{id}/approve")]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
@@ -296,13 +308,40 @@ public class ContractorPaymentsController : ControllerBase
         if (payment.Status != "pending")
             return BadRequest("Only pending payments can be approved");
 
+        // Update status to approved
         await _repository.UpdateStatusAsync(id, "approved");
+
+        // Post accrual journal entry (expense recognition with TDS liability)
+        try
+        {
+            var journalEntry = await _postingService.PostAccrualAsync(id);
+            if (journalEntry != null)
+            {
+                _logger.LogInformation(
+                    "Posted accrual journal entry {JournalEntryId} for contractor payment {PaymentId}",
+                    journalEntry.Id, id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to post accrual journal entry for contractor payment {PaymentId}. Payment approved but journal entry not created.",
+                id);
+            // Payment is approved but journal entry failed - don't fail the whole request
+            // The posting can be retried manually or through a batch process
+        }
+
         return NoContent();
     }
 
     /// <summary>
-    /// Mark a contractor payment as paid
+    /// Mark a contractor payment as paid and post disbursement journal entry
     /// </summary>
+    /// <remarks>
+    /// Posts disbursement journal entry following Indian accounting standards:
+    /// Dr. Contractor Payable (Net), Cr. Bank Account (Net)
+    /// Requires bank account ID for journal entry creation.
+    /// </remarks>
     [HttpPost("{id}/pay")]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
@@ -316,13 +355,39 @@ public class ContractorPaymentsController : ControllerBase
         if (payment.Status != "approved")
             return BadRequest("Only approved payments can be marked as paid");
 
+        // Bank account is required for journal entry posting
+        if (!dto.BankAccountId.HasValue)
+            return BadRequest("Bank account ID is required for marking payment as paid");
+
         payment.PaymentDate = dto.PaymentDate ?? DateTime.UtcNow;
         payment.PaymentMethod = dto.PaymentMethod;
         payment.PaymentReference = dto.PaymentReference;
+        payment.BankAccountId = dto.BankAccountId;
         payment.Status = "paid";
         payment.UpdatedAt = DateTime.UtcNow;
 
         await _repository.UpdateAsync(payment);
+
+        // Post disbursement journal entry (contractor payable settlement)
+        try
+        {
+            var journalEntry = await _postingService.PostDisbursementAsync(id, dto.BankAccountId.Value);
+            if (journalEntry != null)
+            {
+                _logger.LogInformation(
+                    "Posted disbursement journal entry {JournalEntryId} for contractor payment {PaymentId}",
+                    journalEntry.Id, id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to post disbursement journal entry for contractor payment {PaymentId}. Payment marked as paid but journal entry not created.",
+                id);
+            // Payment is marked as paid but journal entry failed - don't fail the whole request
+            // The posting can be retried manually
+        }
+
         return NoContent();
     }
 

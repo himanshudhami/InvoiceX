@@ -60,9 +60,14 @@ namespace Core.Entities.Ledger
         public string? SourceNumber { get; set; }
 
         /// <summary>
-        /// Description/narration for the journal entry
+        /// Short description for the journal entry
         /// </summary>
         public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Detailed narration/explanation for the journal entry
+        /// </summary>
+        public string? Narration { get; set; }
 
         // ==================== Totals ====================
 
@@ -121,6 +126,19 @@ namespace Core.Entities.Ledger
         /// For auto-posted entries, the rule code that generated this
         /// </summary>
         public string? RuleCode { get; set; }
+
+        // ==================== Idempotency ====================
+
+        /// <summary>
+        /// Unique key to prevent duplicate entries for the same event
+        /// Format: {SOURCE_TYPE}_{EVENT}_{SOURCE_ID} (e.g., PAYROLL_ACCRUAL_guid)
+        /// </summary>
+        public string? IdempotencyKey { get; set; }
+
+        /// <summary>
+        /// Reference to the original entry that this corrects (for correction workflow)
+        /// </summary>
+        public Guid? CorrectionOfId { get; set; }
 
         // ==================== Audit ====================
 

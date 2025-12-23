@@ -8,6 +8,7 @@ export interface RecordPaymentDto {
   paymentMethod: string;
   referenceNumber?: string;
   notes?: string;
+  bankAccountId?: string;
 }
 
 /**
