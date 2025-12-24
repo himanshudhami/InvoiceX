@@ -189,6 +189,117 @@ export class TdsReturnService {
       `${this.endpoint}/combined-summary/${companyId}/${financialYear}/${quarter}`
     );
   }
+
+  // ==================== FVU File Download ====================
+
+  /**
+   * Download Form 26Q FVU text file for non-salary TDS
+   */
+  async downloadForm26Q(
+    companyId: string,
+    financialYear: string,
+    quarter: string,
+    isCorrection: boolean = false
+  ): Promise<Blob> {
+    const params = isCorrection ? '?isCorrection=true' : '';
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/${this.endpoint}/26q/${companyId}/${financialYear}/${quarter}/download${params}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to download Form 26Q');
+    }
+    return response.blob();
+  }
+
+  /**
+   * Download Form 24Q FVU text file for salary TDS
+   */
+  async downloadForm24Q(
+    companyId: string,
+    financialYear: string,
+    quarter: string,
+    isCorrection: boolean = false
+  ): Promise<Blob> {
+    const params = isCorrection ? '?isCorrection=true' : '';
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/${this.endpoint}/24q/${companyId}/${financialYear}/${quarter}/download${params}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to download Form 24Q');
+    }
+    return response.blob();
+  }
+
+  /**
+   * Validate TDS return data before FVU file generation
+   */
+  async validateForFvu(
+    formType: string,
+    companyId: string,
+    financialYear: string,
+    quarter: string
+  ): Promise<FvuValidationResult> {
+    return apiClient.get<FvuValidationResult>(
+      `${this.endpoint}/${formType}/${companyId}/${financialYear}/${quarter}/validate-fvu`
+    );
+  }
+}
+
+// FVU Validation Result type
+export interface FvuValidationResult {
+  isValid: boolean;
+  canGenerate: boolean;
+  formType: string;
+  financialYear: string;
+  quarter: string;
+  errors: FvuValidationError[];
+  warnings: FvuValidationWarning[];
+  summary: FvuValidationSummary;
+}
+
+export interface FvuValidationError {
+  code: string;
+  message: string;
+  field?: string;
+  recordIdentifier?: string;
+  recordType?: string;
+  suggestedFix?: string;
+}
+
+export interface FvuValidationWarning {
+  code: string;
+  message: string;
+  field?: string;
+  recordIdentifier?: string;
+  impact?: string;
+}
+
+export interface FvuValidationSummary {
+  totalRecords: number;
+  validRecords: number;
+  invalidRecords: number;
+  recordsWithWarnings: number;
+  totalTdsAmount: number;
+  totalGrossAmount: number;
+  uniqueDeductees: number;
+  challanCount: number;
+  hasValidTan: boolean;
+  invalidPanCount: number;
+  challansReconciled: boolean;
 }
 
 export const tdsReturnService = new TdsReturnService();

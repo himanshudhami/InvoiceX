@@ -12,6 +12,8 @@ import {
   useTdsFilingHistory,
   useMarkReturnFiled,
   useCombinedTdsSummary,
+  useDownloadForm26Q,
+  useDownloadForm24Q,
 } from '@/features/gst-compliance/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import type { Form26QDeducteeEntry, Form24QDeducteeEntry, ChallanEntry } from '@/services/api/types';
@@ -142,6 +144,27 @@ const TdsReturnsManagement = () => {
   );
 
   const markReturnFiled = useMarkReturnFiled();
+  const downloadForm26Q = useDownloadForm26Q();
+  const downloadForm24Q = useDownloadForm24Q();
+
+  const handleDownloadFvu = () => {
+    if (!selectedCompanyId) return;
+
+    const params = {
+      companyId: selectedCompanyId,
+      financialYear: selectedFY,
+      quarter: selectedQuarter,
+      isCorrection: false,
+    };
+
+    if (activeTab === '26Q') {
+      downloadForm26Q.mutate(params);
+    } else if (activeTab === '24Q') {
+      downloadForm24Q.mutate(params);
+    }
+  };
+
+  const isDownloading = downloadForm26Q.isPending || downloadForm24Q.isPending;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -223,7 +246,7 @@ const TdsReturnsManagement = () => {
       header: 'Amount Paid',
       cell: ({ row }) => (
         <div className="text-right font-medium text-gray-900">
-          {formatCurrency(row.original.amountPaid)}
+          {formatCurrency(row.original.amountPaid ?? 0)}
         </div>
       ),
     },
@@ -232,8 +255,8 @@ const TdsReturnsManagement = () => {
       header: 'TDS Deducted',
       cell: ({ row }) => (
         <div className="text-right">
-          <div className="font-medium text-green-600">{formatCurrency(row.original.tdsDeducted)}</div>
-          <div className="text-xs text-gray-500">{row.original.tdsRate}%</div>
+          <div className="font-medium text-green-600">{formatCurrency(row.original.tdsDeducted ?? 0)}</div>
+          <div className="text-xs text-gray-500">{row.original.tdsRate ?? 0}%</div>
         </div>
       ),
     },
@@ -241,8 +264,8 @@ const TdsReturnsManagement = () => {
       accessorKey: 'tdsDeposited',
       header: 'TDS Deposited',
       cell: ({ row }) => {
-        const deposited = row.original.tdsDeposited || 0;
-        const deducted = row.original.tdsDeducted;
+        const deposited = row.original.tdsDeposited ?? 0;
+        const deducted = row.original.tdsDeducted ?? 0;
         const isPending = deposited < deducted;
         return (
           <div className="text-right">
@@ -289,7 +312,7 @@ const TdsReturnsManagement = () => {
       header: 'Gross Salary',
       cell: ({ row }) => (
         <div className="text-right font-medium text-gray-900">
-          {formatCurrency(row.original.grossSalary)}
+          {formatCurrency(row.original.grossSalary ?? 0)}
         </div>
       ),
     },
@@ -298,7 +321,7 @@ const TdsReturnsManagement = () => {
       header: 'Deductions',
       cell: ({ row }) => (
         <div className="text-right text-gray-700">
-          {formatCurrency(row.original.totalDeductions || 0)}
+          {formatCurrency(row.original.totalDeductions ?? 0)}
         </div>
       ),
     },
@@ -307,7 +330,7 @@ const TdsReturnsManagement = () => {
       header: 'Taxable Income',
       cell: ({ row }) => (
         <div className="text-right font-medium text-gray-900">
-          {formatCurrency(row.original.taxableIncome)}
+          {formatCurrency(row.original.taxableIncome ?? 0)}
         </div>
       ),
     },
@@ -316,7 +339,7 @@ const TdsReturnsManagement = () => {
       header: 'TDS Deducted',
       cell: ({ row }) => (
         <div className="text-right font-medium text-green-600">
-          {formatCurrency(row.original.tdsDeducted)}
+          {formatCurrency(row.original.tdsDeducted ?? 0)}
         </div>
       ),
     },
@@ -365,7 +388,7 @@ const TdsReturnsManagement = () => {
       header: 'Amount',
       cell: ({ row }) => (
         <div className="text-right font-medium text-green-600">
-          {formatCurrency(row.original.amount)}
+          {formatCurrency(row.original.amount ?? 0)}
         </div>
       ),
     },
@@ -469,11 +492,16 @@ const TdsReturnsManagement = () => {
           </div>
           <div className="flex items-end">
             <button
-              className="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center justify-center gap-2"
-              disabled={!selectedCompanyId}
+              onClick={handleDownloadFvu}
+              className="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={!selectedCompanyId || isDownloading || (activeTab !== '26Q' && activeTab !== '24Q')}
             >
-              <Download className="h-4 w-4" />
-              Export Return
+              {isDownloading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? 'Downloading...' : `Download ${activeTab === '26Q' ? '26Q' : activeTab === '24Q' ? '24Q' : ''} FVU`}
             </button>
           </div>
         </div>
@@ -590,19 +618,19 @@ const TdsReturnsManagement = () => {
                           <div className="grid grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="text-blue-600">Total Deductees</p>
-                              <p className="font-bold">{form26QSummary.totalDeductees}</p>
+                              <p className="font-bold">{form26QSummary.totalDeductees ?? form26QSummary.uniqueDeductees ?? 0}</p>
                             </div>
                             <div>
-                              <p className="text-blue-600">Total Amount Paid</p>
-                              <p className="font-bold">{formatCurrency(form26QSummary.totalAmountPaid)}</p>
+                              <p className="text-blue-600">Total Gross Amount</p>
+                              <p className="font-bold">{formatCurrency(form26QSummary.totalGrossAmount ?? 0)}</p>
                             </div>
                             <div>
                               <p className="text-blue-600">TDS Deducted</p>
-                              <p className="font-bold">{formatCurrency(form26QSummary.totalTdsDeducted)}</p>
+                              <p className="font-bold">{formatCurrency(form26QSummary.totalTdsDeducted ?? 0)}</p>
                             </div>
                             <div>
                               <p className="text-blue-600">TDS Deposited</p>
-                              <p className="font-bold">{formatCurrency(form26QSummary.totalTdsDeposited)}</p>
+                              <p className="font-bold">{formatCurrency(form26QSummary.totalTdsDeposited ?? 0)}</p>
                             </div>
                           </div>
                         </div>
@@ -623,19 +651,19 @@ const TdsReturnsManagement = () => {
                           <div className="grid grid-cols-4 gap-4 text-sm">
                             <div>
                               <p className="text-green-600">Total Employees</p>
-                              <p className="font-bold">{form24QSummary.totalEmployees}</p>
+                              <p className="font-bold">{form24QSummary.totalEmployees ?? 0}</p>
                             </div>
                             <div>
                               <p className="text-green-600">Gross Salary</p>
-                              <p className="font-bold">{formatCurrency(form24QSummary.totalGrossSalary)}</p>
-                            </div>
-                            <div>
-                              <p className="text-green-600">Total Deductions</p>
-                              <p className="font-bold">{formatCurrency(form24QSummary.totalDeductions)}</p>
+                              <p className="font-bold">{formatCurrency(form24QSummary.totalGrossSalary ?? 0)}</p>
                             </div>
                             <div>
                               <p className="text-green-600">TDS Deducted</p>
-                              <p className="font-bold">{formatCurrency(form24QSummary.totalTdsDeducted)}</p>
+                              <p className="font-bold">{formatCurrency(form24QSummary.totalTdsDeducted ?? 0)}</p>
+                            </div>
+                            <div>
+                              <p className="text-green-600">TDS Deposited</p>
+                              <p className="font-bold">{formatCurrency(form24QSummary.totalTdsDeposited ?? 0)}</p>
                             </div>
                           </div>
                         </div>
@@ -668,23 +696,23 @@ const TdsReturnsManagement = () => {
                               <p className={reconciliation.isReconciled ? 'text-green-600' : 'text-yellow-600'}>
                                 TDS Deducted
                               </p>
-                              <p className="font-bold">{formatCurrency(reconciliation.totalTdsDeducted)}</p>
+                              <p className="font-bold">{formatCurrency(reconciliation.totalTdsDeducted ?? reconciliation.totalDeducted ?? 0)}</p>
                             </div>
                             <div>
                               <p className={reconciliation.isReconciled ? 'text-green-600' : 'text-yellow-600'}>
-                                Challans Deposited
+                                TDS Deposited
                               </p>
-                              <p className="font-bold">{formatCurrency(reconciliation.totalChallansDeposited)}</p>
+                              <p className="font-bold">{formatCurrency(reconciliation.totalTdsDeposited ?? reconciliation.totalDeposited ?? reconciliation.totalChallansDeposited ?? 0)}</p>
                             </div>
                             <div>
                               <p className={reconciliation.isReconciled ? 'text-green-600' : 'text-yellow-600'}>
-                                Difference
+                                Variance
                               </p>
                               <p className={cn(
                                 'font-bold',
-                                reconciliation.difference === 0 ? 'text-green-600' : 'text-red-600'
+                                (reconciliation.variance ?? reconciliation.difference ?? 0) === 0 ? 'text-green-600' : 'text-red-600'
                               )}>
-                                {formatCurrency(reconciliation.difference)}
+                                {formatCurrency(reconciliation.variance ?? reconciliation.difference ?? 0)}
                               </p>
                             </div>
                           </div>

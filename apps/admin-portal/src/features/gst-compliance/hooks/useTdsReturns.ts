@@ -243,3 +243,90 @@ export const useCombinedTdsSummary = (
     staleTime: 5 * 60 * 1000,
   });
 };
+
+// ==================== FVU File Download ====================
+
+interface DownloadFvuParams {
+  companyId: string;
+  financialYear: string;
+  quarter: string;
+  isCorrection?: boolean;
+}
+
+/**
+ * Download Form 26Q FVU file
+ */
+export const useDownloadForm26Q = () => {
+  return useMutation({
+    mutationFn: async ({ companyId, financialYear, quarter, isCorrection = false }: DownloadFvuParams) => {
+      const blob = await tdsReturnService.downloadForm26Q(companyId, financialYear, quarter, isCorrection);
+      const filename = `26Q_${financialYear}_${quarter}${isCorrection ? '_C' : ''}.txt`;
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return filename;
+    },
+    onSuccess: (filename) => {
+      toast.success(`Downloaded ${filename}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to download Form 26Q');
+    },
+  });
+};
+
+/**
+ * Download Form 24Q FVU file
+ */
+export const useDownloadForm24Q = () => {
+  return useMutation({
+    mutationFn: async ({ companyId, financialYear, quarter, isCorrection = false }: DownloadFvuParams) => {
+      const blob = await tdsReturnService.downloadForm24Q(companyId, financialYear, quarter, isCorrection);
+      const filename = `24Q_${financialYear}_${quarter}${isCorrection ? '_C' : ''}.txt`;
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return filename;
+    },
+    onSuccess: (filename) => {
+      toast.success(`Downloaded ${filename}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to download Form 24Q');
+    },
+  });
+};
+
+/**
+ * Validate for FVU generation
+ */
+export const useValidateForFvu = (
+  formType: string,
+  companyId: string,
+  financialYear: string,
+  quarter: string,
+  enabled = false
+) => {
+  return useQuery({
+    queryKey: [...gstKeys.tdsReturns.form26Q(companyId, financialYear, quarter), 'fvu-validation', formType],
+    queryFn: () => tdsReturnService.validateForFvu(formType, companyId, financialYear, quarter),
+    enabled: enabled && !!companyId && !!financialYear && !!quarter && !!formType,
+    staleTime: 60 * 1000,
+  });
+};

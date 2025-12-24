@@ -213,6 +213,12 @@ services.AddScoped<Application.Interfaces.ISubscriptionsService,
             services.AddScoped<Application.Interfaces.Reports.IExportReportingService,
                               Application.Services.Reports.ExportReportingService>();
 
+            // FVU File Generation services (TDS Return text file generation for NSDL)
+            services.AddScoped<Application.Services.Tax.IFvuRecordBuilder,
+                              Application.Services.Tax.FvuRecordBuilder>();
+            services.AddScoped<Core.Interfaces.Tax.IFvuFileGeneratorService,
+                              Application.Services.Tax.FvuFileGeneratorService>();
+
             // Add other application services here
             // services.AddScoped<IEmailService, EmailService>();
             // services.AddScoped<INotificationService, NotificationService>();

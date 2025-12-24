@@ -3352,13 +3352,19 @@ export interface Form26QDeducteeRecord {
 }
 
 export interface Form26QSummary {
-  totalDeductees: number;
+  financialYear?: string;
+  quarter?: string;
+  totalDeductees?: number;
+  uniqueDeductees?: number;  // Backend property name
   totalGrossAmount: number;
   totalTdsDeducted: number;
   totalTdsDeposited: number;
   variance: number;
-  sectionWiseBreakdown: SectionBreakdown[];
-  monthWiseBreakdown: MonthBreakdown[];
+  totalTransactions?: number;
+  sectionWiseBreakdown?: SectionBreakdown[];
+  sectionBreakdown?: SectionBreakdown[];  // Backend property name
+  monthWiseBreakdown?: MonthBreakdown[];
+  monthBreakdown?: MonthBreakdown[];  // Backend property name
 }
 
 export interface SectionBreakdown {
@@ -3409,12 +3415,17 @@ export interface MonthlySalaryTds {
 }
 
 export interface Form24QSummary {
+  financialYear?: string;
+  quarter?: string;
   totalEmployees: number;
+  employeesWithTds?: number;
   totalGrossSalary: number;
+  totalDeductions?: number;  // Not in backend, kept for compatibility
   totalTdsDeducted: number;
   totalTdsDeposited: number;
   variance: number;
-  monthWiseBreakdown: MonthBreakdown[];
+  monthWiseBreakdown?: MonthBreakdown[];
+  monthBreakdown?: MonthBreakdown[];  // Backend property name
 }
 
 // Form 24Q Annexure II (Q4 Annual Salary Details)
@@ -3506,11 +3517,15 @@ export interface TdsReturnFilingHistory {
 
 // Challan Reconciliation
 export interface ChallanReconciliationResult {
-  totalDeducted: number;
-  totalDeposited: number;
-  variance: number;
   isReconciled: boolean;
-  mismatches: ChallanMismatch[];
+  totalDeducted?: number;
+  totalTdsDeducted?: number;  // Backend property name
+  totalDeposited?: number;
+  totalTdsDeposited?: number;  // Backend property name
+  totalChallansDeposited?: number;  // Legacy frontend name
+  variance?: number;
+  difference?: number;  // Legacy frontend name
+  mismatches?: ChallanMismatch[];
 }
 
 export interface ChallanMismatch {

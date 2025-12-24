@@ -5,7 +5,7 @@ namespace WebApi.Controllers.Tax
 {
     /// <summary>
     /// TDS Returns preparation endpoints for Form 26Q (non-salary) and Form 24Q (salary).
-    /// Provides data generation, validation, and filing support for quarterly TDS returns.
+    /// Provides data generation, validation, filing support, and FVU file downloads for quarterly TDS returns.
     /// </summary>
     [ApiController]
     [Route("api/tax/[controller]")]
@@ -13,10 +13,14 @@ namespace WebApi.Controllers.Tax
     public class TdsReturnsController : ControllerBase
     {
         private readonly ITdsReturnService _tdsReturnService;
+        private readonly IFvuFileGeneratorService _fvuFileGeneratorService;
 
-        public TdsReturnsController(ITdsReturnService tdsReturnService)
+        public TdsReturnsController(
+            ITdsReturnService tdsReturnService,
+            IFvuFileGeneratorService fvuFileGeneratorService)
         {
             _tdsReturnService = tdsReturnService ?? throw new ArgumentNullException(nameof(tdsReturnService));
+            _fvuFileGeneratorService = fvuFileGeneratorService ?? throw new ArgumentNullException(nameof(fvuFileGeneratorService));
         }
 
         // ==================== Form 26Q (Non-Salary TDS) ====================
@@ -285,6 +289,108 @@ namespace WebApi.Controllers.Tax
             };
 
             return Ok(combined);
+        }
+
+        // ==================== FVU File Generation (NSDL Compliant Text Files) ====================
+
+        /// <summary>
+        /// Download Form 26Q FVU text file for non-salary TDS return.
+        /// The generated file can be validated using NSDL's FVU utility.
+        /// </summary>
+        /// <param name="companyId">Company ID</param>
+        /// <param name="financialYear">Financial year (e.g., "2024-25")</param>
+        /// <param name="quarter">Quarter (Q1, Q2, Q3, Q4)</param>
+        /// <param name="isCorrection">Whether this is a correction return</param>
+        [HttpGet("26q/{companyId}/{financialYear}/{quarter}/download")]
+        [Produces("text/plain")]
+        [ProducesResponseType(typeof(FileStreamResult), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> DownloadForm26Q(
+            Guid companyId,
+            string financialYear,
+            string quarter,
+            [FromQuery] bool isCorrection = false)
+        {
+            var result = await _fvuFileGeneratorService.GenerateForm26QFileAsync(
+                companyId, financialYear, quarter, isCorrection);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    Core.Common.ErrorType.Validation => BadRequest(result.Error.Message),
+                    Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => StatusCode(500, result.Error.Message)
+                };
+            }
+
+            var file = result.Value!;
+            return File(file.FileStream, file.MimeType, file.FileName);
+        }
+
+        /// <summary>
+        /// Download Form 24Q FVU text file for salary TDS return.
+        /// The generated file can be validated using NSDL's FVU utility.
+        /// </summary>
+        /// <param name="companyId">Company ID</param>
+        /// <param name="financialYear">Financial year (e.g., "2024-25")</param>
+        /// <param name="quarter">Quarter (Q1, Q2, Q3, Q4)</param>
+        /// <param name="isCorrection">Whether this is a correction return</param>
+        [HttpGet("24q/{companyId}/{financialYear}/{quarter}/download")]
+        [Produces("text/plain")]
+        [ProducesResponseType(typeof(FileStreamResult), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> DownloadForm24Q(
+            Guid companyId,
+            string financialYear,
+            string quarter,
+            [FromQuery] bool isCorrection = false)
+        {
+            var result = await _fvuFileGeneratorService.GenerateForm24QFileAsync(
+                companyId, financialYear, quarter, isCorrection);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    Core.Common.ErrorType.Validation => BadRequest(result.Error.Message),
+                    Core.Common.ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => StatusCode(500, result.Error.Message)
+                };
+            }
+
+            var file = result.Value!;
+            return File(file.FileStream, file.MimeType, file.FileName);
+        }
+
+        /// <summary>
+        /// Validate TDS return data before generating FVU file.
+        /// Returns detailed errors and warnings that may cause FVU validation to fail.
+        /// </summary>
+        /// <param name="formType">Form type (26Q or 24Q)</param>
+        /// <param name="companyId">Company ID</param>
+        /// <param name="financialYear">Financial year</param>
+        /// <param name="quarter">Quarter</param>
+        [HttpGet("{formType}/{companyId}/{financialYear}/{quarter}/validate-fvu")]
+        [ProducesResponseType(typeof(FvuValidationResultDto), 200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> ValidateForFvu(
+            string formType,
+            Guid companyId,
+            string financialYear,
+            string quarter)
+        {
+            var result = await _fvuFileGeneratorService.ValidateForFvuAsync(
+                companyId, financialYear, quarter, formType);
+
+            if (result.IsFailure)
+            {
+                return BadRequest(result.Error!.Message);
+            }
+
+            return Ok(result.Value);
         }
     }
 

@@ -33,6 +33,9 @@ export {
   useTdsFilingHistory,
   useMarkReturnFiled,
   useCombinedTdsSummary,
+  useDownloadForm26Q,
+  useDownloadForm24Q,
+  useValidateForFvu,
 } from './useTdsReturns';
 
 // RCM Hooks
