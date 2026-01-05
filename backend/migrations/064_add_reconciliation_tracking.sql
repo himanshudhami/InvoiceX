@@ -13,12 +13,6 @@ ADD COLUMN IF NOT EXISTS bank_transaction_id UUID REFERENCES bank_transactions(i
 ADD COLUMN IF NOT EXISTS reconciled_at TIMESTAMP,
 ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(255);
 
--- Add reconciliation columns to expense_claims
-ALTER TABLE expense_claims
-ADD COLUMN IF NOT EXISTS bank_transaction_id UUID REFERENCES bank_transactions(id),
-ADD COLUMN IF NOT EXISTS reconciled_at TIMESTAMP,
-ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(255);
-
 -- Add reconciliation columns to subscriptions
 ALTER TABLE subscriptions
 ADD COLUMN IF NOT EXISTS bank_transaction_id UUID REFERENCES bank_transactions(id),
@@ -40,7 +34,6 @@ ADD COLUMN IF NOT EXISTS reconciled_by VARCHAR(255);
 -- Create indexes for faster lookups
 CREATE INDEX IF NOT EXISTS idx_payroll_txn_bank_txn ON payroll_transactions(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_contractor_bank_txn ON contractor_payments(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_expense_bank_txn ON expense_claims(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_subscription_bank_txn ON subscriptions(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_loan_txn_bank_txn ON loan_transactions(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_asset_maint_bank_txn ON asset_maintenance(bank_transaction_id) WHERE bank_transaction_id IS NOT NULL;
@@ -96,10 +89,6 @@ COMMENT ON COLUMN payroll_transactions.reconciled_by IS 'User who performed the 
 COMMENT ON COLUMN contractor_payments.bank_transaction_id IS 'Reference to the bank transaction this contractor payment is reconciled with';
 COMMENT ON COLUMN contractor_payments.reconciled_at IS 'Timestamp when the reconciliation was done';
 COMMENT ON COLUMN contractor_payments.reconciled_by IS 'User who performed the reconciliation';
-
-COMMENT ON COLUMN expense_claims.bank_transaction_id IS 'Reference to the bank transaction this expense reimbursement is reconciled with';
-COMMENT ON COLUMN expense_claims.reconciled_at IS 'Timestamp when the reconciliation was done';
-COMMENT ON COLUMN expense_claims.reconciled_by IS 'User who performed the reconciliation';
 
 COMMENT ON COLUMN subscriptions.bank_transaction_id IS 'Reference to the bank transaction this subscription payment is reconciled with';
 COMMENT ON COLUMN subscriptions.reconciled_at IS 'Timestamp when the reconciliation was done';

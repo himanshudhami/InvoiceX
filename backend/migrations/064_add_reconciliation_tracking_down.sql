@@ -3,7 +3,6 @@
 -- Drop indexes first
 DROP INDEX IF EXISTS idx_payroll_txn_bank_txn;
 DROP INDEX IF EXISTS idx_contractor_bank_txn;
-DROP INDEX IF EXISTS idx_expense_bank_txn;
 DROP INDEX IF EXISTS idx_subscription_bank_txn;
 DROP INDEX IF EXISTS idx_loan_txn_bank_txn;
 DROP INDEX IF EXISTS idx_asset_maint_bank_txn;
@@ -55,12 +54,6 @@ DROP COLUMN IF EXISTS reconciled_by;
 
 -- Remove columns from contractor_payments
 ALTER TABLE contractor_payments
-DROP COLUMN IF EXISTS bank_transaction_id,
-DROP COLUMN IF EXISTS reconciled_at,
-DROP COLUMN IF EXISTS reconciled_by;
-
--- Remove columns from expense_claims
-ALTER TABLE expense_claims
 DROP COLUMN IF EXISTS bank_transaction_id,
 DROP COLUMN IF EXISTS reconciled_at,
 DROP COLUMN IF EXISTS reconciled_by;
