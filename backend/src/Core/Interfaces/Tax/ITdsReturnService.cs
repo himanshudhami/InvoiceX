@@ -243,6 +243,10 @@ namespace Core.Interfaces.Tax
 
         // Monthly breakdown
         public List<MonthlySalaryTds> MonthlyDetails { get; set; } = new();
+
+        // Column 388A - Other TDS/TCS Credits (per CBDT Feb 2025)
+        // Used in Annexure II (Q4) for annual adjustment
+        public decimal OtherTdsTcsCredit { get; set; }
     }
 
     /// <summary>
@@ -321,6 +325,39 @@ namespace Core.Interfaces.Tax
         public decimal TotalTaxLiability { get; set; }
         public decimal TdsDeducted { get; set; }
         public decimal TaxRefund { get; set; }
+
+        // ==================== Column 388A - Other TDS/TCS Credits ====================
+        // Per CBDT Circular Feb 2025
+
+        /// <summary>
+        /// TDS on interest income (FD, RD) - Section 194A
+        /// </summary>
+        public decimal OtherTdsInterest { get; set; }
+
+        /// <summary>
+        /// TDS on dividend income - Section 194
+        /// </summary>
+        public decimal OtherTdsDividend { get; set; }
+
+        /// <summary>
+        /// TDS on other sources (commission, rent, professional fees, etc.)
+        /// </summary>
+        public decimal OtherTdsOther { get; set; }
+
+        /// <summary>
+        /// Total TCS credit (foreign remittance, overseas tour, vehicle, etc.)
+        /// </summary>
+        public decimal TcsCredit { get; set; }
+
+        /// <summary>
+        /// Total Column 388A credit (OtherTdsInterest + OtherTdsDividend + OtherTdsOther + TcsCredit)
+        /// </summary>
+        public decimal TotalColumn388A { get; set; }
+
+        /// <summary>
+        /// Net tax payable after adjusting Column 388A credit
+        /// </summary>
+        public decimal NetTaxPayable { get; set; }
     }
 
     // ==================== Common DTOs ====================

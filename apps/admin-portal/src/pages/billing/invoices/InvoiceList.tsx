@@ -14,6 +14,7 @@ import { Eye, Edit, Trash2, Copy, FileCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
+import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
@@ -180,6 +181,17 @@ const InvoiceList = () => {
         const customerName = getCustomerName(row.original.customerId)
         return <div className="text-sm text-gray-900">{customerName}</div>
       },
+    },
+    {
+      id: 'tags',
+      header: 'Tags',
+      cell: ({ row }) => (
+        <TransactionTagsCell
+          transactionId={row.original.id}
+          transactionType="invoice"
+          maxDisplay={2}
+        />
+      ),
     },
     {
       accessorKey: 'status',

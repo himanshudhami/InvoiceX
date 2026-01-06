@@ -440,5 +440,33 @@ namespace Infrastructure.Data.Payroll
                 ["MonthCount"] = result.monthcount ?? 0
             };
         }
+
+        public async Task<IEnumerable<PayrollTransaction>> GetByCompanyAndPeriodAsync(
+            Guid companyId,
+            int payrollMonth,
+            int payrollYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"SELECT pt.*, e.employee_name, e.email, e.pan_number
+                FROM payroll_transactions pt
+                INNER JOIN payroll_runs pr ON pt.payroll_run_id = pr.id
+                LEFT JOIN employees e ON pt.employee_id = e.id
+                WHERE pr.company_id = @companyId
+                  AND pt.payroll_month = @payrollMonth
+                  AND pt.payroll_year = @payrollYear
+                ORDER BY e.employee_name";
+
+            var transactions = await connection.QueryAsync<PayrollTransaction, Core.Entities.Employees, PayrollTransaction>(
+                sql,
+                (transaction, employee) =>
+                {
+                    transaction.Employee = employee;
+                    return transaction;
+                },
+                new { companyId, payrollMonth, payrollYear },
+                splitOn: "employee_name");
+
+            return transactions;
+        }
     }
 }

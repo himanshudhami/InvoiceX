@@ -24,6 +24,7 @@ interface InvoiceFormData {
   supplyType?: string // 'intra_state' | 'inter_state' | 'export'
   placeOfSupply?: string // State code or 'export'
   reverseCharge: boolean
+  exchangeRate?: number
   // GST Totals
   totalCgst: number
   totalSgst: number

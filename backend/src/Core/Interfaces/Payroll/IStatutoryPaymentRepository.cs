@@ -90,5 +90,38 @@ namespace Core.Interfaces.Payroll
         /// Gets allocations for a statutory payment
         /// </summary>
         Task<IEnumerable<StatutoryPaymentAllocation>> GetAllocationsAsync(Guid statutoryPaymentId);
+
+        /// <summary>
+        /// Gets statutory payment by company, period month, year, and type
+        /// </summary>
+        Task<StatutoryPayment?> GetByPeriodAndTypeAsync(
+            Guid companyId,
+            int periodMonth,
+            int periodYear,
+            string paymentType);
+
+        /// <summary>
+        /// Gets pending payments by company and type
+        /// </summary>
+        Task<IEnumerable<StatutoryPayment>> GetPendingByCompanyAsync(
+            Guid companyId,
+            string paymentType,
+            string? financialYear = null);
+
+        /// <summary>
+        /// Gets paid payments by company and type
+        /// </summary>
+        Task<IEnumerable<StatutoryPayment>> GetPaidByCompanyAsync(
+            Guid companyId,
+            string paymentType,
+            string financialYear);
+
+        /// <summary>
+        /// Gets all payments by company, type and financial year
+        /// </summary>
+        Task<IEnumerable<StatutoryPayment>> GetByCompanyAndFyAsync(
+            Guid companyId,
+            string paymentType,
+            string financialYear);
     }
 }

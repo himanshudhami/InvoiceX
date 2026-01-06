@@ -81,6 +81,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     totalAmount: 0,
     paidAmount: 0,
     currency: 'USD',
+    exchangeRate: 0,
     notes: '',
     terms: '',
     poNumber: '',
@@ -158,6 +159,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         totalAmount: invoice.totalAmount || 0,
         paidAmount: invoice.paidAmount || 0,
         currency: invoice.currency || 'USD',
+        exchangeRate: invoice.exchangeRate || 0,
         notes: invoice.notes || '',
         terms: invoice.terms || '',
         poNumber: invoice.poNumber || '',
@@ -352,6 +354,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       newErrors.dueDate = 'Due date must be after invoice date'
     }
 
+    if (formData.currency?.toUpperCase() !== 'INR' && (!formData.exchangeRate || formData.exchangeRate <= 0)) {
+      newErrors.exchangeRate = 'Exchange rate is required for foreign currency invoices'
+    }
+
     if (formData.lineItems.length === 0) {
       newErrors.lineItems = 'At least one line item is required'
     }
@@ -490,6 +496,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           totalAmount: formData.totalAmount,
           paidAmount: formData.paidAmount,
           currency: formData.currency,
+          exchangeRate: formData.exchangeRate,
           notes: formData.notes,
           terms: formData.terms,
           poNumber: formData.poNumber,
@@ -523,6 +530,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
           totalAmount: formData.totalAmount,
           paidAmount: formData.paidAmount,
           currency: formData.currency,
+          exchangeRate: formData.exchangeRate,
           notes: formData.notes,
           terms: formData.terms,
           poNumber: formData.poNumber,

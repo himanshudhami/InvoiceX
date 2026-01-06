@@ -76,6 +76,18 @@ export const TaxDeclarationForm = ({
     hraLandlordName: '',
     // Other Income
     otherIncomeAnnual: 0,
+    // Column 388A - Other TDS/TCS Credits
+    otherTdsInterest: 0,
+    otherTdsDividend: 0,
+    otherTdsCommission: 0,
+    otherTdsRent: 0,
+    otherTdsProfessional: 0,
+    otherTdsOthers: 0,
+    tcsForeignRemittance: 0,
+    tcsOverseasTour: 0,
+    tcsVehiclePurchase: 0,
+    tcsOthers: 0,
+    otherTdsTcsDetails: '',
     // Previous Employer
     prevEmployerIncome: 0,
     prevEmployerTds: 0,
@@ -174,6 +186,18 @@ export const TaxDeclarationForm = ({
         hraLandlordPan: declaration.hraLandlordPan || '',
         hraLandlordName: declaration.hraLandlordName || '',
         otherIncomeAnnual: declaration.otherIncomeAnnual,
+        // Column 388A
+        otherTdsInterest: declaration.otherTdsInterest || 0,
+        otherTdsDividend: declaration.otherTdsDividend || 0,
+        otherTdsCommission: declaration.otherTdsCommission || 0,
+        otherTdsRent: declaration.otherTdsRent || 0,
+        otherTdsProfessional: declaration.otherTdsProfessional || 0,
+        otherTdsOthers: declaration.otherTdsOthers || 0,
+        tcsForeignRemittance: declaration.tcsForeignRemittance || 0,
+        tcsOverseasTour: declaration.tcsOverseasTour || 0,
+        tcsVehiclePurchase: declaration.tcsVehiclePurchase || 0,
+        tcsOthers: declaration.tcsOthers || 0,
+        otherTdsTcsDetails: declaration.otherTdsTcsDetails || '',
         prevEmployerIncome: declaration.prevEmployerIncome,
         prevEmployerTds: declaration.prevEmployerTds,
         prevEmployerPf: declaration.prevEmployerPf,
@@ -780,6 +804,193 @@ export const TaxDeclarationForm = ({
               value={formData.otherIncomeAnnual}
               onChange={(e) => handleInputChange('otherIncomeAnnual', parseFloat(e.target.value) || 0)}
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Column 388A - Other TDS/TCS Credits (CBDT Feb 2025) */}
+      <div className="border rounded-lg p-4 bg-blue-50">
+        <h3 className="font-semibold mb-1">Column 388A - Other TDS/TCS Credits</h3>
+        <p className="text-xs text-gray-600 mb-3">
+          Declare TDS/TCS from other sources to adjust against salary TDS (per CBDT Circular Feb 2025)
+        </p>
+
+        {/* Other TDS Credits */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">TDS from Other Sources</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Interest Income (FD/RD) - Sec 194A
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsInterest}
+                onChange={(e) => handleInputChange('otherTdsInterest', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Dividend Income - Sec 194
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsDividend}
+                onChange={(e) => handleInputChange('otherTdsDividend', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Commission/Brokerage - Sec 194H
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsCommission}
+                onChange={(e) => handleInputChange('otherTdsCommission', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Rental Income - Sec 194I
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsRent}
+                onChange={(e) => handleInputChange('otherTdsRent', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Professional Fees - Sec 194J
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsProfessional}
+                onChange={(e) => handleInputChange('otherTdsProfessional', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Other TDS
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.otherTdsOthers}
+                onChange={(e) => handleInputChange('otherTdsOthers', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* TCS Credits */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">TCS Credits</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Foreign Remittance (LRS) - Sec 206C(1G)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.tcsForeignRemittance}
+                onChange={(e) => handleInputChange('tcsForeignRemittance', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Overseas Tour Package - Sec 206C(1G)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.tcsOverseasTour}
+                onChange={(e) => handleInputChange('tcsOverseasTour', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Vehicle Purchase ({'>'}10L) - Sec 206C(1F)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.tcsVehiclePurchase}
+                onChange={(e) => handleInputChange('tcsVehiclePurchase', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Other TCS
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                value={formData.tcsOthers}
+                onChange={(e) => handleInputChange('tcsOthers', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 388A Summary */}
+        <div className="mt-3 p-2 bg-white rounded border">
+          <div className="flex justify-between text-sm">
+            <span>Total Other TDS:</span>
+            <span className="font-medium">
+              {formatINR(
+                (formData.otherTdsInterest || 0) +
+                (formData.otherTdsDividend || 0) +
+                (formData.otherTdsCommission || 0) +
+                (formData.otherTdsRent || 0) +
+                (formData.otherTdsProfessional || 0) +
+                (formData.otherTdsOthers || 0)
+              )}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span>Total TCS:</span>
+            <span className="font-medium">
+              {formatINR(
+                (formData.tcsForeignRemittance || 0) +
+                (formData.tcsOverseasTour || 0) +
+                (formData.tcsVehiclePurchase || 0) +
+                (formData.tcsOthers || 0)
+              )}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm font-semibold border-t pt-1 mt-1">
+            <span>Total Column 388A Credit:</span>
+            <span className="text-blue-600">
+              {formatINR(
+                (formData.otherTdsInterest || 0) +
+                (formData.otherTdsDividend || 0) +
+                (formData.otherTdsCommission || 0) +
+                (formData.otherTdsRent || 0) +
+                (formData.otherTdsProfessional || 0) +
+                (formData.otherTdsOthers || 0) +
+                (formData.tcsForeignRemittance || 0) +
+                (formData.tcsOverseasTour || 0) +
+                (formData.tcsVehiclePurchase || 0) +
+                (formData.tcsOthers || 0)
+              )}
+            </span>
           </div>
         </div>
       </div>

@@ -4,12 +4,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import { useCustomers } from '@/features/customers/hooks';
 import { useCreatePayment } from '@/hooks/api/usePayments';
+import { useApplyTags } from '@/features/tags/hooks';
 import { CreatePaymentDto, TDS_SECTIONS, getFinancialYear, calculateTds } from '@/services/api/finance/payments/paymentService';
 import { Company, Customer } from '@/services/api/types';
 import { toInr, formatINR } from '@/lib/financialUtils';
-import { Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, AlertCircle, Tags } from 'lucide-react';
 import { CompanySelect } from '@/components/ui/CompanySelect';
 import { CustomerSelect } from '@/components/ui/CustomerSelect';
+import { TagPicker } from '@/components/ui/TagPicker';
 
 interface DirectPaymentFormProps {
   onClose: () => void;
@@ -34,12 +36,10 @@ const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'];
 
 const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'upi', label: 'UPI' },
-  { value: 'cheque', label: 'Cheque' },
+  { value: 'check', label: 'Check' },
   { value: 'cash', label: 'Cash' },
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'paypal', label: 'PayPal' },
-  { value: 'wise', label: 'Wise' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -68,6 +68,9 @@ export const DirectPaymentForm = ({
   const [tdsAmount, setTdsAmount] = useState<number>(0);
   const [netAmount, setNetAmount] = useState<number>(0);
 
+  // Tags state
+  const [selectedTags, setSelectedTags] = useState<{ tagId: string; allocationPercentage?: number }[]>([]);
+
   const [error, setError] = useState<string | null>(null);
 
   // API hooks
@@ -75,6 +78,7 @@ export const DirectPaymentForm = ({
   // Scope customers to selected company when set
   const { data: allCustomers = [] } = useCustomers(companyId || undefined);
   const createPayment = useCreatePayment();
+  const applyTags = useApplyTags();
 
   // Filter customers by selected company
   const companies: Company[] = allCompanies;
@@ -165,7 +169,20 @@ export const DirectPaymentForm = ({
     }
 
     try {
-      await createPayment.mutateAsync(paymentData);
+      const created = await createPayment.mutateAsync(paymentData);
+
+      // Apply tags if any selected
+      if (selectedTags.length > 0 && created?.id) {
+        await applyTags.mutateAsync({
+          transactionId: created.id,
+          transactionType: 'payment',
+          tags: selectedTags.map(t => ({
+            tagId: t.tagId,
+            allocationPercentage: t.allocationPercentage,
+          })),
+        });
+      }
+
       onSuccess?.();
       onClose();
       resetForm();
@@ -192,6 +209,7 @@ export const DirectPaymentForm = ({
     setTdsRate(0);
     setTdsAmount(0);
     setNetAmount(0);
+    setSelectedTags([]);
   };
 
   const isForeignCurrency = currency !== 'INR';
@@ -388,6 +406,20 @@ export const DirectPaymentForm = ({
             rows={2}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Additional notes (optional)"
+          />
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+            <Tags className="w-4 h-4" />
+            Tags
+          </label>
+          <TagPicker
+            value={selectedTags}
+            onChange={setSelectedTags}
+            transactionAmount={grossAmount}
+            placeholder="Add tags (department, project, client...)"
           />
         </div>
 

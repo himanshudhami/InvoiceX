@@ -22,6 +22,8 @@ namespace Application.Services.Ledger
         private readonly IPostingRuleRepository _ruleRepository;
         private readonly IInvoicesRepository _invoiceRepository;
         private readonly IPaymentsRepository _paymentRepository;
+        private readonly IVendorInvoicesRepository _vendorInvoiceRepository;
+        private readonly IVendorPaymentsRepository _vendorPaymentRepository;
         private readonly ILogger<AutoPostingService> _logger;
 
         public AutoPostingService(
@@ -30,6 +32,8 @@ namespace Application.Services.Ledger
             IPostingRuleRepository ruleRepository,
             IInvoicesRepository invoiceRepository,
             IPaymentsRepository paymentRepository,
+            IVendorInvoicesRepository vendorInvoiceRepository,
+            IVendorPaymentsRepository vendorPaymentRepository,
             ILogger<AutoPostingService> logger)
         {
             _accountRepository = accountRepository;
@@ -37,6 +41,8 @@ namespace Application.Services.Ledger
             _ruleRepository = ruleRepository;
             _invoiceRepository = invoiceRepository;
             _paymentRepository = paymentRepository;
+            _vendorInvoiceRepository = vendorInvoiceRepository;
+            _vendorPaymentRepository = vendorPaymentRepository;
             _logger = logger;
         }
 
@@ -66,6 +72,7 @@ namespace Application.Services.Ledger
                     ["is_export"] = isExport,
                     ["is_intra_state"] = isIntraState,
                     ["total_amount"] = invoice.TotalAmount,
+                    ["invoice_amount_inr"] = invoice.InvoiceAmountInr ?? invoice.TotalAmount,
                     ["subtotal"] = invoice.Subtotal,
                     ["total_cgst"] = invoice.TotalCgst,
                     ["total_sgst"] = invoice.TotalSgst,
@@ -147,6 +154,111 @@ namespace Application.Services.Ledger
             // TODO: Implement general expense posting (not expense claims)
             _logger.LogWarning("General expense auto-posting not yet implemented");
             return null;
+        }
+
+        public async Task<JournalEntry?> PostVendorInvoiceAsync(
+            Guid vendorInvoiceId,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            try
+            {
+                var vendorInvoice = await _vendorInvoiceRepository.GetByIdAsync(vendorInvoiceId);
+                if (vendorInvoice == null)
+                {
+                    _logger.LogWarning("Vendor invoice {VendorInvoiceId} not found for auto-posting", vendorInvoiceId);
+                    return null;
+                }
+
+                // Determine supply type conditions
+                var isIntraState = vendorInvoice.SupplyType == "intra_state";
+                var isRcm = vendorInvoice.RcmApplicable;
+                var hasTds = vendorInvoice.TdsApplicable && (vendorInvoice.TdsAmount ?? 0) > 0;
+
+                // Build source data from vendor invoice
+                var sourceData = new Dictionary<string, object>
+                {
+                    ["company_id"] = vendorInvoice.CompanyId.ToString(),
+                    ["vendor_id"] = vendorInvoice.VendorId.ToString(),
+                    ["invoice_type"] = vendorInvoice.InvoiceType ?? "regular",
+                    ["is_intra_state"] = isIntraState,
+                    ["is_rcm"] = isRcm,
+                    ["tds_applicable"] = hasTds,
+                    ["tds_section"] = vendorInvoice.TdsSection ?? "194C",
+                    ["itc_eligible"] = vendorInvoice.ItcEligible,
+                    ["total_amount"] = vendorInvoice.TotalAmount,
+                    ["subtotal"] = vendorInvoice.Subtotal,
+                    ["total_cgst"] = vendorInvoice.TotalCgst,
+                    ["total_sgst"] = vendorInvoice.TotalSgst,
+                    ["total_igst"] = vendorInvoice.TotalIgst,
+                    ["tds_amount"] = vendorInvoice.TdsAmount ?? 0,
+                    ["net_payable"] = vendorInvoice.TotalAmount - (vendorInvoice.TdsAmount ?? 0),
+                    ["source_number"] = vendorInvoice.InvoiceNumber
+                };
+
+                return await PostFromSourceAsync(
+                    "vendor_invoice",
+                    vendorInvoiceId,
+                    sourceData,
+                    postedBy,
+                    autoPost);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-posting vendor invoice {VendorInvoiceId}", vendorInvoiceId);
+                throw;
+            }
+        }
+
+        public async Task<JournalEntry?> PostVendorPaymentAsync(
+            Guid vendorPaymentId,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            try
+            {
+                var vendorPayment = await _vendorPaymentRepository.GetByIdAsync(vendorPaymentId);
+                if (vendorPayment == null)
+                {
+                    _logger.LogWarning("Vendor payment {VendorPaymentId} not found for auto-posting", vendorPaymentId);
+                    return null;
+                }
+
+                var hasTds = vendorPayment.TdsApplicable && (vendorPayment.TdsAmount ?? 0) > 0;
+
+                // Determine payment type
+                var paymentType = vendorPayment.PaymentType ?? "bill_payment";
+                var isAdvance = paymentType == "advance_paid";
+
+                // Build source data from vendor payment
+                var sourceData = new Dictionary<string, object>
+                {
+                    ["company_id"] = vendorPayment.CompanyId.ToString(),
+                    ["vendor_id"] = vendorPayment.VendorId.ToString(),
+                    ["payment_type"] = paymentType,
+                    ["is_advance"] = isAdvance,
+                    ["tds_applicable"] = hasTds,
+                    ["tds_section"] = vendorPayment.TdsSection ?? "194C",
+                    ["amount"] = vendorPayment.Amount,
+                    ["gross_amount"] = vendorPayment.GrossAmount ?? vendorPayment.Amount,
+                    ["tds_amount"] = vendorPayment.TdsAmount ?? 0,
+                    ["net_amount"] = vendorPayment.Amount,
+                    ["payment_method"] = vendorPayment.PaymentMethod ?? "bank_transfer",
+                    ["source_number"] = vendorPayment.ReferenceNumber ?? vendorPayment.Id.ToString()[..8]
+                };
+
+                return await PostFromSourceAsync(
+                    "vendor_payment",
+                    vendorPaymentId,
+                    sourceData,
+                    postedBy,
+                    autoPost);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-posting vendor payment {VendorPaymentId}", vendorPaymentId);
+                throw;
+            }
         }
 
         public async Task<JournalEntry?> PostFromSourceAsync(
@@ -231,7 +343,10 @@ namespace Application.Services.Ledger
                     SourceType = sourceType,
                     SourceId = sourceId,
                     SourceNumber = sourceData.TryGetValue("source_number", out var srcNum) ? srcNum?.ToString() : null,
-                    Description = BuildDescription(template.NarrationTemplate ?? template.DescriptionTemplate, sourceData),
+                    Description = BuildDescription(
+                        template.NarrationTemplate ?? template.NarrationTemplateCamel ??
+                        template.DescriptionTemplate ?? template.DescriptionTemplateCamel,
+                        sourceData),
                     Status = autoPost ? "posted" : "draft",
                     PostedAt = autoPost ? DateTime.UtcNow : null,
                     PostedBy = autoPost ? postedBy : null,
@@ -268,18 +383,22 @@ namespace Application.Services.Ledger
                     decimal debitAmount = 0;
                     decimal creditAmount = 0;
 
-                    if (!string.IsNullOrEmpty(lineTemplate.DebitField))
+                    var debitField = lineTemplate.DebitField ?? lineTemplate.DebitFieldCamel;
+                    var creditField = lineTemplate.CreditField ?? lineTemplate.CreditFieldCamel;
+                    var amountField = lineTemplate.AmountField ?? lineTemplate.AmountFieldCamel;
+
+                    if (!string.IsNullOrEmpty(debitField))
                     {
-                        debitAmount = GetAmountFromSourceData(sourceData, lineTemplate.DebitField);
+                        debitAmount = GetAmountFromSourceData(sourceData, debitField);
                     }
-                    else if (!string.IsNullOrEmpty(lineTemplate.CreditField))
+                    else if (!string.IsNullOrEmpty(creditField))
                     {
-                        creditAmount = GetAmountFromSourceData(sourceData, lineTemplate.CreditField);
+                        creditAmount = GetAmountFromSourceData(sourceData, creditField);
                     }
-                    else if (!string.IsNullOrEmpty(lineTemplate.AmountField))
+                    else if (!string.IsNullOrEmpty(amountField))
                     {
                         // Legacy support for Side + AmountField
-                        var amount = GetAmountFromSourceData(sourceData, lineTemplate.AmountField);
+                        var amount = GetAmountFromSourceData(sourceData, amountField);
                         if (lineTemplate.Side == "debit")
                             debitAmount = amount;
                         else
@@ -291,7 +410,8 @@ namespace Application.Services.Ledger
 
                     // Build description from template
                     var description = BuildDescription(
-                        lineTemplate.DescriptionTemplate ?? lineTemplate.Description,
+                        lineTemplate.DescriptionTemplate ?? lineTemplate.DescriptionTemplateCamel ??
+                        lineTemplate.Description,
                         sourceData);
 
                     var line = new JournalEntryLine
@@ -423,9 +543,10 @@ namespace Application.Services.Ledger
         private static string? ResolveAccountCode(PostingTemplateLine lineTemplate, Dictionary<string, object> sourceData)
         {
             // 1. Try to get account code from source data field
-            if (!string.IsNullOrEmpty(lineTemplate.AccountCodeField))
+            var accountCodeField = lineTemplate.AccountCodeField ?? lineTemplate.AccountCodeFieldCamel;
+            if (!string.IsNullOrEmpty(accountCodeField))
             {
-                if (sourceData.TryGetValue(lineTemplate.AccountCodeField, out var fieldValue))
+                if (sourceData.TryGetValue(accountCodeField, out var fieldValue))
                 {
                     var codeFromField = fieldValue?.ToString();
                     if (!string.IsNullOrEmpty(codeFromField))
@@ -436,15 +557,17 @@ namespace Application.Services.Ledger
             }
 
             // 2. Use static account code if specified
-            if (!string.IsNullOrEmpty(lineTemplate.AccountCode))
+            var accountCode = lineTemplate.AccountCode ?? lineTemplate.AccountCodeCamel;
+            if (!string.IsNullOrEmpty(accountCode))
             {
-                return lineTemplate.AccountCode;
+                return accountCode;
             }
 
             // 3. Use fallback account code
-            if (!string.IsNullOrEmpty(lineTemplate.AccountCodeFallback))
+            var accountCodeFallback = lineTemplate.AccountCodeFallback ?? lineTemplate.AccountCodeFallbackCamel;
+            if (!string.IsNullOrEmpty(accountCodeFallback))
             {
-                return lineTemplate.AccountCodeFallback;
+                return accountCodeFallback;
             }
 
             return null;
@@ -459,8 +582,14 @@ namespace Application.Services.Ledger
         [JsonPropertyName("description_template")]
         public string? DescriptionTemplate { get; set; }
 
+        [JsonPropertyName("descriptionTemplate")]
+        public string? DescriptionTemplateCamel { get; set; }
+
         [JsonPropertyName("narration_template")]
         public string? NarrationTemplate { get; set; }
+
+        [JsonPropertyName("narrationTemplate")]
+        public string? NarrationTemplateCamel { get; set; }
 
         [JsonPropertyName("lines")]
         public List<PostingTemplateLine>? Lines { get; set; }
@@ -479,18 +608,33 @@ namespace Application.Services.Ledger
         [JsonPropertyName("account_code_field")]
         public string? AccountCodeField { get; set; }
 
+        [JsonPropertyName("accountCodeField")]
+        public string? AccountCodeFieldCamel { get; set; }
+
         [JsonPropertyName("account_code")]
         public string? AccountCode { get; set; }
 
+        [JsonPropertyName("accountCode")]
+        public string? AccountCodeCamel { get; set; }
+
         [JsonPropertyName("account_code_fallback")]
         public string? AccountCodeFallback { get; set; }
+
+        [JsonPropertyName("accountCodeFallback")]
+        public string? AccountCodeFallbackCamel { get; set; }
 
         // Amount fields - one of these should be set to determine debit/credit
         [JsonPropertyName("debit_field")]
         public string? DebitField { get; set; }
 
+        [JsonPropertyName("debitField")]
+        public string? DebitFieldCamel { get; set; }
+
         [JsonPropertyName("credit_field")]
         public string? CreditField { get; set; }
+
+        [JsonPropertyName("creditField")]
+        public string? CreditFieldCamel { get; set; }
 
         // Legacy support for simple templates
         [JsonPropertyName("side")]
@@ -499,6 +643,9 @@ namespace Application.Services.Ledger
         [JsonPropertyName("amount_field")]
         public string? AmountField { get; set; }
 
+        [JsonPropertyName("amountField")]
+        public string? AmountFieldCamel { get; set; }
+
         // Description template with placeholders
         [JsonPropertyName("description")]
         public string? Description { get; set; }
@@ -506,11 +653,20 @@ namespace Application.Services.Ledger
         [JsonPropertyName("description_template")]
         public string? DescriptionTemplate { get; set; }
 
+        [JsonPropertyName("descriptionTemplate")]
+        public string? DescriptionTemplateCamel { get; set; }
+
         // Subledger tracking
         [JsonPropertyName("subledger_type")]
         public string? SubledgerType { get; set; }
 
+        [JsonPropertyName("subledgerType")]
+        public string? SubledgerTypeCamel { get; set; }
+
         [JsonPropertyName("subledger_id_field")]
         public string? SubledgerIdField { get; set; }
+
+        [JsonPropertyName("subledgerIdField")]
+        public string? SubledgerIdFieldCamel { get; set; }
     }
 }

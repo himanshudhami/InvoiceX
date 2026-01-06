@@ -80,7 +80,7 @@ namespace Application.DTOs.Invoices
         /// </summary>
         [StringLength(255, ErrorMessage = "PoNumber cannot exceed 255 characters")]
         public string? PoNumber { get; set; }
-/// <summary>
+        /// <summary>
         /// ProjectName
         /// </summary>
         [StringLength(255, ErrorMessage = "ProjectName cannot exceed 255 characters")]
@@ -129,6 +129,12 @@ namespace Application.DTOs.Invoices
         /// Whether reverse charge mechanism applies
         /// </summary>
         public bool ReverseCharge { get; set; }
+
+        /// <summary>
+        /// Exchange rate to INR on invoice date (RBI reference rate)
+        /// </summary>
+        [Range(0.0001, double.MaxValue, ErrorMessage = "ExchangeRate must be greater than 0")]
+        public decimal? ExchangeRate { get; set; }
 
         // GST Totals
         /// <summary>

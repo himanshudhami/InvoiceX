@@ -43,6 +43,24 @@ public class EmployeeTaxDeclarationDto
     // Other Income
     public decimal OtherIncomeAnnual { get; set; }
 
+    // Column 388A - Other TDS/TCS Credits (CBDT Feb 2025)
+    public decimal OtherTdsInterest { get; set; }
+    public decimal OtherTdsDividend { get; set; }
+    public decimal OtherTdsCommission { get; set; }
+    public decimal OtherTdsRent { get; set; }
+    public decimal OtherTdsProfessional { get; set; }
+    public decimal OtherTdsOthers { get; set; }
+    public decimal TcsForeignRemittance { get; set; }
+    public decimal TcsOverseasTour { get; set; }
+    public decimal TcsVehiclePurchase { get; set; }
+    public decimal TcsOthers { get; set; }
+    public string? OtherTdsTcsDetails { get; set; }
+
+    // Calculated 388A totals
+    public decimal TotalOtherTds { get; set; }
+    public decimal TotalTcs { get; set; }
+    public decimal TotalColumn388A { get; set; }
+
     // Previous Employer
     public decimal PrevEmployerIncome { get; set; }
     public decimal PrevEmployerTds { get; set; }
@@ -117,6 +135,19 @@ public class CreateEmployeeTaxDeclarationDto
     // Other Income
     public decimal OtherIncomeAnnual { get; set; }
 
+    // Column 388A - Other TDS/TCS Credits
+    public decimal OtherTdsInterest { get; set; }
+    public decimal OtherTdsDividend { get; set; }
+    public decimal OtherTdsCommission { get; set; }
+    public decimal OtherTdsRent { get; set; }
+    public decimal OtherTdsProfessional { get; set; }
+    public decimal OtherTdsOthers { get; set; }
+    public decimal TcsForeignRemittance { get; set; }
+    public decimal TcsOverseasTour { get; set; }
+    public decimal TcsVehiclePurchase { get; set; }
+    public decimal TcsOthers { get; set; }
+    public string? OtherTdsTcsDetails { get; set; }
+
     // Previous Employer
     public decimal PrevEmployerIncome { get; set; }
     public decimal PrevEmployerTds { get; set; }
@@ -163,6 +194,19 @@ public class UpdateEmployeeTaxDeclarationDto
 
     // Other Income
     public decimal? OtherIncomeAnnual { get; set; }
+
+    // Column 388A - Other TDS/TCS Credits
+    public decimal? OtherTdsInterest { get; set; }
+    public decimal? OtherTdsDividend { get; set; }
+    public decimal? OtherTdsCommission { get; set; }
+    public decimal? OtherTdsRent { get; set; }
+    public decimal? OtherTdsProfessional { get; set; }
+    public decimal? OtherTdsOthers { get; set; }
+    public decimal? TcsForeignRemittance { get; set; }
+    public decimal? TcsOverseasTour { get; set; }
+    public decimal? TcsVehiclePurchase { get; set; }
+    public decimal? TcsOthers { get; set; }
+    public string? OtherTdsTcsDetails { get; set; }
 
     // Previous Employer
     public decimal? PrevEmployerIncome { get; set; }

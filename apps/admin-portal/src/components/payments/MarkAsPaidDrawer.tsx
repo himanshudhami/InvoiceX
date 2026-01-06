@@ -53,16 +53,43 @@ export interface MarkAsPaidFormData {
 
 // ==================== Payment Methods ====================
 
-const PAYMENT_METHODS = [
-  { value: 'neft', label: 'NEFT' },
-  { value: 'rtgs', label: 'RTGS' },
-  { value: 'imps', label: 'IMPS' },
-  { value: 'upi', label: 'UPI' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'other', label: 'Other' },
-]
+const PAYMENT_METHODS_BY_ENTITY: Record<PaymentEntityType, { value: string; label: string }[]> = {
+  invoice: [
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'check', label: 'Check' },
+    { value: 'cash', label: 'Cash' },
+    { value: 'credit_card', label: 'Credit Card' },
+    { value: 'paypal', label: 'PayPal' },
+    { value: 'other', label: 'Other' },
+  ],
+  payroll: [
+    { value: 'neft_batch', label: 'NEFT Batch' },
+    { value: 'imps', label: 'IMPS' },
+    { value: 'upi', label: 'UPI' },
+    { value: 'manual', label: 'Manual' },
+  ],
+  contractor: [
+    { value: 'neft', label: 'NEFT' },
+    { value: 'imps', label: 'IMPS' },
+    { value: 'upi', label: 'UPI' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'cash', label: 'Cash' },
+  ],
+  statutory: [
+    { value: 'neft', label: 'NEFT' },
+    { value: 'rtgs', label: 'RTGS' },
+    { value: 'online', label: 'Online' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'upi', label: 'UPI' },
+  ],
+}
+
+const DEFAULT_PAYMENT_METHOD: Record<PaymentEntityType, string> = {
+  invoice: 'bank_transfer',
+  payroll: 'neft_batch',
+  contractor: 'neft',
+  statutory: 'neft',
+}
 
 // ==================== Component ====================
 
@@ -77,7 +104,7 @@ export const MarkAsPaidDrawer = ({
   const [bankAccountId, setBankAccountId] = useState('')
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | undefined>()
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0])
-  const [paymentMethod, setPaymentMethod] = useState('neft')
+  const [paymentMethod, setPaymentMethod] = useState(DEFAULT_PAYMENT_METHOD.invoice)
   const [referenceNumber, setReferenceNumber] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -90,14 +117,14 @@ export const MarkAsPaidDrawer = ({
   useEffect(() => {
     if (isOpen && entity) {
       setPaymentDate(new Date().toISOString().split('T')[0])
-      setPaymentMethod('neft')
+      setPaymentMethod(DEFAULT_PAYMENT_METHOD[entity.entityType])
       setReferenceNumber('')
       setNotes('')
       setError(null)
       setResult(null)
       // Don't reset bank account - let it auto-select primary
     }
-  }, [isOpen, entity?.id])
+  }, [isOpen, entity?.id, entity?.entityType])
 
   const handleBankAccountChange = (value: string, account?: BankAccount) => {
     setBankAccountId(value)
@@ -171,6 +198,8 @@ export const MarkAsPaidDrawer = ({
   }
 
   if (!entity) return null
+
+  const paymentMethods = PAYMENT_METHODS_BY_ENTITY[entity.entityType]
 
   const payableAmount = getPayableAmount()
 
@@ -291,7 +320,7 @@ export const MarkAsPaidDrawer = ({
               onChange={(e) => setPaymentMethod(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {PAYMENT_METHODS.map((method) => (
+              {paymentMethods.map((method) => (
                 <option key={method.value} value={method.value}>
                   {method.label}
                 </option>

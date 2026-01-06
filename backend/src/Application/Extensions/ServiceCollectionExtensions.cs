@@ -22,6 +22,12 @@ services.AddScoped<Application.Interfaces.ICompaniesService,
                               Application.Services.CompaniesService>();
 services.AddScoped<Application.Interfaces.ICustomersService,
                               Application.Services.CustomersService>();
+            services.AddScoped<Application.Interfaces.IVendorsService,
+                              Application.Services.VendorsService>();
+            services.AddScoped<Application.Interfaces.IVendorInvoicesService,
+                              Application.Services.VendorInvoicesService>();
+            services.AddScoped<Application.Interfaces.IVendorPaymentsService,
+                              Application.Services.VendorPaymentsService>();
 services.AddScoped<Application.Interfaces.IInvoiceItemsService,
                               Application.Services.InvoiceItemsService>();
 services.AddScoped<Application.Interfaces.IInvoiceTemplatesService,

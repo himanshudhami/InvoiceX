@@ -29,5 +29,13 @@ namespace Core.Interfaces.Payroll
         // Summary methods
         Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(Guid payrollRunId);
         Task<Dictionary<string, decimal>> GetYtdSummaryAsync(Guid employeeId, string financialYear);
+
+        /// <summary>
+        /// Gets transactions for a company and period (for statutory filing)
+        /// </summary>
+        Task<IEnumerable<PayrollTransaction>> GetByCompanyAndPeriodAsync(
+            Guid companyId,
+            int payrollMonth,
+            int payrollYear);
     }
 }

@@ -22,6 +22,7 @@ import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import { cn } from '@/lib/utils';
 import { CustomerSelect } from '@/components/ui/CustomerSelect';
 import { PaymentAllocationDialog } from '@/components/payments/PaymentAllocationDialog';
+import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell';
 
 const PaymentsManagement = () => {
   const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
@@ -246,6 +247,17 @@ const PaymentsManagement = () => {
       accessorKey: 'customerId',
       header: 'Customer',
       cell: ({ row }) => getCustomerName(row.original),
+    },
+    {
+      id: 'tags',
+      header: 'Tags',
+      cell: ({ row }) => (
+        <TransactionTagsCell
+          transactionId={row.original.id}
+          transactionType="payment"
+          maxDisplay={2}
+        />
+      ),
     },
     {
       accessorKey: 'grossAmount',
@@ -545,6 +557,7 @@ const PaymentsManagement = () => {
                       <td className="px-6 py-4 text-sm text-gray-900">
                         Totals ({totals.count} payments)
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>

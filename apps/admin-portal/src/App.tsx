@@ -121,6 +121,23 @@ const LutRegister = lazy(() => import('./pages/finance/exports/LutRegister'))
 const FemaCompliance = lazy(() => import('./pages/finance/exports/FemaCompliance'))
 const ReceivablesAgeing = lazy(() => import('./pages/finance/exports/ReceivablesAgeing'))
 
+// Statutory Compliance (TDS, PF, ESI)
+const StatutoryDashboard = lazy(() => import('./pages/finance/statutory/StatutoryDashboard'))
+const Form16Management = lazy(() => import('./pages/finance/statutory/Form16Management'))
+const TdsChallanManagement = lazy(() => import('./pages/finance/statutory/TdsChallanManagement'))
+const PfEcrManagement = lazy(() => import('./pages/finance/statutory/PfEcrManagement'))
+const EsiReturnManagement = lazy(() => import('./pages/finance/statutory/EsiReturnManagement'))
+const Form24QFilings = lazy(() => import('./pages/finance/statutory/Form24QFilings'))
+
+// Accounts Payable (Vendor Management)
+const VendorsManagement = lazy(() => import('./pages/finance/ap/VendorsManagement'))
+const VendorInvoicesManagement = lazy(() => import('./pages/finance/ap/VendorInvoicesManagement'))
+const VendorPaymentsManagement = lazy(() => import('./pages/finance/ap/VendorPaymentsManagement'))
+
+// Tags & Attribution (Cost Center Alternative)
+const TagsManagement = lazy(() => import('./pages/settings/tags/TagsManagement'))
+const AttributionRulesManagement = lazy(() => import('./pages/settings/tags/AttributionRulesManagement'))
+
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -338,6 +355,23 @@ function AppRoutes() {
               <Route path="/gst/tcs" element={<TcsManagement />} />
               <Route path="/gst/itc-blocked" element={<ItcBlockedManagement />} />
               <Route path="/gst/itc-reversal" element={<ItcReversalManagement />} />
+
+              {/* Statutory Compliance Routes (TDS, PF, ESI) */}
+              <Route path="/statutory" element={<StatutoryDashboard />} />
+              <Route path="/statutory/form16" element={<Form16Management />} />
+              <Route path="/statutory/tds-challan" element={<TdsChallanManagement />} />
+              <Route path="/statutory/pf-ecr" element={<PfEcrManagement />} />
+              <Route path="/statutory/esi-return" element={<EsiReturnManagement />} />
+              <Route path="/statutory/form24q" element={<Form24QFilings />} />
+
+              {/* Accounts Payable Routes (Vendors, Bills, Payments) */}
+              <Route path="/finance/ap/vendors" element={<VendorsManagement />} />
+              <Route path="/finance/ap/vendor-invoices" element={<VendorInvoicesManagement />} />
+              <Route path="/finance/ap/vendor-payments" element={<VendorPaymentsManagement />} />
+
+              {/* Tags & Attribution Routes (Cost Center Alternative) */}
+              <Route path="/settings/tags" element={<TagsManagement />} />
+              <Route path="/settings/attribution-rules" element={<AttributionRulesManagement />} />
             </Route>
 
             {/* Catch-all redirect */}

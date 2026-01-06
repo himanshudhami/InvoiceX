@@ -326,6 +326,22 @@ export interface EmployeeTaxDeclaration {
   hraLandlordName?: string;
   // Other Income
   otherIncomeAnnual: number;
+  // Column 388A - Other TDS/TCS Credits (CBDT Feb 2025)
+  otherTdsInterest: number;
+  otherTdsDividend: number;
+  otherTdsCommission: number;
+  otherTdsRent: number;
+  otherTdsProfessional: number;
+  otherTdsOthers: number;
+  tcsForeignRemittance: number;
+  tcsOverseasTour: number;
+  tcsVehiclePurchase: number;
+  tcsOthers: number;
+  otherTdsTcsDetails?: string;
+  // 388A Calculated totals
+  totalOtherTds: number;
+  totalTcs: number;
+  totalColumn388A: number;
   // Previous Employer
   prevEmployerIncome: number;
   prevEmployerTds: number;
@@ -446,6 +462,18 @@ export interface CreateEmployeeTaxDeclarationDto {
   hraLandlordPan?: string;
   hraLandlordName?: string;
   otherIncomeAnnual?: number;
+  // Column 388A - Other TDS/TCS Credits
+  otherTdsInterest?: number;
+  otherTdsDividend?: number;
+  otherTdsCommission?: number;
+  otherTdsRent?: number;
+  otherTdsProfessional?: number;
+  otherTdsOthers?: number;
+  tcsForeignRemittance?: number;
+  tcsOverseasTour?: number;
+  tcsVehiclePurchase?: number;
+  tcsOthers?: number;
+  otherTdsTcsDetails?: string;
   prevEmployerIncome?: number;
   prevEmployerTds?: number;
   prevEmployerPf?: number;
@@ -478,6 +506,18 @@ export interface UpdateEmployeeTaxDeclarationDto {
   hraLandlordPan?: string;
   hraLandlordName?: string;
   otherIncomeAnnual?: number;
+  // Column 388A - Other TDS/TCS Credits
+  otherTdsInterest?: number;
+  otherTdsDividend?: number;
+  otherTdsCommission?: number;
+  otherTdsRent?: number;
+  otherTdsProfessional?: number;
+  otherTdsOthers?: number;
+  tcsForeignRemittance?: number;
+  tcsOverseasTour?: number;
+  tcsVehiclePurchase?: number;
+  tcsOthers?: number;
+  otherTdsTcsDetails?: string;
   prevEmployerIncome?: number;
   prevEmployerTds?: number;
   prevEmployerPf?: number;

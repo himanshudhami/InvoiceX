@@ -228,5 +228,13 @@ namespace Infrastructure.Data.Payroll
                 WHERE employee_id = @employeeId",
                 new { employeeId, rejoiningDate });
         }
+
+        public async Task<IEnumerable<EmployeePayrollInfo>> GetByEmployeeIdsAsync(IEnumerable<Guid> employeeIds)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<EmployeePayrollInfo>(
+                "SELECT * FROM employee_payroll_info WHERE employee_id = ANY(@employeeIds)",
+                new { employeeIds = employeeIds.ToArray() });
+        }
     }
 }

@@ -330,10 +330,10 @@ const PayrollRuns = () => {
               onChange={(e) => setPaymentData({ ...paymentData, paymentMode: e.target.value })}
             >
               <option value="">Select payment mode</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="cheque">Cheque</option>
-              <option value="cash">Cash</option>
-              <option value="online">Online</option>
+              <option value="neft_batch">NEFT Batch</option>
+              <option value="imps">IMPS</option>
+              <option value="upi">UPI</option>
+              <option value="manual">Manual</option>
             </select>
           </div>
           <div>

@@ -112,6 +112,65 @@ namespace Core.Entities.Payroll
         /// </summary>
         public decimal OtherIncomeAnnual { get; set; }
 
+        // ==================== Column 388A - Other TDS/TCS Credits ====================
+        // Per CBDT Circular Feb 2025: Allows employees to declare TDS/TCS from other sources
+        // to be adjusted against salary TDS
+
+        /// <summary>
+        /// TDS on interest income (FD, RD) - Section 194A
+        /// </summary>
+        public decimal OtherTdsInterest { get; set; }
+
+        /// <summary>
+        /// TDS on dividend income - Section 194
+        /// </summary>
+        public decimal OtherTdsDividend { get; set; }
+
+        /// <summary>
+        /// TDS on commission/brokerage - Section 194H
+        /// </summary>
+        public decimal OtherTdsCommission { get; set; }
+
+        /// <summary>
+        /// TDS on rental income - Section 194I
+        /// </summary>
+        public decimal OtherTdsRent { get; set; }
+
+        /// <summary>
+        /// TDS on professional/technical fees - Section 194J
+        /// </summary>
+        public decimal OtherTdsProfessional { get; set; }
+
+        /// <summary>
+        /// TDS from any other sources
+        /// </summary>
+        public decimal OtherTdsOthers { get; set; }
+
+        /// <summary>
+        /// TCS on foreign remittance under LRS - Section 206C(1G)
+        /// </summary>
+        public decimal TcsForeignRemittance { get; set; }
+
+        /// <summary>
+        /// TCS on overseas tour packages - Section 206C(1G)
+        /// </summary>
+        public decimal TcsOverseasTour { get; set; }
+
+        /// <summary>
+        /// TCS on motor vehicle purchase > 10 lakhs - Section 206C(1F)
+        /// </summary>
+        public decimal TcsVehiclePurchase { get; set; }
+
+        /// <summary>
+        /// TCS from any other sources
+        /// </summary>
+        public decimal TcsOthers { get; set; }
+
+        /// <summary>
+        /// JSON array with detailed breakdown: [{section, deductorTan, amount, certificateNo}]
+        /// </summary>
+        public string? OtherTdsTcsDetails { get; set; }
+
         // ==================== Previous Employer (if joined mid-year) ====================
 
         /// <summary>

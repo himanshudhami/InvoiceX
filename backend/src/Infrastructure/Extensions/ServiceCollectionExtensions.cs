@@ -198,7 +198,7 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.TrialBalanceService>>()
                 ));
 
-            // Auto-Posting service (for invoices, payments, etc.)
+            // Auto-Posting service (for invoices, payments, vendor invoices, vendor payments, etc.)
             // Note: Expense claim posting uses dedicated ExpensePostingService
             services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService>(sp =>
                 new Application.Services.Ledger.AutoPostingService(
@@ -207,6 +207,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Ledger.IPostingRuleRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IInvoicesRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IPaymentsRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IVendorInvoicesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IVendorPaymentsRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
                 ));
 
@@ -310,6 +312,22 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Tax.ILowerDeductionCertificateRepository>(sp =>
                 new Infrastructure.Data.Tax.LowerDeductionCertificateRepository(connectionString));
 
+            // Form 16 repository (TDS Certificate for Salary)
+            services.AddScoped<Core.Interfaces.Tax.IForm16Repository>(sp =>
+                new Infrastructure.Data.Tax.Form16Repository(connectionString));
+
+            // Form 24Q Filing repository (Quarterly TDS Return for Salary)
+            services.AddScoped<Core.Interfaces.Tax.IForm24QFilingRepository>(sp =>
+                new Infrastructure.Data.Tax.Form24QFilingRepository(connectionString));
+
+            // Vendors (AP) repositories
+            services.AddScoped<Core.Interfaces.IVendorsRepository>(sp =>
+                new Infrastructure.Data.VendorsRepository(connectionString));
+            services.AddScoped<Core.Interfaces.IVendorInvoicesRepository>(sp =>
+                new Infrastructure.Data.VendorInvoicesRepository(connectionString));
+            services.AddScoped<Core.Interfaces.IVendorPaymentsRepository>(sp =>
+                new Infrastructure.Data.VendorPaymentsRepository(connectionString));
+
             // RCM Posting service (two-stage journal entries for RCM)
             services.AddScoped<Core.Interfaces.Gst.IRcmPostingService>(sp =>
                 new Application.Services.Gst.RcmPostingService(
@@ -344,7 +362,155 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IEmployeesRepository>(),
                     sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
-                    sp.GetRequiredService<Core.Interfaces.Tax.ILowerDeductionCertificateRepository>()
+                    sp.GetRequiredService<Core.Interfaces.Tax.ILowerDeductionCertificateRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IEmployeeTaxDeclarationRepository>()
+                ));
+
+            // Form 16 service (TDS Certificate for Salary - Section 192)
+            services.AddScoped<Core.Interfaces.Tax.IForm16Service>(sp =>
+                new Application.Services.Tax.Form16GenerationService(
+                    sp.GetRequiredService<Core.Interfaces.Tax.IForm16Repository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollRunRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IEmployeesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IEmployeePayrollInfoRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IEmployeeTaxDeclarationRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ICompanyStatutoryConfigRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Tax.Form16GenerationService>>()
+                ));
+
+            // Form 24Q Filing service (Quarterly TDS Return for Salary - Section 192)
+            services.AddScoped<Core.Interfaces.Tax.IForm24QFilingService>(sp =>
+                new Application.Services.Tax.Form24QFilingService(
+                    sp.GetRequiredService<Core.Interfaces.Tax.IForm24QFilingRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Tax.ITdsReturnService>(),
+                    sp.GetRequiredService<Core.Interfaces.Tax.IFvuFileGeneratorService>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Tax.Form24QFilingService>>()
+                ));
+
+            // TDS Challan 281 service (TDS deposit management)
+            services.AddScoped<Core.Interfaces.Statutory.ITdsChallanService>(sp =>
+                new Application.Services.Statutory.TdsChallanService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollRunRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IContractorPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ICompanyStatutoryConfigRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IEmployeesRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Statutory.TdsChallanService>>()
+                ));
+
+            // PF ECR service (EPFO ECR generation and filing)
+            services.AddScoped<Core.Interfaces.Statutory.IPfEcrService>(sp =>
+                new Application.Services.Statutory.PfEcrService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollRunRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IEmployeePayrollInfoRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ICompanyStatutoryConfigRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Statutory.PfEcrService>>()
+                ));
+
+            // ESI Return service (ESIC monthly return generation and filing)
+            services.AddScoped<Core.Interfaces.Statutory.IEsiReturnService>(sp =>
+                new Application.Services.Statutory.EsiReturnService(
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IStatutoryPaymentRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IPayrollRunRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.IEmployeePayrollInfoRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Payroll.ICompanyStatutoryConfigRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Statutory.EsiReturnService>>()
+                ));
+
+            // Tags & Attribution System
+            services.AddScoped<Core.Interfaces.Tags.ITagRepository>(sp =>
+                new Infrastructure.Data.Tags.TagRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Tags.ITransactionTagRepository>(sp =>
+                new Infrastructure.Data.Tags.TransactionTagRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Tags.IAttributionRuleRepository>(sp =>
+                new Infrastructure.Data.Tags.AttributionRuleRepository(connectionString));
+
+            services.AddScoped<Application.Interfaces.Tags.ITagService>(sp =>
+                new Application.Services.Tags.TagService(
+                    sp.GetRequiredService<Core.Interfaces.Tags.ITagRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Tags.ITransactionTagRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Tags.IAttributionRuleRepository>()
+                ));
+            services.AddScoped<Application.Interfaces.Tags.IAttributionRuleService>(sp =>
+                new Application.Services.Tags.AttributionRuleService(
+                    sp.GetRequiredService<Core.Interfaces.Tags.IAttributionRuleRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Tags.ITagRepository>()
+                ));
+
+            // Inventory repositories
+            services.AddScoped<Core.Interfaces.Inventory.IWarehouseRepository>(sp =>
+                new Infrastructure.Data.Inventory.WarehouseRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockGroupRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockGroupRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IUnitOfMeasureRepository>(sp =>
+                new Infrastructure.Data.Inventory.UnitOfMeasureRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockItemRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockItemRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IUnitConversionRepository>(sp =>
+                new Infrastructure.Data.Inventory.UnitConversionRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockBatchRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockBatchRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockMovementRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockMovementRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockTransferRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockTransferRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Inventory.IStockTransferItemRepository>(sp =>
+                new Infrastructure.Data.Inventory.StockTransferItemRepository(connectionString));
+
+            // Inventory services
+            services.AddScoped<Application.Interfaces.Inventory.IWarehouseService>(sp =>
+                new Application.Services.Inventory.WarehouseService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IWarehouseRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.CreateWarehouseDto>>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateWarehouseDto>>()
+                ));
+            services.AddScoped<Application.Interfaces.Inventory.IStockGroupService>(sp =>
+                new Application.Services.Inventory.StockGroupService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockGroupRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.CreateStockGroupDto>>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateStockGroupDto>>()
+                ));
+            services.AddScoped<Application.Interfaces.Inventory.IStockItemService>(sp =>
+                new Application.Services.Inventory.StockItemService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IUnitConversionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockMovementRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.CreateStockItemDto>>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateStockItemDto>>()
+                ));
+            services.AddScoped<Application.Interfaces.Inventory.IStockMovementService>(sp =>
+                new Application.Services.Inventory.StockMovementService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockMovementRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockBatchRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.CreateStockMovementDto>>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateStockMovementDto>>()
+                ));
+            services.AddScoped<Application.Interfaces.Inventory.IStockTransferService>(sp =>
+                new Application.Services.Inventory.StockTransferService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockTransferRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockTransferItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockMovementRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockBatchRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.CreateStockTransferDto>>(),
+                    sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateStockTransferDto>>()
                 ));
 
             // Add other infrastructure services here

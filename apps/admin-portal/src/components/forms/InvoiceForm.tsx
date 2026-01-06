@@ -28,6 +28,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     totalAmount: 0,
     paidAmount: 0,
     currency: 'USD',
+    exchangeRate: 0,
     notes: '',
     terms: '',
     paymentInstructions: '',
@@ -76,6 +77,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         totalAmount: invoice.totalAmount || 0,
         paidAmount: invoice.paidAmount || 0,
         currency: invoice.currency || 'USD',
+        exchangeRate: invoice.exchangeRate || 0,
         notes: invoice.notes || '',
         terms: invoice.terms || '',
         paymentInstructions: invoice.paymentInstructions || '',
@@ -135,6 +137,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
     if (formData.discountAmount && formData.discountAmount < 0) {
       newErrors.discountAmount = 'Discount amount cannot be negative'
+    }
+
+    if (formData.currency?.toUpperCase() !== 'INR' && (!formData.exchangeRate || formData.exchangeRate <= 0)) {
+      newErrors.exchangeRate = 'Exchange rate is required for foreign currency invoices'
     }
 
     if (formData.paidAmount && formData.paidAmount < 0) {
@@ -310,6 +316,28 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
             onChange={(value) => handleChange('currency', value)}
             />
           </div>
+
+          {formData.currency?.toUpperCase() !== 'INR' && (
+            <div>
+              <label htmlFor="exchangeRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Invoice Exchange Rate (INR)
+              </label>
+              <input
+                id="exchangeRate"
+                type="number"
+                min="0.0001"
+                step="0.0001"
+                value={formData.exchangeRate || ''}
+                onChange={(e) => handleChange('exchangeRate', parseFloat(e.target.value) || 0)}
+                className={cn(
+                  "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
+                  errors.exchangeRate ? "border-red-500" : "border-gray-300"
+                )}
+                placeholder="RBI reference rate on invoice date"
+              />
+              {errors.exchangeRate && <p className="text-red-500 text-sm mt-1">{errors.exchangeRate}</p>}
+            </div>
+          )}
         </div>
       </div>
 

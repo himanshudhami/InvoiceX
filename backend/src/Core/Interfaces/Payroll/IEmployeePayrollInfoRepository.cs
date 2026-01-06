@@ -25,5 +25,10 @@ namespace Core.Interfaces.Payroll
         Task<bool> EsiNumberExistsAsync(string esiNumber, Guid? excludeEmployeeId = null);
         Task ResignEmployeeAsync(Guid employeeId, DateTime lastWorkingDay);
         Task RejoinEmployeeAsync(Guid employeeId, DateTime? rejoiningDate = null);
+
+        /// <summary>
+        /// Gets payroll info for multiple employees (batch operation)
+        /// </summary>
+        Task<IEnumerable<EmployeePayrollInfo>> GetByEmployeeIdsAsync(IEnumerable<Guid> employeeIds);
     }
 }

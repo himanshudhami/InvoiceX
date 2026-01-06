@@ -55,6 +55,12 @@ import {
   Coins,
   FileX,
   ArrowDownUp,
+  ClipboardList,
+  FileBarChart,
+  IndianRupee,
+  BadgeIndianRupee,
+  Truck,
+  Banknote,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -83,6 +89,16 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Customers', href: '/customers', icon: Users },
         { name: 'Products', href: '/products', icon: Package },
         { name: 'Invoice Payments', href: '/payments', icon: CreditCard },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Accounts Payable',
+      icon: Truck,
+      items: [
+        { name: 'Vendors', href: '/finance/ap/vendors', icon: Users },
+        { name: 'Bills & Invoices', href: '/finance/ap/vendor-invoices', icon: FileText },
+        { name: 'Vendor Payments', href: '/finance/ap/vendor-payments', icon: Banknote },
       ],
     },
     {
@@ -153,6 +169,18 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'TCS Management', href: '/gst/tcs', icon: Coins },
         { name: 'ITC Blocked', href: '/gst/itc-blocked', icon: FileX },
         { name: 'ITC Reversal', href: '/gst/itc-reversal', icon: ArrowDownUp },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Statutory (PF/ESI/TDS)',
+      icon: IndianRupee,
+      items: [
+        { name: 'Statutory Dashboard', href: '/statutory', icon: BarChart3 },
+        { name: 'Form 16 (TDS Cert)', href: '/statutory/form16', icon: FileBarChart },
+        { name: 'TDS Challans', href: '/statutory/tds-challan', icon: ClipboardList },
+        { name: 'PF ECR', href: '/statutory/pf-ecr', icon: BadgeIndianRupee },
+        { name: 'ESI Returns', href: '/statutory/esi-return', icon: Receipt },
       ],
     },
     {

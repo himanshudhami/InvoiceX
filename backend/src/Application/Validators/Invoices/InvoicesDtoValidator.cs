@@ -1,5 +1,6 @@
 using Application.DTOs.Invoices;
 using FluentValidation;
+using System;
 
 namespace Application.Validators.Invoices
 {
@@ -29,6 +30,11 @@ RuleFor(x => x.TotalAmount)
 RuleFor(x => x.Currency)
                 .MaximumLength(255).WithMessage("Currency cannot exceed 255 characters")
                 .When(x => !string.IsNullOrEmpty(x.Currency));
+
+RuleFor(x => x.ExchangeRate)
+                .GreaterThan(0).WithMessage("ExchangeRate must be greater than 0")
+                .When(x => !string.IsNullOrEmpty(x.Currency) &&
+                           !x.Currency.Equals("INR", StringComparison.OrdinalIgnoreCase));
 
 RuleFor(x => x.Notes)
                 .MaximumLength(255).WithMessage("Notes cannot exceed 255 characters")
@@ -76,6 +82,11 @@ RuleFor(x => x.TotalAmount)
 RuleFor(x => x.Currency)
                 .MaximumLength(255).WithMessage("Currency cannot exceed 255 characters")
                 .When(x => !string.IsNullOrEmpty(x.Currency));
+
+RuleFor(x => x.ExchangeRate)
+                .GreaterThan(0).WithMessage("ExchangeRate must be greater than 0")
+                .When(x => !string.IsNullOrEmpty(x.Currency) &&
+                           !x.Currency.Equals("INR", StringComparison.OrdinalIgnoreCase));
 
 RuleFor(x => x.Notes)
                 .MaximumLength(255).WithMessage("Notes cannot exceed 255 characters")

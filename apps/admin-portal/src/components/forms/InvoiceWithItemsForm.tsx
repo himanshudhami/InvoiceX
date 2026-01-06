@@ -4,8 +4,10 @@ import { useCreateInvoice, useUpdateInvoice } from '@/hooks/api/useInvoices'
 import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { useProducts } from '@/hooks/api/useProducts'
+import { useApplyTags, useTransactionTags } from '@/features/tags/hooks'
 import { cn } from '@/lib/utils'
-import { Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, Tags } from 'lucide-react'
+import { TagPicker } from '@/components/ui/TagPicker'
 
 interface LineItem {
   id: string;
@@ -37,6 +39,7 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
     totalAmount: 0,
     paidAmount: 0,
     currency: 'USD',
+    exchangeRate: 0,
     notes: '',
     terms: '',
     poNumber: '',
@@ -44,10 +47,19 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
   })
 
   const [lineItems, setLineItems] = useState<LineItem[]>([])
+  const [selectedTags, setSelectedTags] = useState<{ tagId: string; allocationPercentage?: number }[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
+  const applyTags = useApplyTags()
+
+  // Load existing tags when editing
+  const { data: existingTags = [] } = useTransactionTags(
+    invoice?.id || '',
+    'invoice',
+    !!invoice?.id
+  )
   // Scope customers to selected company for the bill-to dropdown
   const { data: customers = [] } = useCustomers(formData.companyId || undefined)
   const { data: companies = [] } = useCompanies()
@@ -111,6 +123,7 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
         totalAmount: invoice.totalAmount || 0,
         paidAmount: invoice.paidAmount || 0,
         currency: invoice.currency || 'USD',
+        exchangeRate: invoice.exchangeRate || 0,
         notes: invoice.notes || '',
         terms: invoice.terms || '',
         poNumber: invoice.poNumber || '',
@@ -118,6 +131,16 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
       })
     }
   }, [invoice])
+
+  // Populate tags when editing
+  useEffect(() => {
+    if (existingTags.length > 0) {
+      setSelectedTags(existingTags.map(t => ({
+        tagId: t.tagId,
+        allocationPercentage: t.allocationPercentage,
+      })))
+    }
+  }, [existingTags])
 
   // Recalculate totals when line items change
   useEffect(() => {
@@ -192,6 +215,10 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
       newErrors.dueDate = 'Due date must be after invoice date'
     }
 
+    if (formData.currency?.toUpperCase() !== 'INR' && (!formData.exchangeRate || formData.exchangeRate <= 0)) {
+      newErrors.exchangeRate = 'Exchange rate is required for foreign currency invoices'
+    }
+
     if (lineItems.length === 0) {
       newErrors.lineItems = 'At least one line item is required'
     }
@@ -206,11 +233,28 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
     if (!validateForm()) return
 
     try {
+      let invoiceId: string
+
       if (isEditing && invoice) {
         await updateInvoice.mutateAsync({ id: invoice.id, data: formData })
+        invoiceId = invoice.id
       } else {
-        await createInvoice.mutateAsync(formData)
+        const created = await createInvoice.mutateAsync(formData)
+        invoiceId = created.id
       }
+
+      // Apply tags if any selected
+      if (selectedTags.length > 0) {
+        await applyTags.mutateAsync({
+          transactionId: invoiceId,
+          transactionType: 'invoice',
+          tags: selectedTags.map(t => ({
+            tagId: t.tagId,
+            allocationPercentage: t.allocationPercentage,
+          })),
+        })
+      }
+
       onSuccess()
     } catch (error) {
       console.error('Form submission error:', error)
@@ -361,6 +405,28 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
               ))}
             </select>
           </div>
+
+          {formData.currency?.toUpperCase() !== 'INR' && (
+            <div>
+              <label htmlFor="exchangeRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Invoice Exchange Rate (INR)
+              </label>
+              <input
+                id="exchangeRate"
+                type="number"
+                min="0.0001"
+                step="0.0001"
+                value={formData.exchangeRate || ''}
+                onChange={(e) => handleChange('exchangeRate', parseFloat(e.target.value) || 0)}
+                className={cn(
+                  "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring",
+                  errors.exchangeRate ? "border-red-500" : "border-gray-300"
+                )}
+                placeholder="RBI reference rate on invoice date"
+              />
+              {errors.exchangeRate && <p className="text-red-500 text-sm mt-1">{errors.exchangeRate}</p>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -508,12 +574,34 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
         </div>
       </div>
 
+      {/* Tags */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 flex items-center gap-2">
+          <Tags className="w-5 h-5" />
+          Tags & Classification
+        </h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Assign Tags
+          </label>
+          <TagPicker
+            value={selectedTags}
+            onChange={setSelectedTags}
+            transactionAmount={formData.totalAmount}
+            placeholder="Click to add tags (department, project, client...)"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Tags help categorize this invoice for reporting and analysis
+          </p>
+        </div>
+      </div>
+
       {/* Additional Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
           Additional Information
         </h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="poNumber" className="block text-sm font-medium text-gray-700 mb-1">

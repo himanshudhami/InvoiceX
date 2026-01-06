@@ -263,6 +263,11 @@ namespace Application.Services
             // Set updated timestamp
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
+            if (IsExportInvoice(existingEntity))
+            {
+                await ProcessExportInvoiceForexAsync(existingEntity);
+            }
+
             await _repository.UpdateAsync(existingEntity);
 
             // Trigger auto-posting if status changed from draft to finalized

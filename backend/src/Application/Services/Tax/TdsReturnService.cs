@@ -16,6 +16,7 @@ namespace Application.Services.Tax
         private readonly IEmployeesRepository _employeesRepo;
         private readonly ICompaniesRepository _companiesRepo;
         private readonly ILowerDeductionCertificateRepository _ldcRepo;
+        private readonly IEmployeeTaxDeclarationRepository _taxDeclarationRepo;
 
         // TDS Section mapping for Form 26Q
         private static readonly Dictionary<string, string> TdsSectionNames = new()
@@ -48,13 +49,15 @@ namespace Application.Services.Tax
             IPayrollTransactionRepository payrollTransactionRepo,
             IEmployeesRepository employeesRepo,
             ICompaniesRepository companiesRepo,
-            ILowerDeductionCertificateRepository ldcRepo)
+            ILowerDeductionCertificateRepository ldcRepo,
+            IEmployeeTaxDeclarationRepository taxDeclarationRepo)
         {
             _contractorPaymentRepo = contractorPaymentRepo;
             _payrollTransactionRepo = payrollTransactionRepo;
             _employeesRepo = employeesRepo;
             _companiesRepo = companiesRepo;
             _ldcRepo = ldcRepo;
+            _taxDeclarationRepo = taxDeclarationRepo;
         }
 
         // ==================== Form 26Q (Non-Salary) ====================
@@ -477,25 +480,50 @@ namespace Application.Services.Tax
                 var totalGross = group.Sum(t => t.GrossEarnings);
                 var totalTds = group.Sum(t => t.TdsDeducted);
 
+                // Get tax declaration for Column 388A data
+                var taxDeclaration = await _taxDeclarationRepo.GetByEmployeeAndYearAsync(group.Key, financialYear);
+
+                // Calculate Column 388A totals
+                decimal otherTdsInterest = taxDeclaration?.OtherTdsInterest ?? 0;
+                decimal otherTdsDividend = taxDeclaration?.OtherTdsDividend ?? 0;
+                decimal otherTdsOther = (taxDeclaration?.OtherTdsCommission ?? 0) +
+                                        (taxDeclaration?.OtherTdsRent ?? 0) +
+                                        (taxDeclaration?.OtherTdsProfessional ?? 0) +
+                                        (taxDeclaration?.OtherTdsOthers ?? 0);
+                decimal tcsCredit = (taxDeclaration?.TcsForeignRemittance ?? 0) +
+                                    (taxDeclaration?.TcsOverseasTour ?? 0) +
+                                    (taxDeclaration?.TcsVehiclePurchase ?? 0) +
+                                    (taxDeclaration?.TcsOthers ?? 0);
+                decimal totalColumn388A = otherTdsInterest + otherTdsDividend + otherTdsOther + tcsCredit;
+
                 var record = new AnnexureIIEmployeeRecord
                 {
                     EmployeeId = group.Key,
                     EmployeePan = employee.PanNumber ?? "PANAPPLIED",
                     EmployeeName = employee.EmployeeName,
                     EmployeeCode = employee.EmployeeId ?? "",
-                    TaxRegime = "new", // TODO: Get from employee tax declaration
+                    TaxRegime = taxDeclaration?.TaxRegime ?? "new",
 
                     // Income
                     GrossSalary = totalGross,
                     TotalSalary = totalGross,
                     GrossTotal = totalGross,
+                    OtherIncome = taxDeclaration?.OtherIncomeAnnual ?? 0,
 
                     // Deductions (simplified - actual should come from declarations)
                     StandardDeduction = Math.Min(75000, totalGross),
 
                     // Tax
                     TaxableIncome = Math.Max(0, totalGross - 75000),
-                    TdsDeducted = totalTds
+                    TdsDeducted = totalTds,
+
+                    // Column 388A - Other TDS/TCS Credits (per CBDT Feb 2025)
+                    OtherTdsInterest = otherTdsInterest,
+                    OtherTdsDividend = otherTdsDividend,
+                    OtherTdsOther = otherTdsOther,
+                    TcsCredit = tcsCredit,
+                    TotalColumn388A = totalColumn388A,
+                    NetTaxPayable = Math.Max(0, totalTds - totalColumn388A)
                 };
 
                 annexure.EmployeeRecords.Add(record);

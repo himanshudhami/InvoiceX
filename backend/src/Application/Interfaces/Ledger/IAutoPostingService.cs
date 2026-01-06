@@ -36,6 +36,22 @@ namespace Application.Interfaces.Ledger
             bool autoPost = true);
 
         /// <summary>
+        /// Create and post a journal entry for a vendor invoice (purchase)
+        /// </summary>
+        Task<JournalEntry?> PostVendorInvoiceAsync(
+            Guid vendorInvoiceId,
+            Guid? postedBy = null,
+            bool autoPost = true);
+
+        /// <summary>
+        /// Create and post a journal entry for a vendor payment (outgoing)
+        /// </summary>
+        Task<JournalEntry?> PostVendorPaymentAsync(
+            Guid vendorPaymentId,
+            Guid? postedBy = null,
+            bool autoPost = true);
+
+        /// <summary>
         /// Create and post a journal entry for a generic source
         /// </summary>
         Task<JournalEntry?> PostFromSourceAsync(

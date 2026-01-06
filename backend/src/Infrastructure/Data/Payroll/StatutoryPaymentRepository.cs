@@ -268,5 +268,77 @@ namespace Infrastructure.Data.Payroll
                   WHERE statutory_payment_id = @statutoryPaymentId",
                 new { statutoryPaymentId });
         }
+
+        public async Task<StatutoryPayment?> GetByPeriodAndTypeAsync(
+            Guid companyId,
+            int periodMonth,
+            int periodYear,
+            string paymentType)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<StatutoryPayment>(
+                @"SELECT * FROM statutory_payments
+                  WHERE company_id = @companyId
+                  AND period_month = @periodMonth
+                  AND period_year = @periodYear
+                  AND payment_type = @paymentType
+                  AND status != 'cancelled'",
+                new { companyId, periodMonth, periodYear, paymentType });
+        }
+
+        public async Task<IEnumerable<StatutoryPayment>> GetPendingByCompanyAsync(
+            Guid companyId,
+            string paymentType,
+            string? financialYear = null)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var sql = @"SELECT * FROM statutory_payments
+                        WHERE company_id = @companyId
+                        AND payment_type = @paymentType
+                        AND status = 'pending'";
+
+            if (!string.IsNullOrEmpty(financialYear))
+            {
+                sql += " AND financial_year = @financialYear";
+            }
+
+            sql += " ORDER BY due_date";
+
+            return await connection.QueryAsync<StatutoryPayment>(
+                sql,
+                new { companyId, paymentType, financialYear });
+        }
+
+        public async Task<IEnumerable<StatutoryPayment>> GetPaidByCompanyAsync(
+            Guid companyId,
+            string paymentType,
+            string financialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<StatutoryPayment>(
+                @"SELECT * FROM statutory_payments
+                  WHERE company_id = @companyId
+                  AND payment_type = @paymentType
+                  AND financial_year = @financialYear
+                  AND status IN ('paid', 'verified', 'filed')
+                  ORDER BY period_month",
+                new { companyId, paymentType, financialYear });
+        }
+
+        public async Task<IEnumerable<StatutoryPayment>> GetByCompanyAndFyAsync(
+            Guid companyId,
+            string paymentType,
+            string financialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<StatutoryPayment>(
+                @"SELECT * FROM statutory_payments
+                  WHERE company_id = @companyId
+                  AND payment_type = @paymentType
+                  AND financial_year = @financialYear
+                  AND status != 'cancelled'
+                  ORDER BY period_month",
+                new { companyId, paymentType, financialYear });
+        }
     }
 }

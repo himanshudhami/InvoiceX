@@ -195,7 +195,7 @@ export const RecordPaymentModal = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="bank_transfer">Bank Transfer</option>
-            <option value="cheque">Cheque</option>
+            <option value="check">Check</option>
             <option value="cash">Cash</option>
             <option value="credit_card">Credit Card</option>
             <option value="paypal">PayPal</option>
@@ -254,7 +254,6 @@ export const RecordPaymentModal = ({
     </Modal>
   );
 };
-
 
 
 

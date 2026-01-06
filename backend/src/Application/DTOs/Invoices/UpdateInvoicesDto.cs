@@ -122,6 +122,12 @@ namespace Application.DTOs.Invoices
         /// </summary>
         public bool? ReverseCharge { get; set; }
 
+        /// <summary>
+        /// Exchange rate to INR on invoice date (RBI reference rate)
+        /// </summary>
+        [Range(0.0001, double.MaxValue, ErrorMessage = "ExchangeRate must be greater than 0")]
+        public decimal? ExchangeRate { get; set; }
+
         // GST Totals
         /// <summary>
         /// Total CGST amount for the invoice

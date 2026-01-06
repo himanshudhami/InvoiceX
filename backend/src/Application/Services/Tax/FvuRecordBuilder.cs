@@ -875,9 +875,16 @@ namespace Application.Services.Tax
             sb.Append("92");
             sb.Append(Delimiter);
 
-            // Fields 34-38: N/A
-            for (int i = 0; i < 5; i++)
+            // Fields 34-37: N/A
+            for (int i = 0; i < 4; i++)
                 sb.Append(Delimiter);
+
+            // Field 388A: Other TDS/TCS Credit (CBDT Feb 2025)
+            // Total of TDS from other sources + TCS credit claimed by employee
+            sb.Append(FormatAmountWithDecimals(employee.OtherTdsTcsCredit));
+            sb.Append(Delimiter);
+
+            // Field 39: Record hash (N/A)
 
             return sb.ToString().TrimEnd(Delimiter);
         }
