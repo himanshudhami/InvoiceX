@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
@@ -66,10 +66,20 @@ const ContractorPaymentsPage = () => {
     { history: 'push' }
   )
 
+  // Debounced search term - only updates after 300ms delay
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(urlState.searchTerm || '')
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(urlState.searchTerm || '')
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [urlState.searchTerm])
+
   const { data, isLoading, error, refetch } = useContractorPayments({
     pageNumber: urlState.page,
     pageSize: urlState.pageSize,
-    searchTerm: urlState.searchTerm || undefined,
+    searchTerm: debouncedSearchTerm || undefined,
     companyId: urlState.companyId || undefined,
     partyId: urlState.partyId || undefined,
     paymentMonth: urlState.paymentMonth || undefined,

@@ -52,7 +52,7 @@ namespace WebApi.DTOs
         public string? ProjectName { get; set; }
         
         public Guid? CompanyId { get; set; }
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }  // Customer ID (references parties table)
         
         
         
@@ -65,9 +65,9 @@ namespace WebApi.DTOs
             
             if (CompanyId.HasValue)
                 filters.Add("company_id", CompanyId.Value);
-            
-            if (CustomerId.HasValue)
-                filters.Add("customer_id", CustomerId.Value);
+
+            if (PartyId.HasValue)
+                filters.Add("party_id", PartyId.Value);
             
             if (InvoiceNumber != null && !string.IsNullOrWhiteSpace(InvoiceNumber))
                 filters.Add("invoice_number", InvoiceNumber);

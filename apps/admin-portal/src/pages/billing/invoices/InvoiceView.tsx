@@ -4,7 +4,7 @@ import { useInvoice, useInvoiceItems } from '@/hooks/api/useInvoices'
 import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { format } from 'date-fns'
-import { formatCurrency } from '@/lib/currency'
+import { formatINR } from '@/lib/currency'
 import {
   ArrowLeft,
   Download,
@@ -32,9 +32,9 @@ import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 import { IrnGenerationButton } from '@/components/invoice/IrnGenerationButton'
 import { QrCodeDisplay } from '@/components/invoice/QrCodeDisplay'
 import {
-  InvoicePaymentStatus,
   MarkAsPaidDrawer,
   createInvoicePaymentEntity,
+  InvoicePaymentStatus,
   type PaymentEntity,
   type MarkAsPaidFormData,
   type MarkAsPaidResult,
@@ -401,10 +401,10 @@ const InvoiceView = () => {
                             {item.quantity}
                           </td>
                           <td className="py-4 text-sm text-right text-gray-600">
-                            {formatCurrency(item.unitPrice)}
+                            {formatINR(item.unitPrice)}
                           </td>
                           <td className="py-4 text-sm text-right font-medium text-gray-900">
-                            {formatCurrency(item.lineTotal)}
+                            {formatINR(item.lineTotal)}
                           </td>
                         </tr>
                       ))
@@ -425,14 +425,14 @@ const InvoiceView = () => {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Subtotal</span>
                         <span className="text-gray-900">
-                          {formatCurrency(invoice.subtotal)}
+                          {formatINR(invoice.subtotal)}
                         </span>
                       </div>
                       {invoice.taxAmount !== undefined && invoice.taxAmount > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Tax</span>
                           <span className="text-gray-900">
-                            {formatCurrency(invoice.taxAmount || 0)}
+                            {formatINR(invoice.taxAmount || 0)}
                         </span>
                         </div>
                       )}
@@ -440,27 +440,27 @@ const InvoiceView = () => {
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Discount</span>
                           <span className="text-red-600">
-                            -{formatCurrency(invoice.discountAmount || 0)}
+                            -{formatINR(invoice.discountAmount || 0)}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t border-gray-200">
                         <span className="text-base font-medium text-gray-900">Total</span>
                         <span className="text-base font-medium text-gray-900">
-                          {formatCurrency(invoice.totalAmount)}
+                          {formatINR(invoice.totalAmount)}
                         </span>
                       </div>
                       {invoice.paidAmount !== undefined && invoice.paidAmount > 0 && (
                         <>
                           <div className="flex justify-between text-sm text-green-600">
                             <span>Paid</span>
-                            <span>{formatCurrency(invoice.paidAmount || 0)}</span>
+                            <span>{formatINR(invoice.paidAmount || 0)}</span>
                           </div>
                           {invoice.paidAmount !== undefined && invoice.paidAmount < invoice.totalAmount && (
                             <div className="flex justify-between text-sm font-medium">
                               <span className="text-gray-900">Balance Due</span>
                               <span className="text-red-600">
-                                {formatCurrency(invoice.totalAmount - (invoice.paidAmount || 0))}
+                                {formatINR(invoice.totalAmount - (invoice.paidAmount || 0))}
                               </span>
                             </div>
                           )}
@@ -513,15 +513,43 @@ const InvoiceView = () => {
               {/* Amount Due */}
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  {invoice.paidAmount !== undefined && invoice.paidAmount > 0 && invoice.paidAmount < invoice.totalAmount ? 'Balance Due' : 'Total Amount'}
+                  {invoice.status === 'paid' ? 'Total Amount' :
+                   invoice.paidAmount !== undefined && invoice.paidAmount > 0 && invoice.paidAmount < invoice.totalAmount ? 'Balance Due' : 'Total Amount'}
                 </p>
                 <p className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(
+                  {formatINR(
+                    invoice.status === 'paid' ? invoice.totalAmount :
                     invoice.paidAmount !== undefined && invoice.paidAmount > 0 && invoice.paidAmount < invoice.totalAmount
                       ? invoice.totalAmount - invoice.paidAmount
                       : invoice.totalAmount
                   )}
                 </p>
+              </div>
+
+              {/* Payment Status */}
+              <div className="pt-4 border-t">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Payment Status
+                </p>
+                {/* Tally-imported invoices: status='paid' but paidAmount=0 */}
+                {invoice.status === 'paid' && (!invoice.paidAmount || invoice.paidAmount === 0) ? (
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      <span>Fully Paid</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Imported from Tally - payment was recorded in source system
+                    </p>
+                  </div>
+                ) : (
+                  /* New invoices with payment tracking */
+                  <InvoicePaymentStatus
+                    invoiceId={invoice.id}
+                    showDetails={true}
+                    currency="INR"
+                  />
+                )}
               </div>
 
               {/* E-Invoice QR Code */}
@@ -565,18 +593,6 @@ const InvoiceView = () => {
                     <span className="font-medium text-gray-900">{invoice.projectName}</span>
                   </div>
                 )}
-              </div>
-
-              {/* Payment Status & Allocations */}
-              <div className="pt-4 border-t">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                  Payment Status
-                </p>
-                <InvoicePaymentStatus
-                  invoiceId={invoice.id}
-                  showDetails={true}
-                  currency={invoice.currency}
-                />
               </div>
 
               {/* Customer Info */}

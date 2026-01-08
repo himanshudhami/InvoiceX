@@ -244,7 +244,7 @@ const PayrollRuns = () => {
         data={data?.items || []}
         isLoading={isLoading}
         searchPlaceholder="Search by month, year, company..."
-        onSearch={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
+        onSearchChange={(value) => setUrlState({ searchTerm: value || null, page: 1 })}
         pagination={{
       pageIndex: (data?.pageNumber || urlState.page) - 1,
       pageSize: data?.pageSize || urlState.pageSize,

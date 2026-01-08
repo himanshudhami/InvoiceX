@@ -147,5 +147,5 @@ export interface InvoicesFilterParams extends PaginationParams {
   projectName?: string;
   currency?: string;
   companyId?: string;
-  partyId?: string;  // References parties table (customer)
+  partyId?: string;  // Filter by customer (references parties table)
 }

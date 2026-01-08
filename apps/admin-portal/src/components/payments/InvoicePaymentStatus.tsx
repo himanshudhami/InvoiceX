@@ -1,8 +1,8 @@
 "use client"
 
 import { useInvoicePaymentStatus, useAllocationsByInvoice } from '@/hooks/api/usePaymentAllocations';
-import { formatCurrency } from '@/lib/currency';
-import { Check, AlertCircle, Clock, DollarSign } from 'lucide-react';
+import { formatINR } from '@/lib/currency';
+import { Check, AlertCircle, Clock, IndianRupee } from 'lucide-react';
 
 interface InvoicePaymentStatusProps {
   invoiceId: string;
@@ -78,11 +78,11 @@ export const InvoicePaymentStatus = ({
       {/* Payment Summary */}
       <div className="flex items-center gap-4 text-xs text-gray-600">
         <span>
-          Paid: <strong className="text-green-600">{formatCurrency(status.totalPaid, currency)}</strong>
+          Paid: <strong className="text-green-600">{formatINR(status.totalPaid)}</strong>
         </span>
         {status.balanceDue > 0.01 && (
           <span>
-            Due: <strong className="text-red-600">{formatCurrency(status.balanceDue, currency)}</strong>
+            Due: <strong className="text-red-600">{formatINR(status.balanceDue)}</strong>
           </span>
         )}
         {status.paymentCount > 0 && (
@@ -98,7 +98,7 @@ export const InvoicePaymentStatus = ({
           {allocations.map((alloc) => (
             <div key={alloc.id} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5">
-                <DollarSign className="h-3 w-3 text-gray-400" />
+                <IndianRupee className="h-3 w-3 text-gray-400" />
                 <span className="text-gray-400">
                   {new Date(alloc.allocationDate).toLocaleDateString()}
                 </span>
@@ -108,7 +108,7 @@ export const InvoicePaymentStatus = ({
                   </span>
                 )}
               </div>
-              <span className="font-medium text-gray-900">{formatCurrency(alloc.allocatedAmount, currency)}</span>
+              <span className="font-medium text-gray-900">{formatINR(alloc.allocatedAmount)}</span>
             </div>
           ))}
         </div>

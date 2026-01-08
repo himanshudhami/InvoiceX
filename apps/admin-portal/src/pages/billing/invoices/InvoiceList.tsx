@@ -3,18 +3,17 @@ import { ColumnDef } from '@tanstack/react-table'
 import { useInvoicesPaged, useDeleteInvoice, useDuplicateInvoice } from '@/features/invoices/hooks'
 import { useCustomers } from '@/features/customers/hooks'
 import { useCompanyContext } from '@/contexts/CompanyContext'
-import { Invoice, PagedResponse } from '@/services/api/types'
+import { Invoice } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
-import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { CustomerSelect } from '@/components/ui/CustomerSelect'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Edit, Trash2, Copy, FileCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Eye, Edit, Trash2, Copy } from 'lucide-react'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell'
+import { formatINR } from '@/lib/financialUtils'
 
 const InvoiceList = () => {
   const navigate = useNavigate()
@@ -67,7 +66,6 @@ const InvoiceList = () => {
   // Extract items and pagination info from response
   const invoices = data?.items ?? []
   const totalCount = data?.totalCount ?? 0
-  const totalPages = data?.totalPages ?? 1
 
   const handleDelete = (invoice: Invoice) => {
     setDeletingInvoice(invoice)
@@ -117,19 +115,8 @@ const InvoiceList = () => {
     }
   }
 
-  const formatCurrency = (amount: number, currency?: string) => {
-    const currencySymbol = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$'
-    return `${currencySymbol}${amount.toFixed(2)}`
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
-  }
-
-  const getPaymentStatus = (totalAmount: number, paidAmount?: number) => {
-    if (!paidAmount || paidAmount === 0) return 'Unpaid'
-    if (paidAmount >= totalAmount) return 'Fully Paid'
-    return 'Partially Paid'
   }
 
   // Calculate totals from current page data
@@ -200,13 +187,8 @@ const InvoiceList = () => {
         const invoice = row.original
         const status = invoice.status || 'draft'
         return (
-          <div>
-            <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(status)}`}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {getPaymentStatus(invoice.totalAmount, invoice.paidAmount)}
-            </div>
+          <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(status)}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
           </div>
         )
       },
@@ -256,11 +238,11 @@ const InvoiceList = () => {
         return (
           <div>
             <div className="font-medium text-gray-900">
-              {formatCurrency(invoice.totalAmount, invoice.currency)}
+              {formatINR(invoice.totalAmount)}
             </div>
             {invoice.paidAmount !== undefined && invoice.paidAmount > 0 && (
               <div className="text-sm text-green-600">
-                Paid: {formatCurrency(invoice.paidAmount, invoice.currency)}
+                Paid: {formatINR(invoice.paidAmount)}
               </div>
             )}
           </div>
@@ -311,14 +293,6 @@ const InvoiceList = () => {
 
   const statusOptions = ['draft', 'sent', 'viewed', 'overdue', 'paid', 'cancelled']
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className="text-center py-12">
@@ -356,15 +330,15 @@ const InvoiceList = () => {
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">This Page Total</div>
-          <div className="text-2xl font-bold text-gray-900">{formatCurrency(totals.totalAmount)}</div>
+          <div className="text-2xl font-bold text-gray-900">{formatINR(totals.totalAmount)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">This Page Paid</div>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.paidAmount)}</div>
+          <div className="text-2xl font-bold text-green-600">{formatINR(totals.paidAmount)}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
           <div className="text-sm font-medium text-gray-500">This Page Outstanding</div>
-          <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.outstanding)}</div>
+          <div className="text-2xl font-bold text-red-600">{formatINR(totals.outstanding)}</div>
         </div>
       </div>
 
@@ -429,115 +403,38 @@ const InvoiceList = () => {
             />
           </div>
 
-          {/* Table */}
-          <div className="rounded-md border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+          {/* DataTable with server-side pagination */}
+          <DataTable
+            columns={columns}
+            data={invoices}
+            isLoading={isLoading}
+            showToolbar={false}
+            pagination={{
+              pageIndex: urlState.page - 1,
+              pageSize: urlState.pageSize,
+              totalCount: totalCount,
+              onPageChange: (pageIndex) => setUrlState({ page: pageIndex + 1 }),
+              onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
+            }}
+            footer={() => (
+              <tfoot className="bg-gray-100 border-t-2 border-gray-300 text-sm font-semibold text-gray-900">
                 <tr>
-                  {columns.map((column) => (
-                    <th
-                      key={column.id || (column as any).accessorKey}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {typeof column.header === 'string' ? column.header : ''}
-                    </th>
-                  ))}
+                  <td className="px-6 py-4">
+                    Page Totals ({invoices.length} invoices)
+                  </td>
+                  <td className="px-6 py-4" colSpan={4}></td>
+                  <td className="px-6 py-4"></td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="text-gray-900">{formatINR(totals.totalAmount)}</div>
+                    {totals.paidAmount > 0 && (
+                      <div className="text-green-600 text-xs">Paid: {formatINR(totals.paidAmount)}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4"></td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {invoices.length > 0 ? (
-                  invoices.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
-                      {columns.map((column) => (
-                        <td
-                          key={`${invoice.id}-${column.id || (column as any).accessorKey}`}
-                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                        >
-                          {column.cell
-                            ? (column.cell as any)({ row: { original: invoice } })
-                            : (invoice as any)[(column as any).accessorKey]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                      No invoices found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
-                Page {urlState.page} of {totalPages}
-              </span>
-              <span className="text-sm text-gray-500">
-                ({totalCount} total invoices)
-              </span>
-              <PageSizeSelect
-                value={urlState.pageSize}
-                onChange={(size) => setUrlState({ pageSize: size, page: 1 })}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setUrlState({ page: urlState.page - 1 })}
-                disabled={urlState.page <= 1}
-                className={cn(
-                  "px-3 py-1 rounded-md text-sm transition-colors",
-                  urlState.page > 1
-                    ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                )}
-              >
-                Previous
-              </button>
-
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const startPage = Math.max(1, urlState.page - 2)
-                  const page = startPage + i
-
-                  if (page > totalPages) return null
-
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setUrlState({ page })}
-                      className={cn(
-                        "w-8 h-8 rounded text-sm transition-colors",
-                        page === urlState.page
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                      )}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <button
-                onClick={() => setUrlState({ page: urlState.page + 1 })}
-                disabled={urlState.page >= totalPages}
-                className={cn(
-                  "px-3 py-1 rounded-md text-sm transition-colors",
-                  urlState.page < totalPages
-                    ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                )}
-              >
-                Next
-              </button>
-            </div>
-          </div>
+              </tfoot>
+            )}
+          />
         </div>
       </div>
 

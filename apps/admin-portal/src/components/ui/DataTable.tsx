@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, ReactNode } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table'
 import { cn } from '@/lib/utils'
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect'
+import { Loader2 } from 'lucide-react'
 
 interface ServerPaginationConfig {
   pageIndex: number
@@ -21,6 +22,16 @@ interface ServerPaginationConfig {
   totalCount: number
   onPageChange: (pageIndex: number) => void
   onPageSizeChange: (pageSize: number) => void
+}
+
+/** Extended column meta for summary and alignment */
+export interface DataTableColumnMeta {
+  /** Auto-compute summary in footer: 'sum', 'count', 'avg', or custom function */
+  summary?: 'sum' | 'count' | 'avg' | ((rows: unknown[]) => ReactNode)
+  /** Cell alignment */
+  align?: 'left' | 'center' | 'right'
+  /** Shorthand for align: 'right' (for numeric columns) */
+  numeric?: boolean
 }
 
 interface DataTableProps<TData, TValue> {
@@ -43,6 +54,8 @@ interface DataTableProps<TData, TValue> {
     label?: string
     values: { label: string; value: React.ReactNode }[]
   }
+  /** For server-side mode: pre-computed totals from API (keyed by column accessorKey) */
+  serverTotals?: Record<string, ReactNode>
   /** For client-side tables: override initial page size */
   pageSizeOverride?: number
   /**
@@ -52,6 +65,8 @@ interface DataTableProps<TData, TValue> {
    */
   pagination?: ServerPaginationConfig
   hidePaginationControls?: boolean
+  /** Show loading state with spinner overlay and disabled controls */
+  isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -67,21 +82,28 @@ export function DataTable<TData, TValue>({
   renderToolbar,
   footer,
   totalsFooter,
+  serverTotals,
   pageSizeOverride,
   pagination,
   hidePaginationControls = false,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
+  // Detect server-side mode
+  const isServerMode = !!pagination
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [globalFilter, setGlobalFilter] = useState(initialSearch)
 
-  const tableConfig: any = {
+  const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: isServerMode ? undefined : getSortedRowModel(),
+    getPaginationRowModel: isServerMode ? undefined : getPaginationRowModel(),
+    getFilteredRowModel: searchValue === undefined ? getFilteredRowModel() : undefined,
+    manualPagination: isServerMode,
+    pageCount: isServerMode && pagination ? Math.ceil(pagination.totalCount / pagination.pageSize) : undefined,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -105,17 +127,52 @@ export function DataTable<TData, TValue>({
             },
           }
         : {}),
-      // Only use globalFilter for client-side filtering when searchValue is not provided
       globalFilter: searchValue === undefined ? globalFilter : '',
     },
-  }
-  
-  // Only use client-side filtering if we're not using server-side search
-  if (searchValue === undefined) {
-    tableConfig.getFilteredRowModel = getFilteredRowModel()
-  }
-  
-  const table = useReactTable(tableConfig)
+  })
+
+  // Compute summary footer values from column meta
+  const summaryFooterValues = useMemo(() => {
+    // Skip if custom footer is provided or no columns have summary meta
+    const summaryColumns = columns.filter(col => {
+      const meta = col.meta as DataTableColumnMeta | undefined
+      return meta?.summary
+    })
+    if (summaryColumns.length === 0) return null
+
+    const rows = isServerMode ? data : table.getFilteredRowModel().rows.map(r => r.original)
+
+    return columns.map(col => {
+      const meta = col.meta as DataTableColumnMeta | undefined
+      const accessorKey = (col as any).accessorKey as string | undefined
+
+      if (!meta?.summary || !accessorKey) return null
+
+      // Use server totals if provided
+      if (serverTotals && accessorKey in serverTotals) {
+        return { key: accessorKey, value: serverTotals[accessorKey] }
+      }
+
+      // Compute client-side
+      const values = rows.map(row => {
+        const val = (row as any)[accessorKey]
+        return typeof val === 'number' ? val : parseFloat(val) || 0
+      })
+
+      let computed: ReactNode
+      if (typeof meta.summary === 'function') {
+        computed = meta.summary(rows)
+      } else if (meta.summary === 'sum') {
+        computed = values.reduce((a, b) => a + b, 0)
+      } else if (meta.summary === 'count') {
+        computed = values.length
+      } else if (meta.summary === 'avg') {
+        computed = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0
+      }
+
+      return { key: accessorKey, value: computed }
+    }).filter(Boolean) as { key: string; value: ReactNode }[]
+  }, [columns, data, table, isServerMode, serverTotals])
 
   // Keep table page size in sync with explicit overrides when not in server-side mode
   if (!pagination && pageSizeOverride && table.getState().pagination.pageSize !== pageSizeOverride) {
@@ -161,47 +218,77 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Table */}
-      <div className="rounded-md border overflow-hidden">
+      <div className="rounded-md border overflow-hidden relative">
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
         <div className="max-h-[70vh] overflow-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 sticky top-0 z-[5]">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </span>
-                      <span className="text-gray-400">
-                        {header.column.getIsSorted() === 'desc' ? '↓' : 
-                         header.column.getIsSorted() === 'asc' ? '↑' : 
-                         header.column.getCanSort() ? '↕' : null}
-                      </span>
-                    </div>
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as DataTableColumnMeta | undefined
+                  const align = meta?.align || (meta?.numeric ? 'right' : 'left')
+                  return (
+                    <th
+                      key={header.id}
+                      className={cn(
+                        "px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 bg-gray-50",
+                        align === 'right' && "text-right",
+                        align === 'center' && "text-center",
+                        align === 'left' && "text-left"
+                      )}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      <div className={cn(
+                        "flex items-center space-x-1",
+                        align === 'right' && "justify-end",
+                        align === 'center' && "justify-center"
+                      )}>
+                        <span>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </span>
+                        <span className="text-gray-400">
+                          {header.column.getIsSorted() === 'desc' ? '↓' :
+                           header.column.getIsSorted() === 'asc' ? '↑' :
+                           header.column.getCanSort() ? '↕' : null}
+                        </span>
+                      </div>
+                    </th>
+                  )
+                })}
               </tr>
             ))}
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className={cn("bg-white divide-y divide-gray-200", isLoading && "opacity-50")}>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
                   className="hover:bg-gray-50 transition-colors"
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined
+                    const align = meta?.align || (meta?.numeric ? 'right' : 'left')
+                    return (
+                      <td
+                        key={cell.id}
+                        className={cn(
+                          "px-6 py-4 whitespace-nowrap text-sm text-gray-900",
+                          align === 'right' && "text-right",
+                          align === 'center' && "text-center"
+                        )}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))
             ) : (
@@ -227,6 +314,40 @@ export function DataTable<TData, TValue>({
                     </div>
                   </td>
                 ))}
+              </tr>
+            </tfoot>
+          )}
+          {/* Auto-computed summary footer from column meta */}
+          {!footer && !totalsFooter && summaryFooterValues && summaryFooterValues.length > 0 && (
+            <tfoot className="bg-gray-100 border-t-2 border-gray-300 text-sm font-semibold text-gray-900">
+              <tr>
+                {columns.map((col, idx) => {
+                  const accessorKey = (col as any).accessorKey as string | undefined
+                  const summaryItem = summaryFooterValues.find(s => s.key === accessorKey)
+                  const meta = col.meta as DataTableColumnMeta | undefined
+                  const align = meta?.align || (meta?.numeric ? 'right' : 'left')
+
+                  if (idx === 0 && !summaryItem) {
+                    return (
+                      <td key={idx} className="px-6 py-3">
+                        Totals ({isServerMode ? pagination?.totalCount : table.getFilteredRowModel().rows.length} rows)
+                      </td>
+                    )
+                  }
+
+                  return (
+                    <td
+                      key={idx}
+                      className={cn(
+                        "px-6 py-3",
+                        align === 'right' && "text-right",
+                        align === 'center' && "text-center"
+                      )}
+                    >
+                      {summaryItem?.value ?? ''}
+                    </td>
+                  )
+                })}
               </tr>
             </tfoot>
           )}
@@ -268,12 +389,16 @@ export function DataTable<TData, TValue>({
                 }
               }}
               disabled={
-                pagination ? pagination.pageIndex <= 0 : !table.getCanPreviousPage()
+                isLoading || (pagination ? pagination.pageIndex <= 0 : !table.getCanPreviousPage())
               }
               className={cn(
                 "px-3 py-1 rounded-md text-sm transition-colors",
-                pagination
+                isLoading
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : pagination
                   ? pagination.pageIndex > 0
+                    ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : table.getCanPreviousPage()
                   ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
@@ -281,7 +406,7 @@ export function DataTable<TData, TValue>({
             >
               Previous
             </button>
-            
+
             <div className="flex items-center space-x-1">
               {Array.from(
                 {
@@ -306,6 +431,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <button
                       key={page}
+                      disabled={isLoading}
                       onClick={() => {
                         if (pagination) {
                           pagination.onPageChange(page)
@@ -315,7 +441,9 @@ export function DataTable<TData, TValue>({
                       }}
                       className={cn(
                         "w-8 h-8 rounded text-sm transition-colors",
-                        page === currentIndex
+                        isLoading
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : page === currentIndex
                           ? "bg-primary text-primary-foreground"
                           : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                       )}
@@ -342,16 +470,20 @@ export function DataTable<TData, TValue>({
                 }
               }}
               disabled={
-                pagination
+                isLoading || (pagination
                   ? pagination.pageIndex >=
                     Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)) - 1
-                  : !table.getCanNextPage()
+                  : !table.getCanNextPage())
               }
               className={cn(
                 "px-3 py-1 rounded-md text-sm transition-colors",
-                pagination
+                isLoading
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : pagination
                   ? pagination.pageIndex <
                     Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize)) - 1
+                    ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : table.getCanNextPage()
                   ? "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
