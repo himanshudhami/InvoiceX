@@ -153,7 +153,8 @@ const VendorInvoicesManagement = () => {
       },
     },
     {
-      accessorKey: 'partyId',
+      id: 'vendor',
+      accessorFn: (row) => vendorLookup[row.partyId] || row.vendor?.name || '',
       header: 'Vendor',
       cell: ({ row }) => {
         const invoice = row.original;
