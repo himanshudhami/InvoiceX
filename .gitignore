@@ -11,3 +11,8 @@ apps/employee-portal/.env.production
 apps/admin-portal/.env.development
 apps/admin-portal/vite.config.ts
 apps/admin-portal/vite.config.ts
+Master_utf8.xml
+Master.xml
+Transactions_utf8.xml
+Transactions.xml
+TrialBal.xlsx

@@ -137,7 +137,7 @@ export interface VendorInvoiceItem {
 export interface VendorInvoice {
   id: string;
   companyId: string;
-  vendorId: string;
+  partyId: string;  // References parties table (vendor)
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -191,7 +191,7 @@ export interface VendorInvoice {
 
 export interface CreateVendorInvoiceDto {
   companyId?: string;
-  vendorId: string;
+  partyId: string;  // References parties table (vendor)
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -256,7 +256,7 @@ export interface UpdateVendorInvoiceDto extends CreateVendorInvoiceDto {
 
 export interface VendorInvoicesFilterParams extends PaginationParams {
   companyId?: string;
-  vendorId?: string;
+  partyId?: string;  // References parties table (vendor)
   status?: string;
   invoiceType?: string;
   invoiceNumber?: string;
@@ -293,7 +293,7 @@ export interface VendorPaymentAllocation {
 export interface VendorPayment {
   id: string;
   companyId: string;
-  vendorId: string;
+  partyId: string;  // References parties table (vendor)
   paymentDate: string;
   amount: number;
   grossAmount?: number;
@@ -333,7 +333,7 @@ export interface VendorPayment {
 
 export interface CreateVendorPaymentDto {
   companyId?: string;
-  vendorId: string;
+  partyId: string;  // References parties table (vendor)
   paymentDate: string;
   amount: number;
   grossAmount?: number;
@@ -366,7 +366,7 @@ export interface UpdateVendorPaymentDto extends Omit<CreateVendorPaymentDto, 'co
 
 export interface VendorPaymentsFilterParams extends PaginationParams {
   companyId?: string;
-  vendorId?: string;
+  partyId?: string;  // References parties table (vendor)
   bankAccountId?: string;
   status?: string;
   paymentMethod?: string;
@@ -413,4 +413,21 @@ export interface VendorTdsSummary {
   totalDeducted: number;
   totalDeposited: number;
   pendingDeposit: number;
+}
+
+// ==================== Vendor Payment Summary Types ====================
+
+export interface VendorPaymentSummary {
+  totalPaid: number;
+  vendorCount: number;
+  paymentCount: number;
+  vendors: VendorPaymentDetail[];
+}
+
+export interface VendorPaymentDetail {
+  vendorId: string;
+  vendorName: string;
+  totalPaid: number;
+  paymentCount: number;
+  lastPaymentDate?: string;
 }

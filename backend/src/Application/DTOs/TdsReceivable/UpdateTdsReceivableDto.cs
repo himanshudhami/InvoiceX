@@ -22,7 +22,7 @@ namespace Application.DTOs.TdsReceivable
         /// <summary>
         /// Customer ID
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         /// <summary>
         /// Name of the deductor

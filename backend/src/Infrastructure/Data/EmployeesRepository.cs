@@ -95,16 +95,18 @@ namespace Infrastructure.Data
 
             const string sql = @"
                 INSERT INTO employees (
-                    id, employee_name, email, phone, employee_id, department, designation, 
+                    id, employee_name, email, phone, employee_id, department, designation,
                     hire_date, status, bank_account_number, bank_name, ifsc_code, pan_number,
                     address_line1, address_line2, city, state, zip_code, country,
                     contract_type, company, company_id,
+                    employment_type, tally_ledger_guid,
                     created_at, updated_at
                 ) VALUES (
                     @Id, @EmployeeName, @Email, @Phone, @EmployeeId, @Department, @Designation,
                     @HireDate, @Status, @BankAccountNumber, @BankName, @IfscCode, @PanNumber,
                     @AddressLine1, @AddressLine2, @City, @State, @ZipCode, @Country,
                     @ContractType, @Company, @CompanyId,
+                    @EmploymentType, @TallyLedgerGuid,
                     @CreatedAt, @UpdatedAt
                 )";
 
@@ -194,6 +196,24 @@ namespace Infrastructure.Data
                 WHERE manager_id = @managerId
                 ORDER BY employee_name";
             return await connection.QueryAsync<Employees>(sql, new { managerId });
+        }
+
+        public async Task<Employees?> GetByNameAsync(Guid companyId, string employeeName)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Employees>(
+                @"SELECT * FROM employees
+                  WHERE company_id = @companyId AND LOWER(employee_name) = LOWER(@employeeName)",
+                new { companyId, employeeName });
+        }
+
+        public async Task<Employees?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Employees>(
+                @"SELECT * FROM employees
+                  WHERE company_id = @companyId AND tally_ledger_guid = @tallyLedgerGuid",
+                new { companyId, tallyLedgerGuid });
         }
 
         private static string GetSafeSortColumn(string? sortBy, HashSet<string> allowedColumns)

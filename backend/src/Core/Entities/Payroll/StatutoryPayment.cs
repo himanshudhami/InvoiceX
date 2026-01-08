@@ -11,6 +11,7 @@ namespace Core.Entities.Payroll
 
         // Payment identification
         public string PaymentType { get; set; } = string.Empty; // TDS_192, PF, ESI, PT_KA, etc.
+        public string PaymentCategory { get; set; } = "regular"; // regular, annual, arrear, penalty, interest, revision
         public string? ReferenceNumber { get; set; } // Challan number, CRN, acknowledgment number
 
         // Period information
@@ -61,6 +62,11 @@ namespace Core.Entities.Payroll
         public Guid? FiledBy { get; set; }
         public DateTime? FiledAt { get; set; }
         public string? Notes { get; set; }
+
+        // Tally Migration fields
+        public string? TallyVoucherGuid { get; set; }
+        public string? TallyVoucherNumber { get; set; }
+        public Guid? TallyMigrationBatchId { get; set; }
 
         // Calculated properties
         public bool IsOverdue => PaymentDate == null && DateOnly.FromDateTime(DateTime.Today) > DueDate;

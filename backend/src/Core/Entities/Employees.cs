@@ -24,6 +24,17 @@ namespace Core.Entities
         public string? ContractType { get; set; }
         public string? Company { get; set; }
         public Guid? CompanyId { get; set; }
+
+        /// <summary>
+        /// Employment type: 'employee' or 'contractor'
+        /// </summary>
+        public string EmploymentType { get; set; } = "employee";
+
+        /// <summary>
+        /// Tally ledger GUID for migration tracking
+        /// </summary>
+        public string? TallyLedgerGuid { get; set; }
+
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 

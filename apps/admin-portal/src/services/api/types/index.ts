@@ -77,3 +77,12 @@ export * from './statutory';
 
 // Tags & Attribution types
 export * from './tag';
+
+// Unified Party Management types
+export * from './party';
+
+// Inventory management types
+export * from './inventory';
+
+// Manufacturing types
+export * from './manufacturing';

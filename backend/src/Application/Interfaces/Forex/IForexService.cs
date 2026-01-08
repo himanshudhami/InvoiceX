@@ -114,7 +114,7 @@ namespace Application.Interfaces.Forex
         public Guid InvoiceId { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateOnly InvoiceDate { get; set; }
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
         public string? CustomerName { get; set; }
         public string Currency { get; set; } = string.Empty;
         public decimal ForeignAmount { get; set; }

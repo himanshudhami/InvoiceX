@@ -341,7 +341,7 @@ namespace Application.Services
                 {
                     Id = Guid.NewGuid(),
                     CompanyId = originalInvoice.CompanyId,
-                    CustomerId = originalInvoice.CustomerId,
+                    PartyId = originalInvoice.PartyId,
                     InvoiceNumber = await GenerateNextInvoiceNumberAsync(),
                     InvoiceDate = DateOnly.FromDateTime(DateTime.UtcNow),
                     DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)), // Default 30 days from today
@@ -410,7 +410,7 @@ namespace Application.Services
             // Enrich payment DTO with invoice data
             paymentDto.InvoiceId = invoiceId;
             paymentDto.CompanyId = invoice.CompanyId;
-            paymentDto.CustomerId = invoice.CustomerId;
+            paymentDto.PartyId = invoice.PartyId;
             paymentDto.Currency = invoice.Currency;
             paymentDto.PaymentType = "invoice_payment";
 

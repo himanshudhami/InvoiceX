@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   useVendorInvoices,
@@ -9,7 +9,7 @@ import {
   useCancelVendorInvoice,
 } from '@/features/vendors/hooks';
 import { useVendors } from '@/features/vendors/hooks';
-import { useCompanies } from '@/hooks/api/useCompanies';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { VendorInvoice } from '@/services/api/types';
 import { DataTable } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
@@ -27,6 +27,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQueryState, parseAsString } from 'nuqs';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-800',
@@ -38,19 +39,23 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const VendorInvoicesManagement = () => {
-  const [searchParams] = useSearchParams();
-  const vendorIdParam = searchParams.get('vendorId') || '';
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext();
+
+  // URL-backed filter state with nuqs
+  const [companyFilter, setCompanyFilter] = useQueryState('company', parseAsString.withDefault(''));
+  const [vendorFilter, setVendorFilter] = useQueryState('vendorId', parseAsString.withDefault(''));
+  const [statusFilter, setStatusFilter] = useQueryState('status', parseAsString.withDefault(''));
 
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<VendorInvoice | null>(null);
   const [deletingInvoice, setDeletingInvoice] = useState<VendorInvoice | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>(vendorIdParam);
-  const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const { data: allInvoices = [], isLoading, error, refetch } = useVendorInvoices();
-  const { data: vendors = [] } = useVendors();
-  const { data: companies = [] } = useCompanies();
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined);
+
+  const { data: allInvoices = [], isLoading, error, refetch } = useVendorInvoices(effectiveCompanyId || undefined);
+  const { data: vendors = [] } = useVendors(effectiveCompanyId || undefined);
   const deleteInvoice = useDeleteVendorInvoice();
   const approveInvoice = useApproveVendorInvoice();
   const postInvoice = usePostVendorInvoice();
@@ -70,7 +75,7 @@ const VendorInvoicesManagement = () => {
       filtered = filtered.filter(i => i.companyId === companyFilter);
     }
     if (vendorFilter) {
-      filtered = filtered.filter(i => i.vendorId === vendorFilter);
+      filtered = filtered.filter(i => i.partyId === vendorFilter);
     }
     if (statusFilter) {
       filtered = filtered.filter(i => i.status === statusFilter);
@@ -148,14 +153,14 @@ const VendorInvoicesManagement = () => {
       },
     },
     {
-      accessorKey: 'vendorId',
+      accessorKey: 'partyId',
       header: 'Vendor',
       cell: ({ row }) => {
         const invoice = row.original;
         return (
           <div>
             <div className="text-sm text-gray-900">
-              {vendorLookup[invoice.vendorId] || invoice.vendor?.name || 'Unknown'}
+              {vendorLookup[invoice.partyId] || invoice.vendor?.name || 'Unknown'}
             </div>
           </div>
         );
@@ -389,8 +394,8 @@ const VendorInvoicesManagement = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
             <div>

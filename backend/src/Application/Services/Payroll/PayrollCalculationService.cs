@@ -650,10 +650,11 @@ public class PayrollCalculationService
     }
 
     /// <summary>
-    /// Calculate contractor payment (simplified - just gross and TDS)
+    /// Calculate contractor payment (simplified - just gross and TDS).
+    /// Links to parties table (unified party model).
     /// </summary>
     public ContractorPayment CalculateContractorPayment(
-        Guid employeeId,
+        Guid partyId,
         Guid companyId,
         int paymentMonth,
         int paymentYear,
@@ -668,7 +669,7 @@ public class PayrollCalculationService
     {
         var payment = new ContractorPayment
         {
-            EmployeeId = employeeId,
+            PartyId = partyId,
             CompanyId = companyId,
             PaymentMonth = paymentMonth,
             PaymentYear = paymentYear,

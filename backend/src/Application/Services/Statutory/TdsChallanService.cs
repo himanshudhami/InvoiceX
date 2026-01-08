@@ -889,7 +889,7 @@ namespace Application.Services.Statutory
 
             challan.TdsAmount = monthPayments.Sum(p => p.TdsAmount);
             challan.TransactionCount = monthPayments.Count;
-            challan.EmployeeCount = monthPayments.Select(p => p.EmployeeId).Distinct().Count();
+            challan.EmployeeCount = monthPayments.Select(p => p.PartyId).Distinct().Count();
 
             challan.SourceRecords = monthPayments
                 .Select(p => new TdsChallanSourceRecord

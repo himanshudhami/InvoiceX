@@ -181,6 +181,35 @@ namespace Core.Entities
         /// </summary>
         public string? TransactionHash { get; set; }
 
+        // ==================== Tally Import Matching ====================
+
+        /// <summary>
+        /// Source entity type from Tally import: vendor_payments, contractor_payments, statutory_payments, journal_entries
+        /// Distinct from ReconciledType which is for bank statement reconciliation
+        /// </summary>
+        public string? MatchedEntityType { get; set; }
+
+        /// <summary>
+        /// Source entity ID from Tally import - the business entity this bank transaction was created from
+        /// Distinct from ReconciledId which is for bank statement reconciliation
+        /// </summary>
+        public Guid? MatchedEntityId { get; set; }
+
+        /// <summary>
+        /// Tally voucher GUID for deduplication
+        /// </summary>
+        public string? TallyVoucherGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally voucher number
+        /// </summary>
+        public string? TallyVoucherNumber { get; set; }
+
+        /// <summary>
+        /// Migration batch ID for rollback support
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Timestamps ====================
 
         public DateTime? CreatedAt { get; set; }

@@ -27,4 +27,8 @@ public interface IStockGroupRepository
     Task<bool> HasChildrenAsync(Guid stockGroupId);
     Task<bool> HasItemsAsync(Guid stockGroupId);
     Task<string> GetFullPathAsync(Guid stockGroupId);
+
+    // ==================== Tally Migration ====================
+    Task<StockGroup?> GetByTallyGuidAsync(Guid companyId, string tallyStockGroupGuid);
+    Task<StockGroup?> GetByNameAsync(Guid companyId, string name);
 }

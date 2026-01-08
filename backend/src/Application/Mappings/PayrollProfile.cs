@@ -176,12 +176,12 @@ namespace Application.Mappings
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
-                .ForMember(dest => dest.Employee, opt => opt.Ignore())
+                .ForMember(dest => dest.Party, opt => opt.Ignore())
                 .ForMember(dest => dest.Company, opt => opt.Ignore());
 
             CreateMap<UpdateContractorPaymentDto, ContractorPayment>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.EmployeeId, opt => opt.Ignore())
+                .ForMember(dest => dest.PartyId, opt => opt.Ignore())
                 .ForMember(dest => dest.CompanyId, opt => opt.Ignore())
                 .ForMember(dest => dest.PaymentMonth, opt => opt.Ignore())
                 .ForMember(dest => dest.PaymentYear, opt => opt.Ignore())
@@ -192,12 +192,12 @@ namespace Application.Mappings
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
-                .ForMember(dest => dest.Employee, opt => opt.Ignore())
+                .ForMember(dest => dest.Party, opt => opt.Ignore())
                 .ForMember(dest => dest.Company, opt => opt.Ignore())
                 .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
+            // ContractorPayment links to parties table - PartyName populated from repository join
             CreateMap<ContractorPayment, ContractorPaymentDto>()
-                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee != null ? src.Employee.EmployeeName : null))
                 .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.Company != null ? src.Company.Name : null));
 
             // ==================== CompanyStatutoryConfig ====================

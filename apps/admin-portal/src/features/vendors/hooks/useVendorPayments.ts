@@ -83,9 +83,9 @@ export const useCreateVendorPayment = () => {
     mutationFn: (data: CreateVendorPaymentDto) => vendorPaymentService.create(data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: vendorPaymentKeys.lists() });
-      if (result.vendorId) {
-        queryClient.invalidateQueries({ queryKey: vendorKeys.vendorOutstanding(result.vendorId) });
-        queryClient.invalidateQueries({ queryKey: vendorInvoiceKeys.unpaid(result.vendorId) });
+      if (result.partyId) {
+        queryClient.invalidateQueries({ queryKey: vendorKeys.vendorOutstanding(result.partyId) });
+        queryClient.invalidateQueries({ queryKey: vendorInvoiceKeys.unpaid(result.partyId) });
       }
     },
     onError: (error) => {

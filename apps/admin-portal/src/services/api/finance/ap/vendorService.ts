@@ -7,6 +7,7 @@ import type {
   VendorOutstanding,
   VendorAgingSummary,
   VendorTdsSummary,
+  VendorPaymentSummary,
   PagedResponse,
 } from '../../types';
 
@@ -62,6 +63,11 @@ export class VendorService {
     const params: Record<string, string> = { companyId };
     if (financialYear) params.financialYear = financialYear;
     return apiClient.get<VendorTdsSummary[]>(`${this.endpoint}/tds-summary`, params);
+  }
+
+  // Payment Summary
+  async getPaymentSummary(companyId: string): Promise<VendorPaymentSummary> {
+    return apiClient.get<VendorPaymentSummary>(`${this.endpoint}/payment-summary`, { companyId });
   }
 }
 

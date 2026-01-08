@@ -54,3 +54,14 @@ export * from './hr/payroll/employeeSalaryTransactionService'
 export * from './exports/fircService'
 export * from './exports/lutService'
 export * from './exports/exportReportingService'
+
+// Manufacturing
+export * from './manufacturing/bomService'
+export * from './manufacturing/productionOrderService'
+export * from './manufacturing/serialNumberService'
+
+// Migration (Tally)
+export * from './migration/tallyMigrationService'
+
+// Unified Party Management (replaces separate vendor/customer services)
+export * from './parties/partyService'

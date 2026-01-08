@@ -26,8 +26,8 @@ export class VendorInvoiceService {
     return apiClient.getPaged<VendorInvoice>(this.endpoint, params);
   }
 
-  async getByVendor(vendorId: string, params: VendorInvoicesFilterParams = {}): Promise<PagedResponse<VendorInvoice>> {
-    return apiClient.getPaged<VendorInvoice>(this.endpoint, { ...params, vendorId });
+  async getByVendor(partyId: string, params: VendorInvoicesFilterParams = {}): Promise<PagedResponse<VendorInvoice>> {
+    return apiClient.getPaged<VendorInvoice>(this.endpoint, { ...params, partyId });
   }
 
   async create(data: CreateVendorInvoiceDto): Promise<VendorInvoice> {

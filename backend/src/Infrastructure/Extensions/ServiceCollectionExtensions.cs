@@ -513,6 +513,96 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<FluentValidation.IValidator<Application.DTOs.Inventory.UpdateStockTransferDto>>()
                 ));
 
+            // Serial Number repository (Inventory)
+            services.AddScoped<Core.Interfaces.Inventory.ISerialNumberRepository>(sp =>
+                new Infrastructure.Data.Inventory.SerialNumberRepository(connectionString));
+
+            // Manufacturing repositories
+            services.AddScoped<Core.Interfaces.Manufacturing.IBomRepository>(sp =>
+                new Infrastructure.Data.Manufacturing.BomRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Manufacturing.IBomItemRepository>(sp =>
+                new Infrastructure.Data.Manufacturing.BomItemRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Manufacturing.IProductionOrderRepository>(sp =>
+                new Infrastructure.Data.Manufacturing.ProductionOrderRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Manufacturing.IProductionOrderItemRepository>(sp =>
+                new Infrastructure.Data.Manufacturing.ProductionOrderItemRepository(connectionString));
+
+            // Manufacturing services
+            services.AddScoped<Application.Services.Manufacturing.IBomService>(sp =>
+                new Application.Services.Manufacturing.BomService(
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IBomRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IBomItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>()
+                ));
+            services.AddScoped<Application.Services.Manufacturing.IProductionOrderService>(sp =>
+                new Application.Services.Manufacturing.ProductionOrderService(
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IProductionOrderRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IProductionOrderItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IBomRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Manufacturing.IBomItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockMovementRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IWarehouseRepository>()
+                ));
+            services.AddScoped<Application.Services.Inventory.ISerialNumberService>(sp =>
+                new Application.Services.Inventory.SerialNumberService(
+                    sp.GetRequiredService<Core.Interfaces.Inventory.ISerialNumberRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IStockItemRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Inventory.IWarehouseRepository>()
+                ));
+
+            // Tally Migration repositories
+            services.AddScoped<Core.Interfaces.Migration.ITallyMigrationBatchRepository>(sp =>
+                new Infrastructure.Data.Migration.TallyMigrationBatchRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Migration.ITallyMigrationLogRepository>(sp =>
+                new Infrastructure.Data.Migration.TallyMigrationLogRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Migration.ITallyFieldMappingRepository>(sp =>
+                new Infrastructure.Data.Migration.TallyFieldMappingRepository(connectionString));
+
+            // Tally Parser services
+            services.AddScoped<Application.Interfaces.Migration.ITallyParserService, Application.Services.Migration.TallyXmlParserService>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyParserService, Application.Services.Migration.TallyJsonParserService>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyParserFactory, Application.Services.Migration.TallyParserFactory>();
+
+            // Tally Mapping services
+            services.AddScoped<Application.Interfaces.Migration.ITallyMasterMappingService, Application.Services.Migration.TallyMasterMappingService>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyPaymentClassifier, Application.Services.Migration.TallyPaymentClassifier>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyContractorPaymentMapper, Application.Services.Migration.TallyContractorPaymentMapper>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyStatutoryPaymentMapper, Application.Services.Migration.TallyStatutoryPaymentMapper>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyBankTransactionMapper, Application.Services.Migration.TallyBankTransactionMapper>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyVoucherMappingService, Application.Services.Migration.TallyVoucherMappingService>();
+
+            // Tally Validation and Rollback services
+            services.AddScoped<Application.Interfaces.Migration.ITallyValidationService, Application.Services.Migration.TallyValidationService>();
+            services.AddScoped<Application.Interfaces.Migration.ITallyRollbackService, Application.Services.Migration.TallyRollbackService>();
+
+            // Tally Import Orchestrator (main service)
+            services.AddScoped<Application.Interfaces.Migration.ITallyImportService, Application.Services.Migration.TallyImportOrchestrator>();
+
+            // Unified Party Management repositories
+            services.AddScoped<Core.Interfaces.IPartyRepository>(sp =>
+                new Infrastructure.Data.PartyRepository(connectionString));
+
+            // Tag-driven TDS repositories (replaces old TdsSectionRule)
+            services.AddScoped<Core.Interfaces.ITdsTagRuleRepository>(sp =>
+                new Infrastructure.Data.TdsTagRuleRepository(connectionString));
+
+            // Unified Party Management services (uses tag-driven TDS)
+            services.AddScoped<Application.Interfaces.IPartyService>(sp =>
+                new Application.Services.PartyService(
+                    sp.GetRequiredService<Core.Interfaces.IPartyRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ITdsTagRuleRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>()
+                ));
+
+            // Tag-driven TDS Detection Service (new approach)
+            services.AddScoped<Application.Interfaces.ITdsDetectionService>(sp =>
+                new Application.Services.TdsDetectionService(
+                    sp.GetRequiredService<Core.Interfaces.ITdsTagRuleRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IPartyRepository>(),
+                    sp.GetRequiredService<AutoMapper.IMapper>()
+                ));
+
             // Add other infrastructure services here
             // services.AddScoped<IEmailProvider, SmtpEmailProvider>();
             // services.AddScoped<IFileStorage, LocalFileStorage>();

@@ -31,4 +31,7 @@ public interface IStockItemRepository
     // Stock quantity updates
     Task UpdateCurrentStockAsync(Guid stockItemId, decimal quantityChange, decimal valueChange);
     Task RecalculateStockAsync(Guid stockItemId);
+
+    // ==================== Tally Migration ====================
+    Task<StockItem?> GetByTallyGuidAsync(Guid companyId, string tallyStockItemGuid);
 }

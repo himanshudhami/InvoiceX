@@ -21,7 +21,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<Invoices>(
-                $"SELECT * FROM invoices WHERE id = @id", 
+                $"SELECT * FROM invoices WHERE id = @id",
                 new { id });
         }
 
@@ -33,19 +33,19 @@ namespace Infrastructure.Data
         }
 
         public async Task<(IEnumerable<Invoices> Items, int TotalCount)> GetPagedAsync(
-            int pageNumber, 
-            int pageSize, 
+            int pageNumber,
+            int pageSize,
             string? searchTerm = null,
             string? sortBy = null,
             bool sortDescending = false,
             Dictionary<string, object>? filters = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            var allowedColumns = new[] { "id", "company_id", "customer_id", "invoice_number", "invoice_date", "due_date", "status", "subtotal", "tax_amount", "discount_amount", "total_amount", "paid_amount", "currency", "notes", "terms", "payment_instructions", "po_number", "project_name", "sent_at", "viewed_at", "paid_at", "created_at", "updated_at" };
+            var allowedColumns = new[] { "id", "company_id", "party_id", "invoice_number", "invoice_date", "due_date", "status", "subtotal", "tax_amount", "discount_amount", "total_amount", "paid_amount", "currency", "notes", "terms", "payment_instructions", "po_number", "project_name", "sent_at", "viewed_at", "paid_at", "created_at", "updated_at" };
 
             var builder = SqlQueryBuilder
                 .From("invoices", allowedColumns)
-                .SearchAcross(new string[] { "invoice_number", "status", "currency", "notes", "terms", "payment_instructions", "po_number", "project_name",  }, searchTerm)
+                .SearchAcross(new string[] { "invoice_number", "status", "currency", "notes", "terms", "payment_instructions", "po_number", "project_name" }, searchTerm)
                 .ApplyFilters(filters)
                 .Paginate(pageNumber, pageSize);
 
@@ -65,12 +65,12 @@ namespace Infrastructure.Data
         public async Task<Invoices> AddAsync(Invoices entity)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            var sql = @"INSERT INTO invoices 
-                (company_id, customer_id, invoice_number, invoice_date, due_date, status, subtotal, tax_amount, discount_amount, total_amount, paid_amount, currency, notes, terms, payment_instructions, po_number, project_name, sent_at, viewed_at, paid_at, created_at, updated_at)
+            var sql = @"INSERT INTO invoices
+                (company_id, party_id, invoice_number, invoice_date, due_date, status, subtotal, tax_amount, discount_amount, total_amount, paid_amount, currency, notes, terms, payment_instructions, po_number, project_name, sent_at, viewed_at, paid_at, tally_voucher_guid, tally_voucher_number, tally_voucher_type, tally_migration_batch_id, created_at, updated_at)
                 VALUES
-                (@CompanyId, @CustomerId, @InvoiceNumber, @InvoiceDate, @DueDate, @Status, @Subtotal, @TaxAmount, @DiscountAmount, @TotalAmount, @PaidAmount, @Currency, @Notes, @Terms, @PaymentInstructions, @PoNumber, @ProjectName, @SentAt, @ViewedAt, @PaidAt, NOW(), NOW())
+                (@CompanyId, @PartyId, @InvoiceNumber, @InvoiceDate, @DueDate, @Status, @Subtotal, @TaxAmount, @DiscountAmount, @TotalAmount, @PaidAmount, @Currency, @Notes, @Terms, @PaymentInstructions, @PoNumber, @ProjectName, @SentAt, @ViewedAt, @PaidAt, @TallyVoucherGuid, @TallyVoucherNumber, @TallyVoucherType, @TallyMigrationBatchId, NOW(), NOW())
                 RETURNING *";
-            
+
             var createdEntity = await connection.QuerySingleAsync<Invoices>(sql, entity);
             return createdEntity;
         }
@@ -79,93 +79,8 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"UPDATE invoices SET
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
                 company_id = @CompanyId,
-                customer_id = @CustomerId,
+                party_id = @PartyId,
                 invoice_number = @InvoiceNumber,
                 invoice_date = @InvoiceDate,
                 due_date = @DueDate,
@@ -193,8 +108,34 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.ExecuteAsync(
-                $"DELETE FROM invoices WHERE id = @id", 
+                $"DELETE FROM invoices WHERE id = @id",
                 new { id });
+        }
+
+        // ==================== Tally Integration ====================
+
+        public async Task<Invoices?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Invoices>(
+                "SELECT * FROM invoices WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
+        }
+
+        public async Task<Invoices?> GetByNumberAsync(Guid companyId, string invoiceNumber)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Invoices>(
+                "SELECT * FROM invoices WHERE company_id = @companyId AND invoice_number = @invoiceNumber",
+                new { companyId, invoiceNumber });
+        }
+
+        public async Task<IEnumerable<Invoices>> GetByCompanyIdAsync(Guid companyId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<Invoices>(
+                "SELECT * FROM invoices WHERE company_id = @companyId",
+                new { companyId });
         }
     }
 }

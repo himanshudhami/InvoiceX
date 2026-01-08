@@ -17,7 +17,7 @@ interface InvoiceFormProps {
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
   const [formData, setFormData] = useState<CreateInvoiceDto>({
     companyId: '',
-    customerId: '',
+    partyId: '',
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
@@ -40,7 +40,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
   // Scope customers to the selected company so "Bill To" reflects the chosen "From"
-  const { data: customers = [] } = useCustomers(formData.companyId || undefined)
+  const { data: customers = [] } = useCustomers(formData.companyId as string | undefined)
   const { data: companies = [] } = useCompanies()
 
   const isEditing = !!invoice
@@ -66,7 +66,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     if (invoice) {
       setFormData({
         companyId: invoice.companyId || '',
-        customerId: invoice.customerId || '',
+        partyId: invoice.partyId || '',
         invoiceNumber: invoice.invoiceNumber || '',
         invoiceDate: invoice.invoiceDate?.split('T')[0] || '',
         dueDate: invoice.dueDate?.split('T')[0] || '',
@@ -89,12 +89,12 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
   // When company changes, clear customer if it belongs to a different company
   useEffect(() => {
-    if (!formData.customerId || !formData.companyId) return
-    const customer = customers.find(c => c.id === formData.customerId)
+    if (!formData.partyId || !formData.companyId) return
+    const customer = customers.find(c => c.id === formData.partyId)
     if (customer && customer.companyId && customer.companyId !== formData.companyId) {
-      setFormData(prev => ({ ...prev, customerId: '' }))
+      setFormData(prev => ({ ...prev, partyId: '' }))
     }
-  }, [formData.companyId, formData.customerId, customers])
+  }, [formData.companyId, formData.partyId, customers])
 
   // Recalculate total when subtotal, tax, or discount changes
   useEffect(() => {
@@ -174,9 +174,9 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
   const handleChange = (field: keyof CreateInvoiceDto, value: string | number) => {
     if (field === 'companyId') {
-      setFormData(prev => ({ ...prev, companyId: value as string, customerId: '' }))
-      if (errors.customerId) {
-        setErrors(prev => ({ ...prev, customerId: '' }))
+      setFormData(prev => ({ ...prev, companyId: value as string, partyId: '' }))
+      if (errors.partyId) {
+        setErrors(prev => ({ ...prev, partyId: '' }))
       }
     } else {
       setFormData(prev => ({ ...prev, [field]: value }))
@@ -250,13 +250,13 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
 
           {/* Customer */}
           <div>
-            <label htmlFor="customerId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="partyId" className="block text-sm font-medium text-gray-700 mb-1">
               Customer
             </label>
             <select
-              id="customerId"
-              value={formData.customerId || ''}
-              onChange={(e) => handleChange('customerId', e.target.value)}
+              id="partyId"
+              value={formData.partyId || ''}
+              onChange={(e) => handleChange('partyId', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Select a customer (optional)</option>

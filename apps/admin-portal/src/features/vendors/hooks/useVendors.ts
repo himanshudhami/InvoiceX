@@ -147,3 +147,15 @@ export const useVendorTdsSummary = (companyId: string, financialYear?: string, e
     staleTime: 5 * 60 * 1000,
   });
 };
+
+/**
+ * Fetch vendor payment summary (total paid, per-vendor breakdown)
+ */
+export const useVendorPaymentSummary = (companyId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: vendorKeys.paymentSummary(companyId),
+    queryFn: () => vendorService.getPaymentSummary(companyId),
+    enabled: enabled && !!companyId,
+    staleTime: 2 * 60 * 1000,
+  });
+};

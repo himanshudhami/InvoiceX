@@ -12,7 +12,8 @@ using WebApi.DTOs.Common;
 namespace WebApi.Controllers.Payroll;
 
 /// <summary>
-/// Contractor payments management endpoints
+/// Contractor payments management endpoints.
+/// Links to parties table (unified party model) for contractor information.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -21,7 +22,6 @@ public class ContractorPaymentsController : ControllerBase
 {
     private readonly IContractorPaymentRepository _repository;
     private readonly PayrollCalculationService _calculationService;
-    private readonly IEmployeesRepository _employeesRepository;
     private readonly ICompaniesRepository _companiesRepository;
     private readonly IContractorPostingService _postingService;
     private readonly IMapper _mapper;
@@ -30,7 +30,6 @@ public class ContractorPaymentsController : ControllerBase
     public ContractorPaymentsController(
         IContractorPaymentRepository repository,
         PayrollCalculationService calculationService,
-        IEmployeesRepository employeesRepository,
         ICompaniesRepository companiesRepository,
         IContractorPostingService postingService,
         IMapper mapper,
@@ -38,7 +37,6 @@ public class ContractorPaymentsController : ControllerBase
     {
         _repository = repository;
         _calculationService = calculationService;
-        _employeesRepository = employeesRepository;
         _companiesRepository = companiesRepository;
         _postingService = postingService;
         _mapper = mapper;
@@ -62,19 +60,7 @@ public class ContractorPaymentsController : ControllerBase
 
         var dtos = _mapper.Map<IEnumerable<ContractorPaymentDto>>(items).ToList();
 
-        // Populate employee (contractor) names
-        var employeeIds = dtos.Select(d => d.EmployeeId).Distinct().ToList();
-        var employees = new Dictionary<Guid, string>();
-        foreach (var employeeId in employeeIds)
-        {
-            var employee = await _employeesRepository.GetByIdAsync(employeeId);
-            if (employee != null)
-            {
-                employees[employeeId] = employee.EmployeeName;
-            }
-        }
-
-        // Populate company names
+        // PartyName is populated from repository join, just need company names
         var companyIds = dtos.Select(d => d.CompanyId).Distinct().ToList();
         var companies = new Dictionary<Guid, string>();
         foreach (var companyId in companyIds)
@@ -88,7 +74,6 @@ public class ContractorPaymentsController : ControllerBase
 
         foreach (var dto in dtos)
         {
-            dto.EmployeeName = employees.GetValueOrDefault(dto.EmployeeId);
             dto.CompanyName = companies.GetValueOrDefault(dto.CompanyId);
         }
 
@@ -113,19 +98,7 @@ public class ContractorPaymentsController : ControllerBase
 
         var dtos = _mapper.Map<IEnumerable<ContractorPaymentDto>>(items).ToList();
 
-        // Populate employee (contractor) names
-        var employeeIds = dtos.Select(d => d.EmployeeId).Distinct().ToList();
-        var employees = new Dictionary<Guid, string>();
-        foreach (var employeeId in employeeIds)
-        {
-            var employee = await _employeesRepository.GetByIdAsync(employeeId);
-            if (employee != null)
-            {
-                employees[employeeId] = employee.EmployeeName;
-            }
-        }
-
-        // Populate company names
+        // PartyName is populated from repository join, just need company names
         var companyIds = dtos.Select(d => d.CompanyId).Distinct().ToList();
         var companies = new Dictionary<Guid, string>();
         foreach (var companyId in companyIds)
@@ -139,7 +112,6 @@ public class ContractorPaymentsController : ControllerBase
 
         foreach (var dto in dtos)
         {
-            dto.EmployeeName = employees.GetValueOrDefault(dto.EmployeeId);
             dto.CompanyName = companies.GetValueOrDefault(dto.CompanyId);
         }
 
@@ -175,14 +147,14 @@ public class ContractorPaymentsController : ControllerBase
             return BadRequest(ModelState);
 
         // Check for duplicate
-        var exists = await _repository.ExistsForEmployeeAndMonthAsync(
-            dto.EmployeeId, dto.PaymentMonth, dto.PaymentYear);
+        var exists = await _repository.ExistsForPartyAndMonthAsync(
+            dto.PartyId, dto.PaymentMonth, dto.PaymentYear);
         if (exists)
             return Conflict($"Payment already exists for this contractor for {dto.PaymentMonth}/{dto.PaymentYear}");
 
         // Use calculation service to create payment with calculated values
         var payment = _calculationService.CalculateContractorPayment(
-            dto.EmployeeId,
+            dto.PartyId,
             dto.CompanyId,
             dto.PaymentMonth,
             dto.PaymentYear,
@@ -406,17 +378,17 @@ public class ContractorPaymentsController : ControllerBase
     }
 
     /// <summary>
-    /// Get YTD summary for a contractor
+    /// Get YTD summary for a contractor (party)
     /// </summary>
-    [HttpGet("ytd/{employeeId}")]
+    [HttpGet("ytd/{partyId}")]
     [ProducesResponseType(typeof(ContractorPaymentSummaryDto), 200)]
-    public async Task<IActionResult> GetYtdSummary(Guid employeeId, [FromQuery] string financialYear)
+    public async Task<IActionResult> GetYtdSummary(Guid partyId, [FromQuery] string financialYear)
     {
-        var summary = await _repository.GetYtdSummaryAsync(employeeId, financialYear);
+        var summary = await _repository.GetYtdSummaryAsync(partyId, financialYear);
 
         return Ok(new ContractorPaymentSummaryDto
         {
-            EmployeeId = employeeId,
+            PartyId = partyId,
             FinancialYear = financialYear,
             TotalGross = summary.TryGetValue("YtdGross", out var g) ? g : 0,
             TotalTds = summary.TryGetValue("YtdTds", out var t) ? t : 0,

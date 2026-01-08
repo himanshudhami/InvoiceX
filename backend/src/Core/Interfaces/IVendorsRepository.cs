@@ -18,7 +18,9 @@ namespace Core.Interfaces
         Task<Vendors?> GetByPanAsync(Guid companyId, string panNumber);
         Task<IEnumerable<Vendors>> GetMsmeVendorsAsync(Guid companyId);
         Task<IEnumerable<Vendors>> GetTdsApplicableVendorsAsync(Guid companyId);
-        Task<Vendors?> GetByTallyGuidAsync(string tallyLedgerGuid);
+        // ==================== Tally Migration ====================
+        Task<Vendors?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid);
+        Task<Vendors?> GetByNameAsync(Guid companyId, string name);
         Task<Vendors> AddAsync(Vendors entity);
         Task UpdateAsync(Vendors entity);
         Task DeleteAsync(Guid id);

@@ -541,7 +541,7 @@ namespace Application.Services.Forex
                         InvoiceDate = i.InvoiceDate,
                         DeadlineDate = i.DeadlineDate,
                         DaysRemaining = daysRemaining,
-                        CustomerId = i.CustomerId,
+                        PartyId = i.PartyId,
                         CustomerName = i.CustomerName,
                         ForeignAmount = i.ForeignAmount,
                         Currency = i.Currency,
@@ -635,8 +635,8 @@ namespace Application.Services.Forex
             foreach (var invoice in exportInvoices)
             {
                 Core.Entities.Customers? customer = null;
-                if (invoice.CustomerId.HasValue)
-                    customer = await _customersRepository.GetByIdAsync(invoice.CustomerId.Value);
+                if (invoice.PartyId.HasValue)
+                    customer = await _customersRepository.GetByIdAsync(invoice.PartyId.Value);
 
                 var payments = await _paymentsRepository.GetByInvoiceIdAsync(invoice.Id);
                 var paymentList = payments
@@ -655,7 +655,7 @@ namespace Application.Services.Forex
                     InvoiceNumber = invoice.InvoiceNumber ?? string.Empty,
                     InvoiceDate = invoiceDate,
                     DeadlineDate = deadlineDate,
-                    CustomerId = invoice.CustomerId ?? Guid.Empty,
+                    PartyId = invoice.PartyId ?? Guid.Empty,
                     CustomerName = customer?.Name ?? "Unknown",
                     ForeignAmount = invoice.TotalAmount,
                     Currency = invoice.Currency ?? "USD",

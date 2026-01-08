@@ -136,7 +136,32 @@ namespace Infrastructure.Data.Ledger
                     entity.JournalNumber = await GenerateNextNumberAsync(entity.CompanyId, entity.FinancialYear);
                 }
 
-                var sql = @"INSERT INTO journal_entries (
+                // Use provided ID if set, otherwise let database generate one
+                var hasId = entity.Id != Guid.Empty;
+
+                var sql = hasId
+                    ? @"INSERT INTO journal_entries (
+                        id, company_id, journal_number, journal_date,
+                        financial_year, period_month, entry_type,
+                        source_type, source_id, source_number,
+                        description, narration, total_debit, total_credit,
+                        status, posted_at, posted_by,
+                        rule_pack_version, rule_code, idempotency_key,
+                        tally_voucher_guid, tally_voucher_number, tally_voucher_type, tally_migration_batch_id,
+                        created_by, created_at, updated_at
+                    )
+                    VALUES (
+                        @Id, @CompanyId, @JournalNumber, @JournalDate,
+                        @FinancialYear, @PeriodMonth, @EntryType,
+                        @SourceType, @SourceId, @SourceNumber,
+                        @Description, @Narration, @TotalDebit, @TotalCredit,
+                        @Status, @PostedAt, @PostedBy,
+                        @RulePackVersion, @RuleCode, @IdempotencyKey,
+                        @TallyVoucherGuid, @TallyVoucherNumber, @TallyVoucherType, @TallyMigrationBatchId,
+                        @CreatedBy, NOW(), NOW()
+                    )
+                    RETURNING *"
+                    : @"INSERT INTO journal_entries (
                         company_id, journal_number, journal_date,
                         financial_year, period_month, entry_type,
                         source_type, source_id, source_number,
@@ -611,6 +636,16 @@ namespace Infrastructure.Data.Ledger
                   AND je.journal_date <= @asOfDate";
 
             return await connection.ExecuteScalarAsync<decimal>(sql, new { companyId, accountId, asOfDate });
+        }
+
+        // ==================== Tally Integration ====================
+
+        public async Task<JournalEntry?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<JournalEntry>(
+                "SELECT * FROM journal_entries WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
         }
     }
 }

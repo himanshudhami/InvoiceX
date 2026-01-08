@@ -177,7 +177,7 @@ namespace Application.Services
                 {
                     Id = Guid.NewGuid(),
                     CompanyId = originalQuote.CompanyId,
-                    CustomerId = originalQuote.CustomerId,
+                    PartyId = originalQuote.PartyId,
                     QuoteNumber = await GenerateNextQuoteNumberAsync(originalQuote.CompanyId),
                     QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
                     ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
@@ -334,7 +334,7 @@ namespace Application.Services
                 {
                     Id = Guid.NewGuid(),
                     CompanyId = quote.CompanyId,
-                    CustomerId = quote.CustomerId,
+                    PartyId = quote.PartyId,
                     InvoiceNumber = await GenerateNextInvoiceNumberAsync(quote.CompanyId),
                     InvoiceDate = DateOnly.FromDateTime(DateTime.UtcNow),
                     DueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)), // Default 30 days

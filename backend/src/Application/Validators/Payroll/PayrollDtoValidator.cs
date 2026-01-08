@@ -113,7 +113,7 @@ public class CreateContractorPaymentDtoValidator : AbstractValidator<CreateContr
 {
     public CreateContractorPaymentDtoValidator()
     {
-        RuleFor(x => x.EmployeeId).NotEmpty().WithMessage("EmployeeId is required");
+        RuleFor(x => x.PartyId).NotEmpty().WithMessage("PartyId is required");
         RuleFor(x => x.CompanyId).NotEmpty().WithMessage("CompanyId is required");
         RuleFor(x => x.PaymentMonth).InclusiveBetween(1, 12).WithMessage("PaymentMonth must be between 1 and 12");
         RuleFor(x => x.PaymentYear).InclusiveBetween(2000, 2100).WithMessage("PaymentYear must be between 2000 and 2100");

@@ -8,12 +8,11 @@ import type {
   CreateContractorPaymentDto,
   UpdateContractorPaymentDto,
 } from '@/features/payroll/types/payroll'
-import { useEmployees } from '@/hooks/api/useEmployees'
+import { useVendorsPaged } from '@/features/parties/hooks'
 import { useCompanies } from '@/hooks/api/useCompanies'
-import { usePayrollInfoByType } from '@/features/payroll/hooks'
 import { formatINR } from '@/lib/currency'
 import { CompanySelect } from '@/components/ui/CompanySelect'
-import { EmployeeSelect } from '@/components/ui/EmployeeSelect'
+import type { PartyListItem } from '@/services/api/types/party'
 
 interface ContractorPaymentFormProps {
   payment?: ContractorPayment
@@ -31,11 +30,12 @@ export const ContractorPaymentForm = ({
   const initialCompanyId = payment?.companyId || defaultCompanyId || ''
 
   const [formData, setFormData] = useState<CreateContractorPaymentDto>({
-    employeeId: '',
+    partyId: '',
     companyId: initialCompanyId,
     paymentMonth: new Date().getMonth() + 1,
     paymentYear: new Date().getFullYear(),
     grossAmount: 0,
+    tdsSection: '194J',
     tdsRate: 10.0,
     otherDeductions: 0,
     gstApplicable: false,
@@ -47,10 +47,17 @@ export const ContractorPaymentForm = ({
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const { data: employees = [] } = useEmployees(formData.companyId || undefined)
+  // Fetch vendors (contractors are vendors with TDS applicable)
+  const { data: vendorsData } = useVendorsPaged({
+    companyId: formData.companyId || undefined,
+    pageSize: 100,
+    searchTerm: searchTerm || undefined,
+  })
+  const vendors = vendorsData?.items || []
+
   const { data: companies = [] } = useCompanies()
-  const { data: contractorPayrollInfo = [] } = usePayrollInfoByType('contractor')
   const createPayment = useCreateContractorPayment()
   const updatePayment = useUpdateContractorPayment()
 
@@ -68,11 +75,12 @@ export const ContractorPaymentForm = ({
   useEffect(() => {
     if (payment) {
       setFormData({
-        employeeId: payment.employeeId,
+        partyId: payment.partyId,
         companyId: payment.companyId,
         paymentMonth: payment.paymentMonth,
         paymentYear: payment.paymentYear,
         grossAmount: payment.grossAmount,
+        tdsSection: payment.tdsSection || '194J',
         tdsRate: payment.tdsRate,
         otherDeductions: payment.otherDeductions,
         gstApplicable: payment.gstApplicable,
@@ -94,7 +102,7 @@ export const ContractorPaymentForm = ({
       return {
         ...prev,
         companyId: defaultCompanyId || '',
-        employeeId: '',
+        partyId: '',
       }
     })
   }, [defaultCompanyId, payment])
@@ -102,7 +110,7 @@ export const ContractorPaymentForm = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.employeeId) newErrors.employeeId = 'Contractor is required'
+    if (!formData.partyId) newErrors.partyId = 'Contractor is required'
     if (!formData.companyId) newErrors.companyId = 'Company is required'
     if (!formData.paymentMonth || formData.paymentMonth < 1 || formData.paymentMonth > 12) {
       newErrors.paymentMonth = 'Valid month is required'
@@ -148,28 +156,22 @@ export const ContractorPaymentForm = ({
     }
   }
 
-  // Filter employees to show only those marked as contractors
-  const filteredContractorPayrollInfo = contractorPayrollInfo.filter(
-    (info) => !formData.companyId || info.companyId === formData.companyId
-  )
-  const contractorEmployeeIds = new Set(filteredContractorPayrollInfo.map((info) => info.employeeId))
-  const contractorEmployees = employees.filter(
-    (e) => contractorEmployeeIds.has(e.id) && (!formData.companyId || e.companyId === formData.companyId)
-  )
-
   const handleCompanyChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
       companyId: value,
-      employeeId: '',
+      partyId: '',
     }))
     if (errors.companyId) {
       setErrors((prev) => ({ ...prev, companyId: '' }))
     }
-    if (errors.employeeId) {
-      setErrors((prev) => ({ ...prev, employeeId: '' }))
+    if (errors.partyId) {
+      setErrors((prev) => ({ ...prev, partyId: '' }))
     }
   }
+
+  // Get selected vendor for display
+  const selectedVendor = vendors.find((v) => v.id === formData.partyId)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -190,16 +192,31 @@ export const ContractorPaymentForm = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Contractor <span className="text-red-500">*</span>
+            Contractor (Vendor) <span className="text-red-500">*</span>
           </label>
-          <EmployeeSelect
-            employees={contractorEmployees}
-            value={formData.employeeId}
-            onChange={(value) => handleInputChange('employeeId', value)}
-            placeholder="Search contractor..."
-            disabled={isEditing}
-            error={errors.employeeId}
-          />
+          <select
+            className={`w-full rounded-md border px-3 py-2 ${
+              errors.partyId ? 'border-red-500' : 'border-gray-300'
+            }`}
+            value={formData.partyId}
+            onChange={(e) => handleInputChange('partyId', e.target.value)}
+            disabled={isEditing || !formData.companyId}
+          >
+            <option value="">Select contractor...</option>
+            {vendors.map((vendor: PartyListItem) => (
+              <option key={vendor.id} value={vendor.id}>
+                {vendor.name} {vendor.panNumber ? `(${vendor.panNumber})` : ''}
+              </option>
+            ))}
+          </select>
+          {errors.partyId && (
+            <p className="text-red-500 text-xs mt-1">{errors.partyId}</p>
+          )}
+          {selectedVendor && selectedVendor.tdsSection && (
+            <p className="text-xs text-gray-500 mt-1">
+              TDS: {selectedVendor.tdsSection} @ {selectedVendor.tdsRate}%
+            </p>
+          )}
         </div>
       </div>
 
@@ -240,6 +257,28 @@ export const ContractorPaymentForm = ({
             disabled={isEditing}
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            TDS Section
+          </label>
+          <select
+            className="w-full rounded-md border border-gray-300 px-3 py-2"
+            value={formData.tdsSection}
+            onChange={(e) => {
+              const section = e.target.value
+              handleInputChange('tdsSection', section)
+              // Auto-set rate based on section
+              if (section === '194J') handleInputChange('tdsRate', 10)
+              else if (section === '194C') handleInputChange('tdsRate', 2)
+            }}
+          >
+            <option value="194J">194J - Professional/Technical Fees (10%)</option>
+            <option value="194C">194C - Contractors (2%)</option>
+            <option value="194H">194H - Commission/Brokerage (5%)</option>
+            <option value="194I(b)">194I(b) - Rent - Building (10%)</option>
+          </select>
+        </div>
       </div>
 
       <div>
@@ -272,7 +311,7 @@ export const ContractorPaymentForm = ({
             value={formData.tdsRate}
             onChange={(e) => handleInputChange('tdsRate', parseFloat(e.target.value) || 10)}
           />
-          <p className="text-xs text-gray-500 mt-1">Default: 10% (Section 194J)</p>
+          <p className="text-xs text-gray-500 mt-1">Section {formData.tdsSection}</p>
         </div>
 
         <div>
@@ -374,13 +413,13 @@ export const ContractorPaymentForm = ({
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-gray-600">TDS ({formData.tdsRate}%):</span>
+          <span className="text-gray-600">TDS ({formData.tdsSection} @ {formData.tdsRate}%):</span>
           <span className="font-medium text-red-600">-{formatINR(tdsAmount)}</span>
         </div>
-        {formData.otherDeductions > 0 && (
+        {(formData.otherDeductions ?? 0) > 0 && (
           <div className="flex justify-between">
             <span className="text-gray-600">Other Deductions:</span>
-            <span className="font-medium text-red-600">-{formatINR(formData.otherDeductions)}</span>
+            <span className="font-medium text-red-600">-{formatINR(formData.otherDeductions ?? 0)}</span>
           </div>
         )}
         <div className="flex justify-between border-t pt-2 mt-2">
@@ -422,5 +461,3 @@ export const ContractorPaymentForm = ({
     </form>
   )
 }
-
-

@@ -24,7 +24,11 @@ export class LedgerService {
 
   // ==================== Chart of Accounts ====================
 
-  async getAccounts(companyId: string): Promise<ChartOfAccount[]> {
+  async getAccounts(companyId?: string): Promise<ChartOfAccount[]> {
+    if (!companyId) {
+      // Return empty array if no company selected - UI should prompt user to select company
+      return [];
+    }
     return apiClient.get<ChartOfAccount[]>(`${this.baseEndpoint}/accounts/company/${companyId}`);
   }
 
@@ -70,7 +74,11 @@ export class LedgerService {
 
   // ==================== Journal Entries ====================
 
-  async getJournalEntries(companyId: string): Promise<JournalEntry[]> {
+  async getJournalEntries(companyId?: string): Promise<JournalEntry[]> {
+    if (!companyId) {
+      // Return empty array if no company selected - UI should prompt user to select company
+      return [];
+    }
     return apiClient.get<JournalEntry[]>(`${this.baseEndpoint}/journals/company/${companyId}`);
   }
 

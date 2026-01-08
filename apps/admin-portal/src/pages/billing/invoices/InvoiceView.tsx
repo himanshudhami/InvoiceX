@@ -51,7 +51,7 @@ const InvoiceView = () => {
   const { data: customers = [] } = useCustomers(invoice?.companyId)
   const { data: companies = [] } = useCompanies()
 
-  const customer = customers.find(c => c.id === invoice?.customerId)
+  const customer = customers.find(c => c.id === invoice?.partyId)
   const company = companies.find(c => c.id === invoice?.companyId)
   const [templateModal, setTemplateModal] = useState(false)
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)

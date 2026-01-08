@@ -159,9 +159,9 @@ namespace Application.Services
                 return validation.Error!;
 
             // Validate vendor exists
-            var vendor = await _vendorsRepository.GetByIdAsync(dto.VendorId);
+            var vendor = await _vendorsRepository.GetByIdAsync(dto.PartyId);
             if (vendor == null)
-                return Error.NotFound($"Vendor with ID {dto.VendorId} not found");
+                return Error.NotFound($"Vendor with ID {dto.PartyId} not found");
 
             // Map DTO to entity
             var entity = _mapper.Map<VendorInvoice>(dto);

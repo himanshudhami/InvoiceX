@@ -28,8 +28,8 @@ export class VendorPaymentService {
     return apiClient.getPaged<VendorPayment>(this.endpoint, params);
   }
 
-  async getByVendor(vendorId: string, params: VendorPaymentsFilterParams = {}): Promise<PagedResponse<VendorPayment>> {
-    return apiClient.getPaged<VendorPayment>(this.endpoint, { ...params, vendorId });
+  async getByVendor(partyId: string, params: VendorPaymentsFilterParams = {}): Promise<PagedResponse<VendorPayment>> {
+    return apiClient.getPaged<VendorPayment>(this.endpoint, { ...params, partyId });
   }
 
   async create(data: CreateVendorPaymentDto): Promise<VendorPayment> {

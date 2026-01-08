@@ -297,7 +297,7 @@ namespace Application.Services.Forex
                     InvoiceId = invoice.Id,
                     InvoiceNumber = invoice.InvoiceNumber,
                     InvoiceDate = invoice.InvoiceDate,
-                    CustomerId = invoice.CustomerId,
+                    PartyId = invoice.PartyId,
                     Currency = booking.Currency,
                     ForeignAmount = booking.ForeignAmount,
                     BookingRate = booking.ExchangeRate,

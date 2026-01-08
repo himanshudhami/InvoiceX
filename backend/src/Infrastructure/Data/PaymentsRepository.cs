@@ -15,7 +15,7 @@ namespace Infrastructure.Data
         // All columns for SELECT queries (payments table)
         private static readonly string[] AllColumns = new[]
         {
-            "id", "invoice_id", "company_id", "customer_id",
+            "id", "invoice_id", "company_id", "party_id",
             "payment_date", "amount", "amount_in_inr", "currency",
             "payment_method", "reference_number", "notes", "description",
             "payment_type", "income_category",
@@ -126,21 +126,23 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO payments (
-                    invoice_id, company_id, customer_id,
+                    invoice_id, company_id, party_id,
                     payment_date, amount, amount_in_inr, currency,
                     payment_method, reference_number, notes, description,
                     payment_type, income_category,
                     tds_applicable, tds_section, tds_rate, tds_amount, gross_amount,
                     financial_year,
+                    tally_voucher_guid, tally_voucher_number, tally_voucher_type, tally_migration_batch_id,
                     created_at, updated_at
                 )
                 VALUES (
-                    @InvoiceId, @CompanyId, @CustomerId,
+                    @InvoiceId, @CompanyId, @PartyId,
                     @PaymentDate, @Amount, @AmountInInr, @Currency,
                     @PaymentMethod, @ReferenceNumber, @Notes, @Description,
                     @PaymentType, @IncomeCategory,
                     @TdsApplicable, @TdsSection, @TdsRate, @TdsAmount, @GrossAmount,
                     @FinancialYear,
+                    @TallyVoucherGuid, @TallyVoucherNumber, @TallyVoucherType, @TallyMigrationBatchId,
                     NOW(), NOW()
                 )
                 RETURNING *";
@@ -155,7 +157,7 @@ namespace Infrastructure.Data
             var sql = @"UPDATE payments SET
                     invoice_id = @InvoiceId,
                     company_id = @CompanyId,
-                    customer_id = @CustomerId,
+                    party_id = @PartyId,
                     payment_date = @PaymentDate,
                     amount = @Amount,
                     amount_in_inr = @AmountInInr,
@@ -208,14 +210,14 @@ namespace Infrastructure.Data
         }
 
         /// <summary>
-        /// Get payments by customer ID
+        /// Get payments by party ID (customer)
         /// </summary>
-        public async Task<IEnumerable<Payments>> GetByCustomerIdAsync(Guid customerId)
+        public async Task<IEnumerable<Payments>> GetByCustomerIdAsync(Guid partyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Payments>(
-                SelectWithInvoiceNumber + " WHERE p.customer_id = @customerId ORDER BY p.payment_date DESC",
-                new { customerId });
+                SelectWithInvoiceNumber + " WHERE p.party_id = @partyId ORDER BY p.payment_date DESC",
+                new { partyId });
         }
 
         /// <summary>
@@ -296,22 +298,32 @@ namespace Infrastructure.Data
 
             var sql = @"
                 SELECT
-                    c.name as customer_name,
-                    c.tax_number as customer_pan,
+                    pt.name as customer_name,
+                    pt.pan_number as customer_pan,
                     p.tds_section,
                     COUNT(*) as payment_count,
                     SUM(COALESCE(p.gross_amount, p.amount)) as total_gross,
                     SUM(COALESCE(p.tds_amount, 0)) as total_tds,
                     SUM(p.amount) as total_net
                 FROM payments p
-                LEFT JOIN customers c ON p.customer_id = c.id
+                LEFT JOIN parties pt ON p.party_id = pt.id
                 WHERE p.tds_applicable = true
                     AND p.financial_year = @financialYear
                     AND (@companyId IS NULL OR p.company_id = @companyId)
-                GROUP BY c.name, c.tax_number, p.tds_section
+                GROUP BY pt.name, pt.pan_number, p.tds_section
                 ORDER BY total_tds DESC";
 
             return await connection.QueryAsync(sql, new { companyId, financialYear });
+        }
+
+        // ==================== Tally Integration ====================
+
+        public async Task<Payments?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Payments>(
+                "SELECT * FROM payments WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
         }
     }
 }

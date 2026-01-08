@@ -257,5 +257,40 @@ namespace Infrastructure.Data.Ledger
                 "SELECT create_default_chart_of_accounts(@companyId, @createdBy)",
                 new { companyId, createdBy });
         }
+
+        // ==================== Tally Integration ====================
+
+        public async Task<ChartOfAccount?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<ChartOfAccount>(
+                "SELECT * FROM chart_of_accounts WHERE company_id = @companyId AND tally_ledger_guid = @tallyLedgerGuid",
+                new { companyId, tallyLedgerGuid });
+        }
+
+        public async Task<ChartOfAccount?> GetByNameAsync(Guid companyId, string accountName)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<ChartOfAccount>(
+                "SELECT * FROM chart_of_accounts WHERE company_id = @companyId AND LOWER(account_name) = LOWER(@accountName)",
+                new { companyId, accountName });
+        }
+
+        public async Task<ChartOfAccount?> GetSuspenseAccountAsync(Guid companyId, string accountType)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<ChartOfAccount>(
+                "SELECT * FROM chart_of_accounts WHERE company_id = @companyId AND account_type = @accountType AND account_name LIKE '%Suspense%' ORDER BY created_at DESC LIMIT 1",
+                new { companyId, accountType });
+        }
+
+        public async Task<string> GetMaxAccountCodeAsync(Guid companyId, string accountType)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            var result = await connection.QueryFirstOrDefaultAsync<string>(
+                "SELECT MAX(account_code) FROM chart_of_accounts WHERE company_id = @companyId AND account_type = @accountType",
+                new { companyId, accountType });
+            return result ?? "0000";
+        }
     }
 }

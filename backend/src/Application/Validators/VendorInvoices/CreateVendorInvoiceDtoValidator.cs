@@ -10,7 +10,7 @@ namespace Application.Validators.VendorInvoices
     {
         public CreateVendorInvoiceDtoValidator()
         {
-            RuleFor(x => x.VendorId)
+            RuleFor(x => x.PartyId)
                 .NotEmpty().WithMessage("Vendor ID is required");
 
             RuleFor(x => x.InvoiceNumber)

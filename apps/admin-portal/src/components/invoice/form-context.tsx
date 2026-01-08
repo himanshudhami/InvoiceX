@@ -7,7 +7,7 @@ interface InvoiceFormData {
   invoiceDate: string
   dueDate: string
   currency: string
-  customerId?: string
+  partyId?: string
   companyId?: string
   subtotal: number
   taxAmount: number

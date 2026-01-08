@@ -140,8 +140,8 @@ namespace Application.Services
                 existingEntity.FinancialYear = dto.FinancialYear;
             if (!string.IsNullOrWhiteSpace(dto.Quarter))
                 existingEntity.Quarter = dto.Quarter;
-            if (dto.CustomerId.HasValue)
-                existingEntity.CustomerId = dto.CustomerId;
+            if (dto.PartyId.HasValue)
+                existingEntity.PartyId = dto.PartyId;
             if (!string.IsNullOrWhiteSpace(dto.DeductorName))
                 existingEntity.DeductorName = dto.DeductorName;
             if (dto.DeductorTan != null)

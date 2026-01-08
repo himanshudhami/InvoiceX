@@ -18,5 +18,9 @@ namespace Core.Interfaces
         Task<Customers> AddAsync(Customers entity);
         Task UpdateAsync(Customers entity);
         Task DeleteAsync(Guid id);
+
+        // ==================== Tally Migration ====================
+        Task<Customers?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid);
+        Task<Customers?> GetByNameAsync(Guid companyId, string name);
     }
 }

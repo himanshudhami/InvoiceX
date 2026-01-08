@@ -1,34 +1,83 @@
-import { Fragment, ReactNode } from 'react'
+import { Fragment, ReactNode, useMemo } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { cn } from '@/lib/utils'
+import { useResizable } from '@/hooks/useResizable'
 
 interface DrawerProps {
   isOpen: boolean
   onClose: () => void
   title: string
   children: ReactNode
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Preset size - ignored if resizable is true */
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '2/3' | 'full'
   showCloseButton?: boolean
+  /** Enable drag-to-resize functionality */
+  resizable?: boolean
+  /** Storage key for persisting resized width */
+  resizeStorageKey?: string
+  /** Minimum width when resizable (default: 320px) */
+  minWidth?: number
+  /** Maximum width when resizable (default: screen width - 100px) */
+  maxWidth?: number
 }
 
-const sizeClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
+// Tailwind max-width classes for preset sizes
+const sizeClasses: Record<string, string> = {
+  sm: 'max-w-sm',      // 384px
+  md: 'max-w-md',      // 448px
+  lg: 'max-w-lg',      // 512px
+  xl: 'max-w-xl',      // 576px
+  '2xl': 'max-w-2xl',  // 672px
+  '3xl': 'max-w-3xl',  // 768px
+  '2/3': 'max-w-[66vw]', // 2/3 of viewport
+  full: 'max-w-full',
 }
 
-export const Drawer = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  size = 'lg', 
-  showCloseButton = true 
+// Default widths in pixels for resizable mode
+const defaultWidths: Record<string, number> = {
+  sm: 384,
+  md: 448,
+  lg: 512,
+  xl: 576,
+  '2xl': 672,
+  '3xl': 768,
+  '2/3': Math.round(window.innerWidth * 0.66),
+  full: window.innerWidth - 100,
+}
+
+export const Drawer = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'lg',
+  showCloseButton = true,
+  resizable = false,
+  resizeStorageKey,
+  minWidth = 320,
+  maxWidth,
 }: DrawerProps) => {
+  const initialWidth = defaultWidths[size] || defaultWidths.lg
+  const effectiveMaxWidth = maxWidth || (typeof window !== 'undefined' ? window.innerWidth - 100 : 1200)
+
+  const { width, isDragging, handleProps } = useResizable({
+    initialWidth,
+    minWidth,
+    maxWidth: effectiveMaxWidth,
+    storageKey: resizeStorageKey,
+    direction: 'left',
+  })
+
+  // Memoize panel style for resizable mode
+  const panelStyle = useMemo(() => {
+    if (!resizable) return undefined
+    return { width: `${width}px` }
+  }, [resizable, width])
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
+        {/* Backdrop */}
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -53,10 +102,43 @@ export const Drawer = ({
                 leaveFrom="translate-x-0"
                 leaveTo="translate-x-full"
               >
-                <Dialog.Panel className={cn(
-                  "pointer-events-auto w-screen",
-                  sizeClasses[size]
-                )}>
+                <Dialog.Panel
+                  className={cn(
+                    "pointer-events-auto w-screen relative",
+                    !resizable && sizeClasses[size]
+                  )}
+                  style={panelStyle}
+                >
+                  {/* Resize Handle - only shown when resizable */}
+                  {resizable && (
+                    <div
+                      {...handleProps}
+                      className={cn(
+                        "absolute left-0 top-0 bottom-0 w-1 hover:w-1.5 transition-all",
+                        "bg-transparent hover:bg-blue-400",
+                        "group flex items-center justify-center",
+                        isDragging && "w-1.5 bg-blue-500"
+                      )}
+                      title="Drag to resize"
+                    >
+                      {/* Visual grip indicator */}
+                      <div className={cn(
+                        "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2",
+                        "w-4 h-12 rounded-full",
+                        "bg-gray-300 hover:bg-blue-400 transition-colors",
+                        "opacity-0 group-hover:opacity-100",
+                        "flex items-center justify-center",
+                        isDragging && "opacity-100 bg-blue-500"
+                      )}>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="w-0.5 h-0.5 bg-white rounded-full" />
+                          <div className="w-0.5 h-0.5 bg-white rounded-full" />
+                          <div className="w-0.5 h-0.5 bg-white rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
                     {/* Header */}
                     <div className="bg-gray-50 px-4 py-6 sm:px-6">

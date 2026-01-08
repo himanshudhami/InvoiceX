@@ -55,12 +55,12 @@ namespace Infrastructure.Data
                 new { companyId });
         }
 
-        public async Task<IEnumerable<VendorPayment>> GetByVendorIdAsync(Guid vendorId)
+        public async Task<IEnumerable<VendorPayment>> GetByVendorIdAsync(Guid partyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<VendorPayment>(
-                "SELECT * FROM vendor_payments WHERE vendor_id = @vendorId ORDER BY payment_date DESC",
-                new { vendorId });
+                "SELECT * FROM vendor_payments WHERE party_id = @partyId ORDER BY payment_date DESC",
+                new { partyId });
         }
 
         public async Task<(IEnumerable<VendorPayment> Items, int TotalCount)> GetPagedAsync(
@@ -73,7 +73,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var allowedColumns = new[] {
-                "id", "company_id", "vendor_id", "payment_number", "payment_date",
+                "id", "company_id", "party_id", "payment_number", "payment_date",
                 "gross_amount", "tds_amount", "net_amount", "payment_method", "status",
                 "bank_account_id", "reference_number", "cheque_number", "cheque_date",
                 "utr_number", "is_posted", "is_reconciled", "financial_year",
@@ -152,30 +152,38 @@ namespace Infrastructure.Data
                 new { tallyVoucherGuid });
         }
 
+        public async Task<VendorPayment?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<VendorPayment>(
+                "SELECT * FROM vendor_payments WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
+        }
+
         public async Task<VendorPayment> AddAsync(VendorPayment entity)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO vendor_payments (
-                company_id, vendor_id, payment_number, payment_date,
-                gross_amount, tds_section, tds_rate, tds_amount, net_amount,
-                payment_method, bank_account_id, reference_number,
-                cheque_number, cheque_date, utr_number,
-                currency, exchange_rate, foreign_currency_amount,
-                status, notes, is_posted, posted_journal_id, posted_at,
-                is_reconciled, reconciled_bank_transaction_id, reconciled_at,
-                financial_year, tds_deposited, tds_challan_number, tds_deposit_date,
+                company_id, party_id, payment_date, amount, gross_amount, amount_in_inr,
+                currency, payment_method, reference_number, cheque_number, cheque_date,
+                notes, description, payment_type, status,
+                tds_applicable, tds_section, tds_rate, tds_amount,
+                tds_deposited, tds_challan_number, tds_deposit_date,
+                financial_year, bank_account_id,
+                is_posted, posted_journal_id, posted_at,
+                is_reconciled, bank_transaction_id, reconciled_at,
                 approved_by, approved_at,
                 tally_voucher_guid, tally_voucher_number, tally_migration_batch_id,
                 created_at, updated_at
             ) VALUES (
-                @CompanyId, @VendorId, @PaymentNumber, @PaymentDate,
-                @GrossAmount, @TdsSection, @TdsRate, @TdsAmount, @NetAmount,
-                @PaymentMethod, @BankAccountId, @ReferenceNumber,
-                @ChequeNumber, @ChequeDate, @UtrNumber,
-                @Currency, @ExchangeRate, @ForeignCurrencyAmount,
-                @Status, @Notes, @IsPosted, @PostedJournalId, @PostedAt,
-                @IsReconciled, @ReconciledBankTransactionId, @ReconciledAt,
-                @FinancialYear, @TdsDeposited, @TdsChallanNumber, @TdsDepositDate,
+                @CompanyId, @PartyId, @PaymentDate, @Amount, @GrossAmount, @AmountInInr,
+                @Currency, @PaymentMethod, @ReferenceNumber, @ChequeNumber, @ChequeDate,
+                @Notes, @Description, @PaymentType, @Status,
+                @TdsApplicable, @TdsSection, @TdsRate, @TdsAmount,
+                @TdsDeposited, @TdsChallanNumber, @TdsDepositDate,
+                @FinancialYear, @BankAccountId,
+                @IsPosted, @PostedJournalId, @PostedAt,
+                @IsReconciled, @BankTransactionId, @ReconciledAt,
                 @ApprovedBy, @ApprovedAt,
                 @TallyVoucherGuid, @TallyVoucherNumber, @TallyMigrationBatchId,
                 NOW(), NOW()
@@ -189,35 +197,35 @@ namespace Infrastructure.Data
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"UPDATE vendor_payments SET
                 company_id = @CompanyId,
-                vendor_id = @VendorId,
-                payment_number = @PaymentNumber,
+                party_id = @PartyId,
                 payment_date = @PaymentDate,
+                amount = @Amount,
                 gross_amount = @GrossAmount,
-                tds_section = @TdsSection,
-                tds_rate = @TdsRate,
-                tds_amount = @TdsAmount,
-                net_amount = @NetAmount,
+                amount_in_inr = @AmountInInr,
+                currency = @Currency,
                 payment_method = @PaymentMethod,
-                bank_account_id = @BankAccountId,
                 reference_number = @ReferenceNumber,
                 cheque_number = @ChequeNumber,
                 cheque_date = @ChequeDate,
-                utr_number = @UtrNumber,
-                currency = @Currency,
-                exchange_rate = @ExchangeRate,
-                foreign_currency_amount = @ForeignCurrencyAmount,
-                status = @Status,
                 notes = @Notes,
+                description = @Description,
+                payment_type = @PaymentType,
+                status = @Status,
+                tds_applicable = @TdsApplicable,
+                tds_section = @TdsSection,
+                tds_rate = @TdsRate,
+                tds_amount = @TdsAmount,
+                tds_deposited = @TdsDeposited,
+                tds_challan_number = @TdsChallanNumber,
+                tds_deposit_date = @TdsDepositDate,
+                financial_year = @FinancialYear,
+                bank_account_id = @BankAccountId,
                 is_posted = @IsPosted,
                 posted_journal_id = @PostedJournalId,
                 posted_at = @PostedAt,
                 is_reconciled = @IsReconciled,
-                reconciled_bank_transaction_id = @ReconciledBankTransactionId,
+                bank_transaction_id = @BankTransactionId,
                 reconciled_at = @ReconciledAt,
-                financial_year = @FinancialYear,
-                tds_deposited = @TdsDeposited,
-                tds_challan_number = @TdsChallanNumber,
-                tds_deposit_date = @TdsDepositDate,
                 approved_by = @ApprovedBy,
                 approved_at = @ApprovedAt,
                 tally_voucher_guid = @TallyVoucherGuid,
@@ -345,13 +353,13 @@ namespace Infrastructure.Data
         }
 
         // Report methods
-        public async Task<decimal> GetTotalPaidToVendorAsync(Guid vendorId, DateOnly? fromDate = null, DateOnly? toDate = null)
+        public async Task<decimal> GetTotalPaidToVendorAsync(Guid partyId, DateOnly? fromDate = null, DateOnly? toDate = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"
                 SELECT COALESCE(SUM(net_amount), 0)
                 FROM vendor_payments
-                WHERE vendor_id = @vendorId
+                WHERE party_id = @partyId
                 AND status NOT IN ('draft', 'cancelled', 'failed')";
 
             if (fromDate.HasValue)
@@ -359,7 +367,7 @@ namespace Infrastructure.Data
             if (toDate.HasValue)
                 sql += " AND payment_date <= @toDate";
 
-            return await connection.QuerySingleAsync<decimal>(sql, new { vendorId, fromDate, toDate });
+            return await connection.QuerySingleAsync<decimal>(sql, new { partyId, fromDate, toDate });
         }
 
         public async Task<decimal> GetTotalTdsDeductedAsync(Guid companyId, string financialYear)

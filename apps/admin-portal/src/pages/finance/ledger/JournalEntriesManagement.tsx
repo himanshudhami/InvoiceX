@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useJournalEntries, useJournalEntry, usePostJournalEntry, useReverseJournalEntry } from '@/features/ledger/hooks'
-import { useCompanies } from '@/hooks/api/useCompanies'
+import { useCompanyContext } from '@/contexts/CompanyContext'
 import { JournalEntry, JournalEntryStatus, JournalEntryType } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { format, parseISO } from 'date-fns'
 import { JournalEntryForm } from '@/components/forms/JournalEntryForm'
 import { JournalEntryDetail } from '@/components/ledger/JournalEntryDetail'
+import { useQueryState, parseAsString } from 'nuqs'
 
 const statusConfig: Record<JournalEntryStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft: { label: 'Draft', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -37,17 +38,24 @@ const entryTypeConfig: Record<JournalEntryType, { label: string; color: string }
 }
 
 const JournalEntriesManagement = () => {
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext()
+
+  // URL-backed filter state with nuqs
+  const [companyFilter, setCompanyFilter] = useQueryState('company', parseAsString.withDefault(''))
+  const [statusFilter, setStatusFilter] = useQueryState('status', parseAsString.withDefault(''))
+  const [entryTypeFilter, setEntryTypeFilter] = useQueryState('type', parseAsString.withDefault(''))
+
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
   const [viewingEntry, setViewingEntry] = useState<JournalEntry | null>(null)
   const [postingEntry, setPostingEntry] = useState<JournalEntry | null>(null)
   const [reversingEntry, setReversingEntry] = useState<JournalEntry | null>(null)
   const [reversalReason, setReversalReason] = useState('')
-  const [companyFilter, setCompanyFilter] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [entryTypeFilter, setEntryTypeFilter] = useState<string>('')
 
-  const { data: allEntries = [], isLoading, error, refetch } = useJournalEntries(companyFilter, !!companyFilter)
-  const { data: companies = [] } = useCompanies()
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined)
+
+  const { data: allEntries = [], isLoading, error, refetch } = useJournalEntries(effectiveCompanyId || undefined)
   const postEntry = usePostJournalEntry()
   const reverseEntry = useReverseJournalEntry()
 
@@ -261,8 +269,8 @@ const JournalEntriesManagement = () => {
             <p className="mt-1 text-sm text-gray-500">Please select a company to view its journal entries</p>
             <div className="mt-6 flex justify-center">
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
           </div>
@@ -345,8 +353,8 @@ const JournalEntriesManagement = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
             <div>

@@ -100,6 +100,28 @@ namespace Core.Entities.Ledger
         /// </summary>
         public bool IsActive { get; set; } = true;
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Ledger GUID for migration tracking
+        /// </summary>
+        public string? TallyLedgerGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Ledger Name at time of import
+        /// </summary>
+        public string? TallyLedgerName { get; set; }
+
+        /// <summary>
+        /// Tally parent group name for mapping reference
+        /// </summary>
+        public string? TallyGroupName { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Audit ====================
 
         public Guid? CreatedBy { get; set; }

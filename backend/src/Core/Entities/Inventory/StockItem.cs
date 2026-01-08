@@ -39,6 +39,9 @@ public class StockItem
     // Batch/Lot tracking
     public bool IsBatchEnabled { get; set; }
 
+    // Serial number tracking for high-value items
+    public bool IsSerialEnabled { get; set; }
+
     // Valuation method: fifo, lifo, weighted_avg
     public string ValuationMethod { get; set; } = "weighted_avg";
 

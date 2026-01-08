@@ -82,8 +82,8 @@ export const useCreateVendorInvoice = () => {
     mutationFn: (data: CreateVendorInvoiceDto) => vendorInvoiceService.create(data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: vendorInvoiceKeys.lists() });
-      if (result.vendorId) {
-        queryClient.invalidateQueries({ queryKey: vendorKeys.vendorOutstanding(result.vendorId) });
+      if (result.partyId) {
+        queryClient.invalidateQueries({ queryKey: vendorKeys.vendorOutstanding(result.partyId) });
       }
     },
     onError: (error) => {

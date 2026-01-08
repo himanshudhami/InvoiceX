@@ -6,12 +6,12 @@ namespace Core.Interfaces.Payroll
     {
         Task<ContractorPayment?> GetByIdAsync(Guid id);
         Task<IEnumerable<ContractorPayment>> GetAllAsync();
-        Task<IEnumerable<ContractorPayment>> GetByEmployeeIdAsync(Guid employeeId);
+        Task<IEnumerable<ContractorPayment>> GetByPartyIdAsync(Guid partyId);
         Task<IEnumerable<ContractorPayment>> GetByCompanyIdAsync(Guid companyId);
-        Task<ContractorPayment?> GetByEmployeeAndMonthAsync(Guid employeeId, int paymentMonth, int paymentYear);
+        Task<ContractorPayment?> GetByPartyAndMonthAsync(Guid partyId, int paymentMonth, int paymentYear);
         Task<IEnumerable<ContractorPayment>> GetByMonthYearAsync(int paymentMonth, int paymentYear, Guid? companyId = null);
         Task<IEnumerable<ContractorPayment>> GetByStatusAsync(string status, Guid? companyId = null);
-        Task<IEnumerable<ContractorPayment>> GetByFinancialYearAsync(Guid employeeId, string financialYear);
+        Task<IEnumerable<ContractorPayment>> GetByFinancialYearAsync(Guid partyId, string financialYear);
         Task<(IEnumerable<ContractorPayment> Items, int TotalCount)> GetPagedAsync(
             int pageNumber,
             int pageSize,
@@ -23,11 +23,14 @@ namespace Core.Interfaces.Payroll
         Task UpdateAsync(ContractorPayment entity);
         Task DeleteAsync(Guid id);
         Task<IEnumerable<ContractorPayment>> BulkAddAsync(IEnumerable<ContractorPayment> entities);
-        Task<bool> ExistsForEmployeeAndMonthAsync(Guid employeeId, int paymentMonth, int paymentYear, Guid? excludeId = null);
+        Task<bool> ExistsForPartyAndMonthAsync(Guid partyId, int paymentMonth, int paymentYear, Guid? excludeId = null);
         Task UpdateStatusAsync(Guid id, string status);
 
         // Summary methods
         Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(int paymentMonth, int paymentYear, Guid? companyId = null);
-        Task<Dictionary<string, decimal>> GetYtdSummaryAsync(Guid employeeId, string financialYear);
+        Task<Dictionary<string, decimal>> GetYtdSummaryAsync(Guid partyId, string financialYear);
+
+        // Tally Migration
+        Task<ContractorPayment?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
     }
 }

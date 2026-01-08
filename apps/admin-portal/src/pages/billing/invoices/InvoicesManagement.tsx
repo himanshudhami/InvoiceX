@@ -18,7 +18,7 @@ const InvoicesManagement = () => {
   const navigate = useNavigate()
 
   const { data: invoices = [], isLoading, error, refetch } = useInvoices()
-  const { data: customers = [] } = useCustomers(selectedCompanyId || undefined)
+  const { data: customers = [] } = useCustomers()
   const { data: companies = [] } = useCompanies()
   const deleteInvoice = useDeleteInvoice()
 
@@ -52,9 +52,9 @@ const InvoicesManagement = () => {
   }
 
   // Helper functions to get related entity names
-  const getCustomerName = (customerId?: string) => {
-    if (!customerId) return '—'
-    const customer = customers.find(c => c.id === customerId)
+  const getCustomerName = (partyId?: string) => {
+    if (!partyId) return '—'
+    const customer = customers.find(c => c.id === partyId)
     return customer ? `${customer.name}${customer.companyName ? ` (${customer.companyName})` : ''}` : '—'
   }
 
@@ -117,10 +117,10 @@ const InvoicesManagement = () => {
       },
     },
     {
-      accessorKey: 'customerId',
+      accessorKey: 'partyId',
       header: 'Customer',
       cell: ({ row }) => {
-        const customerName = getCustomerName(row.original.customerId)
+        const customerName = getCustomerName(row.original.partyId)
         return (
           <div className="text-sm text-gray-900">{customerName}</div>
         )

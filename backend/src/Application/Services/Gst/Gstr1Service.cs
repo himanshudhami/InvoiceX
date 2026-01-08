@@ -95,7 +95,7 @@ namespace Application.Services.Gst
                 i.Currency == "INR" &&
                 i.InvoiceType == "domestic_b2b"))
             {
-                var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
                 if (customer == null || string.IsNullOrEmpty(customer.Gstin))
                     continue;
 
@@ -136,7 +136,7 @@ namespace Application.Services.Gst
                 i.TotalAmount > 250000 &&  // Interstate > 2.5L
                 (i.InvoiceType == "domestic_b2c" || string.IsNullOrEmpty(i.InvoiceType))))
             {
-                var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
                 if (customer != null && !string.IsNullOrEmpty(customer.Gstin))
                     continue;  // B2B, not B2C
 
@@ -175,7 +175,7 @@ namespace Application.Services.Gst
                 i.Currency != "INR" &&
                 i.TotalIgst > 0))  // Has IGST = with payment
             {
-                var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
 
                 exports.Add(await CreateExportDto(invoice, customer, "WPAY", companyId));
             }
@@ -197,7 +197,7 @@ namespace Application.Services.Gst
                 i.Currency != "INR" &&
                 (i.TotalIgst == 0 || i.TotalIgst == null)))  // No IGST = under LUT
             {
-                var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
 
                 exports.Add(await CreateExportDto(invoice, customer, "WOPAY", companyId));
             }
@@ -337,7 +337,7 @@ namespace Application.Services.Gst
                 // For B2B, validate customer GSTIN
                 if (invoice.InvoiceType == "domestic_b2b")
                 {
-                    var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                    var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
                     if (customer == null || string.IsNullOrEmpty(customer.Gstin))
                     {
                         validation.Errors.Add("B2B invoice requires customer GSTIN");
@@ -387,7 +387,7 @@ namespace Application.Services.Gst
 
             foreach (var invoice in invoices.Where(i => i.Status == "draft"))
             {
-                var customer = await _customersRepository.GetByIdAsync(invoice.CustomerId ?? Guid.Empty);
+                var customer = await _customersRepository.GetByIdAsync(invoice.PartyId ?? Guid.Empty);
 
                 missingInvoices.Add(new MissingInvoiceDto
                 {

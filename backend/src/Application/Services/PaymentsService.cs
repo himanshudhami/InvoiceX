@@ -131,9 +131,9 @@ namespace Application.Services
                         entity.CompanyId = invoice.CompanyId;
                     }
                     // Set customer from invoice if not provided
-                    if (!entity.CustomerId.HasValue && invoice.CustomerId != Guid.Empty)
+                    if (!entity.PartyId.HasValue && invoice.PartyId != Guid.Empty)
                     {
-                        entity.CustomerId = invoice.CustomerId;
+                        entity.PartyId = invoice.PartyId;
                     }
                     // Set currency from invoice if not provided
                     if (string.IsNullOrEmpty(entity.Currency) && !string.IsNullOrEmpty(invoice.Currency))
@@ -247,9 +247,9 @@ namespace Application.Services
             {
                 // Get customer details for deductor information
                 Customers? customer = null;
-                if (payment.CustomerId.HasValue)
+                if (payment.PartyId.HasValue)
                 {
-                    customer = await _customersRepository.GetByIdAsync(payment.CustomerId.Value);
+                    customer = await _customersRepository.GetByIdAsync(payment.PartyId.Value);
                 }
 
                 var paymentDate = payment.PaymentDate;
@@ -262,7 +262,7 @@ namespace Application.Services
                     CompanyId = payment.CompanyId!.Value,
                     FinancialYear = financialYear,
                     Quarter = quarter,
-                    CustomerId = payment.CustomerId,
+                    PartyId = payment.PartyId,
                     DeductorName = customer?.Name ?? payment.Description ?? "Unknown Deductor",
                     DeductorTan = customer?.TaxNumber,  // TAN stored in tax_number field
                     DeductorPan = null,  // PAN not typically stored for customers

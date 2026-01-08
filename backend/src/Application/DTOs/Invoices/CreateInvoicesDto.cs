@@ -12,9 +12,9 @@ namespace Application.DTOs.Invoices
         /// </summary>
         public Guid? CompanyId { get; set; }
 /// <summary>
-        /// CustomerId
+        /// PartyId
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 /// <summary>
         /// InvoiceNumber
         /// </summary>

@@ -218,6 +218,18 @@ namespace Infrastructure.Data.Tags
             return await connection.QueryFirstOrDefaultAsync<Tag>(sql, new { companyId, name, parentTagId });
         }
 
+        public async Task<Tag?> GetByNameAndGroupAsync(Guid companyId, string name, string tagGroup)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Tag>(
+                @"SELECT * FROM tags
+                  WHERE company_id = @companyId
+                    AND name = @name
+                    AND tag_group = @tagGroup
+                    AND is_active = true",
+                new { companyId, name, tagGroup });
+        }
+
         public async Task<Tag?> GetByCodeAsync(Guid companyId, string code)
         {
             using var connection = new NpgsqlConnection(_connectionString);
@@ -335,6 +347,14 @@ namespace Infrastructure.Data.Tags
             await connection.ExecuteAsync(
                 "SELECT seed_default_tags(@companyId, @createdBy)",
                 new { companyId, createdBy });
+        }
+
+        public async Task<Tag?> GetByTallyCostCenterGuidAsync(Guid companyId, string tallyCostCenterGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Tag>(
+                "SELECT * FROM tags WHERE company_id = @companyId AND tally_cost_center_guid = @tallyCostCenterGuid",
+                new { companyId, tallyCostCenterGuid });
         }
     }
 }

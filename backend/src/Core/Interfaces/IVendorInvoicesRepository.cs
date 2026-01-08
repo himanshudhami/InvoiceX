@@ -26,8 +26,17 @@ namespace Core.Interfaces
         Task<IEnumerable<VendorInvoice>> GetItcEligibleAsync(Guid companyId);
         Task<IEnumerable<VendorInvoice>> GetUnmatchedWithGstr2BAsync(Guid companyId);
 
-        // Tally migration
-        Task<VendorInvoice?> GetByTallyGuidAsync(string tallyVoucherGuid);
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get vendor invoice by Tally voucher GUID
+        /// </summary>
+        Task<VendorInvoice?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
+
+        /// <summary>
+        /// Get vendor invoice by number within a company
+        /// </summary>
+        Task<VendorInvoice?> GetByNumberAsync(Guid companyId, string invoiceNumber);
 
         // CRUD
         Task<VendorInvoice> AddAsync(VendorInvoice entity);

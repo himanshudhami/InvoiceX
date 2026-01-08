@@ -1,10 +1,18 @@
 namespace Core.Entities
 {
+    /// <summary>
+    /// Customer Invoice entity (Sales Invoice)
+    /// Uses unified Party model (partyId references parties table with is_customer=true)
+    /// </summary>
     public class Invoices
     {
         public Guid Id { get; set; }
         public Guid? CompanyId { get; set; }
-        public Guid? CustomerId { get; set; }
+
+        /// <summary>
+        /// Party ID (customer). References parties table where is_customer = true
+        /// </summary>
+        public Guid? PartyId { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateOnly InvoiceDate { get; set; }
         public DateOnly DueDate { get; set; }
@@ -93,5 +101,27 @@ namespace Core.Entities
         public string? ShippingAddress { get; set; }
         public string? TransporterName { get; set; }
         public string? VehicleNumber { get; set; }
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Sales Voucher GUID
+        /// </summary>
+        public string? TallyVoucherGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Voucher Number
+        /// </summary>
+        public string? TallyVoucherNumber { get; set; }
+
+        /// <summary>
+        /// Tally voucher type (Sales, Credit Note, etc.)
+        /// </summary>
+        public string? TallyVoucherType { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
     }
 }

@@ -179,9 +179,9 @@ namespace Application.Services
                 return validation.Error!;
 
             // Validate vendor exists
-            var vendor = await _vendorsRepository.GetByIdAsync(dto.VendorId);
+            var vendor = await _vendorsRepository.GetByIdAsync(dto.PartyId);
             if (vendor == null)
-                return Error.NotFound($"Vendor with ID {dto.VendorId} not found");
+                return Error.NotFound($"Vendor with ID {dto.PartyId} not found");
 
             // Map DTO to entity
             var entity = _mapper.Map<VendorPayment>(dto);
@@ -375,7 +375,7 @@ namespace Application.Services
                     return Error.NotFound($"Vendor invoice with ID {dto.VendorInvoiceId} not found");
 
                 // Validate same vendor
-                if (invoice.VendorId != payment.VendorId)
+                if (invoice.PartyId != payment.PartyId)
                     return Error.Validation("Invoice vendor does not match payment vendor");
             }
 

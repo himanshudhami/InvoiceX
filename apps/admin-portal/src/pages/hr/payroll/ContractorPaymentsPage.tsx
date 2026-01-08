@@ -44,7 +44,7 @@ const ContractorPaymentsPage = () => {
       pageSize: parseAsInteger.withDefault(100),
       searchTerm: parseAsString,
       companyId: parseAsString,
-      employeeId: parseAsString,
+      partyId: parseAsString,
       paymentMonth: parseAsInteger,
       paymentYear: parseAsInteger,
       status: parseAsString,
@@ -57,7 +57,7 @@ const ContractorPaymentsPage = () => {
     pageSize: urlState.pageSize,
     searchTerm: urlState.searchTerm || undefined,
     companyId: urlState.companyId || undefined,
-    employeeId: urlState.employeeId || undefined,
+    partyId: urlState.partyId || undefined,
     paymentMonth: urlState.paymentMonth || undefined,
     paymentYear: urlState.paymentYear || undefined,
     status: urlState.status || undefined,
@@ -107,7 +107,7 @@ const ContractorPaymentsPage = () => {
     const entity = createContractorPaymentEntity({
       id: payment.id,
       companyId: payment.companyId,
-      contractorName: payment.employeeName || 'Contractor',
+      contractorName: payment.partyName || 'Contractor',
       invoiceNumber: payment.invoiceNumber,
       totalAmount: payment.netPayable,
     })
@@ -164,9 +164,9 @@ const ContractorPaymentsPage = () => {
 
   const columns: ColumnDef<ContractorPayment>[] = [
     {
-      accessorKey: 'employeeName',
+      accessorKey: 'partyName',
       header: 'Contractor',
-      cell: ({ row }) => row.original.employeeName || '—',
+      cell: ({ row }) => row.original.partyName || '—',
     },
     {
       accessorKey: 'paymentMonth',

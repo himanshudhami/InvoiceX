@@ -28,7 +28,7 @@ interface InvoiceWithItemsFormProps {
 export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWithItemsFormProps) => {
   const [formData, setFormData] = useState<CreateInvoiceDto>({
     companyId: '',
-    customerId: '',
+    partyId: '',
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -100,19 +100,19 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
 
   // Clear customer if it doesn't belong to the selected company
   useEffect(() => {
-    if (!formData.customerId || !formData.companyId) return
-    const customer = customers.find(c => c.id === formData.customerId)
+    if (!formData.partyId || !formData.companyId) return
+    const customer = customers.find(c => c.id === formData.partyId)
     if (customer && customer.companyId && customer.companyId !== formData.companyId) {
-      setFormData(prev => ({ ...prev, customerId: '' }))
+      setFormData(prev => ({ ...prev, partyId: '' }))
     }
-  }, [formData.companyId, formData.customerId, customers])
+  }, [formData.companyId, formData.partyId, customers])
 
   // Populate form with existing invoice data
   useEffect(() => {
     if (invoice) {
       setFormData({
         companyId: invoice.companyId || '',
-        customerId: invoice.customerId || '',
+        partyId: invoice.partyId || '',
         invoiceNumber: invoice.invoiceNumber || '',
         invoiceDate: invoice.invoiceDate?.split('T')[0] || '',
         dueDate: invoice.dueDate?.split('T')[0] || '',
@@ -315,13 +315,13 @@ export const InvoiceWithItemsForm = ({ invoice, onSuccess, onCancel }: InvoiceWi
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="customerId" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="partyId" className="block text-sm font-medium text-gray-700 mb-1">
               Customer
             </label>
             <select
-              id="customerId"
-              value={formData.customerId || ''}
-              onChange={(e) => handleChange('customerId', e.target.value)}
+              id="partyId"
+              value={formData.partyId || ''}
+              onChange={(e) => handleChange('partyId', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Select a customer</option>

@@ -30,7 +30,7 @@ namespace Application.DTOs.TdsReceivable
         /// <summary>
         /// Customer ID (optional)
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         /// <summary>
         /// Name of the deductor

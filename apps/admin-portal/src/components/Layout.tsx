@@ -61,6 +61,16 @@ import {
   BadgeIndianRupee,
   Truck,
   Banknote,
+  Warehouse,
+  FolderTree,
+  Ruler,
+  Boxes,
+  ArrowRightLeft,
+  Factory,
+  FileText as FileTextIcon,
+  ClipboardList as ClipboardListIcon,
+  Hash,
+  DatabaseZap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -89,6 +99,29 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Customers', href: '/customers', icon: Users },
         { name: 'Products', href: '/products', icon: Package },
         { name: 'Invoice Payments', href: '/payments', icon: CreditCard },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Inventory',
+      icon: Boxes,
+      items: [
+        { name: 'Warehouses', href: '/inventory/warehouses', icon: Warehouse },
+        { name: 'Stock Groups', href: '/inventory/stock-groups', icon: FolderTree },
+        { name: 'Units of Measure', href: '/inventory/units', icon: Ruler },
+        { name: 'Stock Items', href: '/inventory/items', icon: Package },
+        { name: 'Stock Movements', href: '/inventory/movements', icon: ArrowRightLeft },
+        { name: 'Stock Transfers', href: '/inventory/transfers', icon: Truck },
+      ],
+    },
+    {
+      type: 'group' as const,
+      name: 'Manufacturing',
+      icon: Factory,
+      items: [
+        { name: 'Bill of Materials', href: '/manufacturing/bom', icon: FileText },
+        { name: 'Production Orders', href: '/manufacturing/production', icon: ClipboardCheck },
+        { name: 'Serial Numbers', href: '/manufacturing/serial-numbers', icon: Hash },
       ],
     },
     {
@@ -228,6 +261,7 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Approval Workflows', href: '/workflows', icon: GitBranch },
         { name: 'E-Invoice Settings', href: '/einvoice/settings', icon: FileCheck },
         { name: 'Tax Rule Packs', href: '/tax-rule-packs', icon: BookMarked },
+        { name: 'Tally Migration', href: '/settings/migration/tally', icon: DatabaseZap },
         { name: 'Settings', href: '/settings', icon: Settings },
       ],
     },

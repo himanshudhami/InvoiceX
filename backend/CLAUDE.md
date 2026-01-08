@@ -1,5 +1,13 @@
 # Claude AI Assistant Instructions - InvoiceApp
 
+## Concise responses
+In all interactions, plans, and commit messages, be extremely concise and sacrifice grammar for the sake of concision.
+
+## Plans
+For multi-step plans, divide them into multiple phases with different headings. That way I can describe which phases to implement at a time so we don't have to implement everything at once.
+
+## Libraries
+
 ## Project Overview
 You are working with InvoiceApp, a .NET Core 9 API project that follows Clean Architecture principles. The project uses Dapper as the ORM, PostgreSQL as the database, and implements comprehensive patterns for enterprise-grade applications.
 

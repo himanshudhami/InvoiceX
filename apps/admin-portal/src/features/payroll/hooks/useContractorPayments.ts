@@ -12,7 +12,7 @@ import type { PaginationParams } from '@/services/api/types'
 
 export const useContractorPayments = (params: PaginationParams & {
   companyId?: string;
-  employeeId?: string;
+  partyId?: string;
   paymentMonth?: number;
   paymentYear?: number;
   status?: string;
@@ -51,14 +51,14 @@ export const useContractorPaymentSummary = (
 }
 
 export const useContractorYtdSummary = (
-  employeeId: string,
+  partyId: string,
   financialYear: string,
   enabled: boolean = true
 ) => {
   return useQuery({
-    queryKey: payrollKeys.contractorYtd(employeeId, financialYear),
-    queryFn: () => payrollService.getContractorYtdSummary(employeeId, financialYear),
-    enabled: enabled && !!employeeId && !!financialYear,
+    queryKey: payrollKeys.contractorYtd(partyId, financialYear),
+    queryFn: () => payrollService.getContractorYtdSummary(partyId, financialYear),
+    enabled: enabled && !!partyId && !!financialYear,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

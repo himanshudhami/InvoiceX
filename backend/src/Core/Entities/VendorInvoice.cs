@@ -3,12 +3,17 @@ namespace Core.Entities
     /// <summary>
     /// Vendor Invoice entity - represents a purchase bill/invoice from a vendor
     /// For Accounts Payable tracking (Purchase voucher in Tally)
+    /// Uses unified Party model (partyId references parties table with is_vendor=true)
     /// </summary>
     public class VendorInvoice
     {
         public Guid Id { get; set; }
         public Guid? CompanyId { get; set; }
-        public Guid? VendorId { get; set; }
+
+        /// <summary>
+        /// Party ID (vendor). References parties table where is_vendor = true
+        /// </summary>
+        public Guid? PartyId { get; set; }
 
         // ==================== Invoice Details ====================
 
@@ -232,7 +237,10 @@ namespace Core.Entities
 
         // ==================== Navigation Properties ====================
 
-        public Vendors? Vendor { get; set; }
+        /// <summary>
+        /// Vendor party (is_vendor = true)
+        /// </summary>
+        public Party? Party { get; set; }
         public Companies? Company { get; set; }
         public ICollection<VendorInvoiceItem>? Items { get; set; }
     }

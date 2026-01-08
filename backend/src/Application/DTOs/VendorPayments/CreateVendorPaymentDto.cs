@@ -10,7 +10,7 @@ namespace Application.DTOs.VendorPayments
         public Guid? CompanyId { get; set; }
 
         [Required(ErrorMessage = "Vendor ID is required")]
-        public Guid VendorId { get; set; }
+        public Guid PartyId { get; set; }
 
         public Guid? BankAccountId { get; set; }
 

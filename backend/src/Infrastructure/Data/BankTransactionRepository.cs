@@ -87,6 +87,8 @@ namespace Infrastructure.Data
                     is_reconciled, reconciled_type, reconciled_id,
                     reconciled_at, reconciled_by,
                     import_source, import_batch_id, raw_data, transaction_hash,
+                    matched_entity_type, matched_entity_id,
+                    tally_voucher_guid, tally_voucher_number, tally_migration_batch_id,
                     created_at, updated_at
                 )
                 VALUES (
@@ -96,6 +98,8 @@ namespace Infrastructure.Data
                     @IsReconciled, @ReconciledType, @ReconciledId,
                     @ReconciledAt, @ReconciledBy,
                     @ImportSource, @ImportBatchId, @RawData::jsonb, @TransactionHash,
+                    @MatchedEntityType, @MatchedEntityId,
+                    @TallyVoucherGuid, @TallyVoucherNumber, @TallyMigrationBatchId,
                     NOW(), NOW()
                 )
                 RETURNING *";
@@ -127,6 +131,11 @@ namespace Infrastructure.Data
                     import_batch_id = @ImportBatchId,
                     raw_data = @RawData::jsonb,
                     transaction_hash = @TransactionHash,
+                    matched_entity_type = @MatchedEntityType,
+                    matched_entity_id = @MatchedEntityId,
+                    tally_voucher_guid = @TallyVoucherGuid,
+                    tally_voucher_number = @TallyVoucherNumber,
+                    tally_migration_batch_id = @TallyMigrationBatchId,
                     updated_at = NOW()
                 WHERE id = @Id";
             await connection.ExecuteAsync(sql, entity);
@@ -1331,6 +1340,41 @@ namespace Infrastructure.Data
                 ORDER BY bt.transaction_date";
 
             return await connection.QueryAsync<BankTransaction>(sql, new { companyId });
+        }
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get bank transaction by Tally voucher GUID for deduplication
+        /// </summary>
+        public async Task<BankTransaction?> GetByTallyGuidAsync(string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<BankTransaction>(
+                "SELECT * FROM bank_transactions WHERE tally_voucher_guid = @tallyVoucherGuid",
+                new { tallyVoucherGuid });
+        }
+
+        /// <summary>
+        /// Get all bank transactions for a Tally migration batch
+        /// </summary>
+        public async Task<IEnumerable<BankTransaction>> GetByTallyBatchIdAsync(Guid batchId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<BankTransaction>(
+                "SELECT * FROM bank_transactions WHERE tally_migration_batch_id = @batchId ORDER BY transaction_date",
+                new { batchId });
+        }
+
+        /// <summary>
+        /// Delete all bank transactions for a Tally migration batch (for rollback)
+        /// </summary>
+        public async Task DeleteByTallyBatchIdAsync(Guid batchId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                "DELETE FROM bank_transactions WHERE tally_migration_batch_id = @batchId",
+                new { batchId });
         }
     }
 }

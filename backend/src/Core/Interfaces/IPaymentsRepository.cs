@@ -34,5 +34,12 @@ namespace Core.Interfaces
 
         // TDS summary for compliance reporting
         Task<IEnumerable<dynamic>> GetTdsSummaryAsync(Guid? companyId, string financialYear);
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get payment by Tally voucher GUID
+        /// </summary>
+        Task<Payments?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
     }
 }

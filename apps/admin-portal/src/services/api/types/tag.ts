@@ -18,6 +18,7 @@ export interface Tag {
   budgetYear?: string;
   tallyCostCenterGuid?: string;
   tallyCostCenterName?: string;
+  isSystem: boolean;  // System-provided tags (e.g., TDS sections) - cannot be deleted
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -31,7 +32,23 @@ export interface Tag {
   children?: Tag[];
 }
 
-export type TagGroup = 'department' | 'project' | 'client' | 'region' | 'cost_center' | 'custom';
+/**
+ * Tag groups for different purposes.
+ * - tds_section: TDS section tags (e.g., "TDS:194J-Professional")
+ * - party_type: Party classification tags (e.g., "Vendor:Consultant")
+ * - compliance: Compliance-related tags (e.g., "MSME:Registered")
+ * - department, project, client, region, cost_center, custom: Existing groups
+ */
+export type TagGroup =
+  | 'department'
+  | 'project'
+  | 'client'
+  | 'region'
+  | 'cost_center'
+  | 'tds_section'    // TDS section tags
+  | 'party_type'     // Party classification
+  | 'compliance'     // MSME, GST compliance tags
+  | 'custom';
 
 export interface CreateTagDto {
   companyId?: string;

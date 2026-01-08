@@ -21,14 +21,15 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<StatutoryPayment>(
-                @"SELECT id, company_id, payment_type, reference_number,
+                @"SELECT id, company_id, payment_type, payment_category, reference_number,
                          financial_year, period_month, period_year, quarter,
                          principal_amount, interest_amount, penalty_amount, late_fee, total_amount,
                          payment_date, payment_mode, bank_name, bank_account_id, bank_reference,
                          bsr_code, receipt_number, trrn, challan_number,
                          status, due_date, journal_entry_id,
                          created_at, updated_at, created_by, paid_by, paid_at,
-                         verified_by, verified_at, filed_by, filed_at, notes
+                         verified_by, verified_at, filed_by, filed_at, notes,
+                         tally_voucher_guid, tally_voucher_number, tally_migration_batch_id
                   FROM statutory_payments
                   WHERE id = @id",
                 new { id });
@@ -107,21 +108,23 @@ namespace Infrastructure.Data.Payroll
 
             await connection.ExecuteAsync(
                 @"INSERT INTO statutory_payments (
-                    id, company_id, payment_type, reference_number,
+                    id, company_id, payment_type, payment_category, reference_number,
                     financial_year, period_month, period_year, quarter,
                     principal_amount, interest_amount, penalty_amount, late_fee, total_amount,
                     payment_date, payment_mode, bank_name, bank_account_id, bank_reference,
                     bsr_code, receipt_number, trrn, challan_number,
                     status, due_date, journal_entry_id,
-                    created_at, updated_at, created_by, notes
+                    created_at, updated_at, created_by, notes,
+                    tally_voucher_guid, tally_voucher_number, tally_migration_batch_id
                 ) VALUES (
-                    @Id, @CompanyId, @PaymentType, @ReferenceNumber,
+                    @Id, @CompanyId, @PaymentType, @PaymentCategory, @ReferenceNumber,
                     @FinancialYear, @PeriodMonth, @PeriodYear, @Quarter,
                     @PrincipalAmount, @InterestAmount, @PenaltyAmount, @LateFee, @TotalAmount,
                     @PaymentDate, @PaymentMode, @BankName, @BankAccountId, @BankReference,
                     @BsrCode, @ReceiptNumber, @Trrn, @ChallanNumber,
                     @Status, @DueDate, @JournalEntryId,
-                    @CreatedAt, @UpdatedAt, @CreatedBy, @Notes
+                    @CreatedAt, @UpdatedAt, @CreatedBy, @Notes,
+                    @TallyVoucherGuid, @TallyVoucherNumber, @TallyMigrationBatchId
                 )",
                 payment);
 
@@ -339,6 +342,15 @@ namespace Infrastructure.Data.Payroll
                   AND status != 'cancelled'
                   ORDER BY period_month",
                 new { companyId, paymentType, financialYear });
+        }
+
+        public async Task<StatutoryPayment?> GetByTallyGuidAsync(Guid companyId, string tallyGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<StatutoryPayment>(
+                @"SELECT * FROM statutory_payments
+                  WHERE company_id = @companyId AND tally_voucher_guid = @tallyGuid",
+                new { companyId, tallyGuid });
         }
     }
 }

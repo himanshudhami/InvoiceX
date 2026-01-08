@@ -54,7 +54,7 @@ public class PayrollTransactionFilterRequest : BasePayrollFilterRequest
 public class ContractorPaymentFilterRequest : BasePayrollFilterRequest
 {
     public Guid? CompanyId { get; set; }
-    public Guid? EmployeeId { get; set; }
+    public Guid? PartyId { get; set; }
     public int? PaymentMonth { get; set; }
     public int? PaymentYear { get; set; }
     public string? Status { get; set; }
@@ -63,7 +63,7 @@ public class ContractorPaymentFilterRequest : BasePayrollFilterRequest
     {
         var filters = new Dictionary<string, object>();
         if (CompanyId.HasValue) filters["company_id"] = CompanyId.Value;
-        if (EmployeeId.HasValue) filters["employee_id"] = EmployeeId.Value;
+        if (PartyId.HasValue) filters["party_id"] = PartyId.Value;
         if (PaymentMonth.HasValue) filters["payment_month"] = PaymentMonth.Value;
         if (PaymentYear.HasValue) filters["payment_year"] = PaymentYear.Value;
         if (!string.IsNullOrEmpty(Status)) filters["status"] = Status;

@@ -125,7 +125,7 @@ namespace Application.DTOs.Forex
         public DateOnly InvoiceDate { get; set; }
         public DateOnly DeadlineDate { get; set; }
         public int DaysRemaining { get; set; }
-        public Guid CustomerId { get; set; }
+        public Guid PartyId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public decimal ForeignAmount { get; set; }
         public string Currency { get; set; } = string.Empty;
@@ -144,7 +144,7 @@ namespace Application.DTOs.Forex
         public string InvoiceNumber { get; set; } = string.Empty;
         public DateOnly InvoiceDate { get; set; }
         public DateOnly DeadlineDate { get; set; }
-        public Guid CustomerId { get; set; }
+        public Guid PartyId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public decimal ForeignAmount { get; set; }
         public string Currency { get; set; } = string.Empty;

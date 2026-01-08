@@ -24,4 +24,8 @@ public interface IUnitOfMeasureRepository
     Task<UnitOfMeasure?> GetBySymbolAsync(string symbol, Guid? companyId = null);
     Task<bool> ExistsAsync(string symbol, Guid? companyId = null, Guid? excludeId = null);
     Task<bool> IsInUseAsync(Guid unitId);
+
+    // ==================== Tally Migration ====================
+    Task<UnitOfMeasure?> GetByTallyGuidAsync(Guid companyId, string tallyUnitGuid);
+    Task<UnitOfMeasure?> GetByNameAsync(Guid? companyId, string name);
 }

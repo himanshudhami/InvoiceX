@@ -11,12 +11,19 @@ namespace Infrastructure.Data.Payroll
         private readonly string _connectionString;
         private static readonly string[] AllowedColumns = new[]
         {
-            "id", "employee_id", "company_id", "payment_month", "payment_year", "invoice_number",
+            "id", "party_id", "company_id", "payment_month", "payment_year", "invoice_number",
             "contract_reference", "gross_amount", "tds_rate", "tds_amount", "other_deductions",
             "net_payable", "gst_applicable", "gst_rate", "gst_amount", "total_invoice_amount",
             "status", "payment_date", "payment_method", "payment_reference", "description",
             "remarks", "created_at", "updated_at", "created_by", "updated_by"
         };
+
+        // Base SELECT with party join for name
+        private const string SelectWithParty = @"
+            SELECT cp.*,
+                   p.name as PartyName
+            FROM contractor_payments cp
+            LEFT JOIN parties p ON p.id = cp.party_id";
 
         public ContractorPaymentRepository(string connectionString)
         {
@@ -27,7 +34,7 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<ContractorPayment>(
-                "SELECT * FROM contractor_payments WHERE id = @id",
+                $"{SelectWithParty} WHERE cp.id = @id",
                 new { id });
         }
 
@@ -35,44 +42,44 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<ContractorPayment>(
-                "SELECT * FROM contractor_payments ORDER BY payment_year DESC, payment_month DESC");
+                $"{SelectWithParty} ORDER BY cp.payment_year DESC, cp.payment_month DESC");
         }
 
-        public async Task<IEnumerable<ContractorPayment>> GetByEmployeeIdAsync(Guid employeeId)
+        public async Task<IEnumerable<ContractorPayment>> GetByPartyIdAsync(Guid partyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<ContractorPayment>(
-                "SELECT * FROM contractor_payments WHERE employee_id = @employeeId ORDER BY payment_year DESC, payment_month DESC",
-                new { employeeId });
+                $"{SelectWithParty} WHERE cp.party_id = @partyId ORDER BY cp.payment_year DESC, cp.payment_month DESC",
+                new { partyId });
         }
 
         public async Task<IEnumerable<ContractorPayment>> GetByCompanyIdAsync(Guid companyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<ContractorPayment>(
-                "SELECT * FROM contractor_payments WHERE company_id = @companyId ORDER BY payment_year DESC, payment_month DESC",
+                $"{SelectWithParty} WHERE cp.company_id = @companyId ORDER BY cp.payment_year DESC, cp.payment_month DESC",
                 new { companyId });
         }
 
-        public async Task<ContractorPayment?> GetByEmployeeAndMonthAsync(Guid employeeId, int paymentMonth, int paymentYear)
+        public async Task<ContractorPayment?> GetByPartyAndMonthAsync(Guid partyId, int paymentMonth, int paymentYear)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<ContractorPayment>(
-                "SELECT * FROM contractor_payments WHERE employee_id = @employeeId AND payment_month = @paymentMonth AND payment_year = @paymentYear",
-                new { employeeId, paymentMonth, paymentYear });
+                $"{SelectWithParty} WHERE cp.party_id = @partyId AND cp.payment_month = @paymentMonth AND cp.payment_year = @paymentYear",
+                new { partyId, paymentMonth, paymentYear });
         }
 
         public async Task<IEnumerable<ContractorPayment>> GetByMonthYearAsync(int paymentMonth, int paymentYear, Guid? companyId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            var sql = "SELECT * FROM contractor_payments WHERE payment_month = @paymentMonth AND payment_year = @paymentYear";
+            var sql = $"{SelectWithParty} WHERE cp.payment_month = @paymentMonth AND cp.payment_year = @paymentYear";
 
             if (companyId.HasValue)
             {
-                sql += " AND company_id = @companyId";
+                sql += " AND cp.company_id = @companyId";
             }
 
-            sql += " ORDER BY created_at";
+            sql += " ORDER BY cp.created_at";
 
             return await connection.QueryAsync<ContractorPayment>(sql, new { paymentMonth, paymentYear, companyId });
         }
@@ -80,19 +87,19 @@ namespace Infrastructure.Data.Payroll
         public async Task<IEnumerable<ContractorPayment>> GetByStatusAsync(string status, Guid? companyId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            var sql = "SELECT * FROM contractor_payments WHERE status = @status";
+            var sql = $"{SelectWithParty} WHERE cp.status = @status";
 
             if (companyId.HasValue)
             {
-                sql += " AND company_id = @companyId";
+                sql += " AND cp.company_id = @companyId";
             }
 
-            sql += " ORDER BY payment_year DESC, payment_month DESC";
+            sql += " ORDER BY cp.payment_year DESC, cp.payment_month DESC";
 
             return await connection.QueryAsync<ContractorPayment>(sql, new { status, companyId });
         }
 
-        public async Task<IEnumerable<ContractorPayment>> GetByFinancialYearAsync(Guid employeeId, string financialYear)
+        public async Task<IEnumerable<ContractorPayment>> GetByFinancialYearAsync(Guid partyId, string financialYear)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var parts = financialYear.Split('-');
@@ -100,12 +107,12 @@ namespace Infrastructure.Data.Payroll
             var endYear = 2000 + int.Parse(parts[1]);
 
             return await connection.QueryAsync<ContractorPayment>(
-                @"SELECT * FROM contractor_payments
-                  WHERE employee_id = @employeeId
-                    AND ((payment_year = @startYear AND payment_month >= 4)
-                         OR (payment_year = @endYear AND payment_month <= 3))
-                  ORDER BY payment_year, payment_month",
-                new { employeeId, startYear, endYear });
+                $@"{SelectWithParty}
+                  WHERE cp.party_id = @partyId
+                    AND ((cp.payment_year = @startYear AND cp.payment_month >= 4)
+                         OR (cp.payment_year = @endYear AND cp.payment_month <= 3))
+                  ORDER BY cp.payment_year, cp.payment_month",
+                new { partyId, startYear, endYear });
         }
 
         public async Task<(IEnumerable<ContractorPayment> Items, int TotalCount)> GetPagedAsync(
@@ -118,18 +125,68 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
-            var builder = SqlQueryBuilder
-                .From("contractor_payments", AllowedColumns)
-                .SearchAcross(new[] { "invoice_number", "contract_reference", "status", "description", "remarks" }, searchTerm)
-                .ApplyFilters(filters)
-                .Paginate(pageNumber, pageSize);
+            // Build WHERE clause
+            var whereClauses = new List<string>();
+            var parameters = new DynamicParameters();
 
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                whereClauses.Add("(cp.invoice_number ILIKE @searchTerm OR cp.contract_reference ILIKE @searchTerm OR cp.description ILIKE @searchTerm OR p.name ILIKE @searchTerm)");
+                parameters.Add("searchTerm", $"%{searchTerm}%");
+            }
+
+            if (filters != null)
+            {
+                if (filters.TryGetValue("company_id", out var companyId))
+                {
+                    whereClauses.Add("cp.company_id = @companyId");
+                    parameters.Add("companyId", companyId);
+                }
+                if (filters.TryGetValue("party_id", out var partyId))
+                {
+                    whereClauses.Add("cp.party_id = @partyId");
+                    parameters.Add("partyId", partyId);
+                }
+                if (filters.TryGetValue("payment_month", out var month))
+                {
+                    whereClauses.Add("cp.payment_month = @paymentMonth");
+                    parameters.Add("paymentMonth", month);
+                }
+                if (filters.TryGetValue("payment_year", out var year))
+                {
+                    whereClauses.Add("cp.payment_year = @paymentYear");
+                    parameters.Add("paymentYear", year);
+                }
+                if (filters.TryGetValue("status", out var status))
+                {
+                    whereClauses.Add("cp.status = @status");
+                    parameters.Add("status", status);
+                }
+            }
+
+            var whereClause = whereClauses.Count > 0 ? "WHERE " + string.Join(" AND ", whereClauses) : "";
+
+            // Determine sort column
             var allowedSet = new HashSet<string>(AllowedColumns, StringComparer.OrdinalIgnoreCase);
-            var orderBy = !string.IsNullOrWhiteSpace(sortBy) && allowedSet.Contains(sortBy!) ? sortBy! : "created_at";
-            builder.OrderBy(orderBy, sortDescending);
+            var orderBy = !string.IsNullOrWhiteSpace(sortBy) && allowedSet.Contains(sortBy!) ? $"cp.{sortBy}" : "cp.created_at";
+            var orderDir = sortDescending ? "DESC" : "ASC";
 
-            var (dataSql, parameters) = builder.BuildSelect();
-            var (countSql, _) = builder.BuildCount();
+            // Pagination
+            var offset = (pageNumber - 1) * pageSize;
+            parameters.Add("limit", pageSize);
+            parameters.Add("offset", offset);
+
+            var dataSql = $@"
+                {SelectWithParty}
+                {whereClause}
+                ORDER BY {orderBy} {orderDir}
+                LIMIT @limit OFFSET @offset";
+
+            var countSql = $@"
+                SELECT COUNT(*)
+                FROM contractor_payments cp
+                LEFT JOIN parties p ON p.id = cp.party_id
+                {whereClause}";
 
             using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, parameters);
             var items = await multi.ReadAsync<ContractorPayment>();
@@ -141,19 +198,23 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO contractor_payments
-                (employee_id, company_id, payment_month, payment_year, invoice_number,
-                 contract_reference, gross_amount, tds_rate, tds_amount, other_deductions,
-                 net_payable, gst_applicable, gst_rate, gst_amount, total_invoice_amount,
+                (party_id, company_id, payment_month, payment_year, invoice_number,
+                 contract_reference, gross_amount, tds_section, tds_rate, tds_amount, contractor_pan, pan_verified,
+                 other_deductions, net_payable, gst_applicable, gst_rate, gst_amount, total_invoice_amount,
                  status, payment_date, payment_method, payment_reference, bank_account_id,
                  accrual_journal_entry_id, disbursement_journal_entry_id,
-                 description, remarks, created_at, updated_at, created_by, updated_by)
+                 description, remarks,
+                 tally_voucher_guid, tally_voucher_number, tally_migration_batch_id,
+                 created_at, updated_at, created_by, updated_by)
                 VALUES
-                (@EmployeeId, @CompanyId, @PaymentMonth, @PaymentYear, @InvoiceNumber,
-                 @ContractReference, @GrossAmount, @TdsRate, @TdsAmount, @OtherDeductions,
-                 @NetPayable, @GstApplicable, @GstRate, @GstAmount, @TotalInvoiceAmount,
+                (@PartyId, @CompanyId, @PaymentMonth, @PaymentYear, @InvoiceNumber,
+                 @ContractReference, @GrossAmount, @TdsSection, @TdsRate, @TdsAmount, @ContractorPan, @PanVerified,
+                 @OtherDeductions, @NetPayable, @GstApplicable, @GstRate, @GstAmount, @TotalInvoiceAmount,
                  @Status, @PaymentDate, @PaymentMethod, @PaymentReference, @BankAccountId,
                  @AccrualJournalEntryId, @DisbursementJournalEntryId,
-                 @Description, @Remarks, NOW(), NOW(), @CreatedBy, @UpdatedBy)
+                 @Description, @Remarks,
+                 @TallyVoucherGuid, @TallyVoucherNumber, @TallyMigrationBatchId,
+                 NOW(), NOW(), @CreatedBy, @UpdatedBy)
                 RETURNING *";
 
             return await connection.QuerySingleAsync<ContractorPayment>(sql, entity);
@@ -163,7 +224,7 @@ namespace Infrastructure.Data.Payroll
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"UPDATE contractor_payments SET
-                employee_id = @EmployeeId,
+                party_id = @PartyId,
                 company_id = @CompanyId,
                 payment_month = @PaymentMonth,
                 payment_year = @PaymentYear,
@@ -208,13 +269,13 @@ namespace Infrastructure.Data.Payroll
             foreach (var entity in entities)
             {
                 var sql = @"INSERT INTO contractor_payments
-                    (employee_id, company_id, payment_month, payment_year, invoice_number,
+                    (party_id, company_id, payment_month, payment_year, invoice_number,
                      contract_reference, gross_amount, tds_rate, tds_amount, other_deductions,
                      net_payable, gst_applicable, gst_rate, gst_amount, total_invoice_amount,
                      status, payment_date, payment_method, payment_reference, description,
                      remarks, created_at, updated_at, created_by, updated_by)
                     VALUES
-                    (@EmployeeId, @CompanyId, @PaymentMonth, @PaymentYear, @InvoiceNumber,
+                    (@PartyId, @CompanyId, @PaymentMonth, @PaymentYear, @InvoiceNumber,
                      @ContractReference, @GrossAmount, @TdsRate, @TdsAmount, @OtherDeductions,
                      @NetPayable, @GstApplicable, @GstRate, @GstAmount, @TotalInvoiceAmount,
                      @Status, @PaymentDate, @PaymentMethod, @PaymentReference, @Description,
@@ -227,13 +288,13 @@ namespace Infrastructure.Data.Payroll
             return results;
         }
 
-        public async Task<bool> ExistsForEmployeeAndMonthAsync(Guid employeeId, int paymentMonth, int paymentYear, Guid? excludeId = null)
+        public async Task<bool> ExistsForPartyAndMonthAsync(Guid partyId, int paymentMonth, int paymentYear, Guid? excludeId = null)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = excludeId.HasValue
-                ? "SELECT COUNT(*) FROM contractor_payments WHERE employee_id = @employeeId AND payment_month = @paymentMonth AND payment_year = @paymentYear AND id != @excludeId"
-                : "SELECT COUNT(*) FROM contractor_payments WHERE employee_id = @employeeId AND payment_month = @paymentMonth AND payment_year = @paymentYear";
-            var count = await connection.ExecuteScalarAsync<int>(sql, new { employeeId, paymentMonth, paymentYear, excludeId });
+                ? "SELECT COUNT(*) FROM contractor_payments WHERE party_id = @partyId AND payment_month = @paymentMonth AND payment_year = @paymentYear AND id != @excludeId"
+                : "SELECT COUNT(*) FROM contractor_payments WHERE party_id = @partyId AND payment_month = @paymentMonth AND payment_year = @paymentYear";
+            var count = await connection.ExecuteScalarAsync<int>(sql, new { partyId, paymentMonth, paymentYear, excludeId });
             return count > 0;
         }
 
@@ -278,7 +339,7 @@ namespace Infrastructure.Data.Payroll
             };
         }
 
-        public async Task<Dictionary<string, decimal>> GetYtdSummaryAsync(Guid employeeId, string financialYear)
+        public async Task<Dictionary<string, decimal>> GetYtdSummaryAsync(Guid partyId, string financialYear)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var parts = financialYear.Split('-');
@@ -292,11 +353,11 @@ namespace Infrastructure.Data.Payroll
                 COALESCE(SUM(net_payable), 0) AS YtdNet,
                 COUNT(*) AS PaymentCount
                 FROM contractor_payments
-                WHERE employee_id = @employeeId
+                WHERE party_id = @partyId
                   AND ((payment_year = @startYear AND payment_month >= 4)
                        OR (payment_year = @endYear AND payment_month <= 3))";
 
-            var result = await connection.QueryFirstAsync(sql, new { employeeId, startYear, endYear });
+            var result = await connection.QueryFirstAsync(sql, new { partyId, startYear, endYear });
             return new Dictionary<string, decimal>
             {
                 ["YtdGross"] = result.ytdgross,
@@ -305,6 +366,14 @@ namespace Infrastructure.Data.Payroll
                 ["YtdNet"] = result.ytdnet,
                 ["PaymentCount"] = result.paymentcount
             };
+        }
+
+        public async Task<ContractorPayment?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<ContractorPayment>(
+                $"{SelectWithParty} WHERE cp.company_id = @companyId AND cp.tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
         }
     }
 }

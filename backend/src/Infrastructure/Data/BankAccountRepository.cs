@@ -217,5 +217,31 @@ namespace Infrastructure.Data
                 throw;
             }
         }
+
+        // ==================== Tally Integration ====================
+
+        public async Task<BankAccount?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<BankAccount>(
+                "SELECT * FROM bank_accounts WHERE company_id = @companyId AND tally_ledger_guid = @tallyLedgerGuid",
+                new { companyId, tallyLedgerGuid });
+        }
+
+        public async Task<BankAccount?> GetByAccountNumberAsync(Guid companyId, string accountNumber)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<BankAccount>(
+                "SELECT * FROM bank_accounts WHERE company_id = @companyId AND account_number = @accountNumber",
+                new { companyId, accountNumber });
+        }
+
+        public async Task<BankAccount?> GetByNameAsync(Guid companyId, string accountName)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<BankAccount>(
+                "SELECT * FROM bank_accounts WHERE company_id = @companyId AND account_name = @accountName",
+                new { companyId, accountName });
+        }
     }
 }

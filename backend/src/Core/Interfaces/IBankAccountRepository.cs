@@ -27,5 +27,22 @@ namespace Core.Interfaces
 
         // Primary account management
         Task SetPrimaryAccountAsync(Guid companyId, Guid accountId);
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get bank account by Tally ledger GUID
+        /// </summary>
+        Task<BankAccount?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid);
+
+        /// <summary>
+        /// Get bank account by account number
+        /// </summary>
+        Task<BankAccount?> GetByAccountNumberAsync(Guid companyId, string accountNumber);
+
+        /// <summary>
+        /// Get bank account by name
+        /// </summary>
+        Task<BankAccount?> GetByNameAsync(Guid companyId, string accountName);
     }
 }

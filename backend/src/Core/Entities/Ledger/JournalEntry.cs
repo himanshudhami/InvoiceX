@@ -140,6 +140,28 @@ namespace Core.Entities.Ledger
         /// </summary>
         public Guid? CorrectionOfId { get; set; }
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Voucher GUID (Journal, Contra, etc.)
+        /// </summary>
+        public string? TallyVoucherGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Voucher Number
+        /// </summary>
+        public string? TallyVoucherNumber { get; set; }
+
+        /// <summary>
+        /// Tally voucher type (Journal, Contra, etc.)
+        /// </summary>
+        public string? TallyVoucherType { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Audit ====================
 
         public Guid? CreatedBy { get; set; }

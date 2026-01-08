@@ -92,13 +92,13 @@ namespace Application.Services.Tax
             int serialNo = 1;
             foreach (var payment in quarterPayments.Where(p => p.TdsAmount > 0))
             {
-                var employee = await _employeesRepo.GetByIdAsync(payment.EmployeeId);
+                // ContractorPayment now links to parties table - PAN and Name stored on payment
                 var record = new Form26QDeducteeRecord
                 {
                     SerialNumber = serialNo++,
-                    DeducteePan = employee?.PanNumber ?? "PANAPPLIED",
-                    DeducteeName = employee?.EmployeeName ?? "Unknown",
-                    TdsSection = "194J", // Default, should be stored with payment
+                    DeducteePan = payment.ContractorPan ?? "PANAPPLIED",
+                    DeducteeName = payment.PartyName ?? "Unknown",
+                    TdsSection = payment.TdsSection ?? "194J",
                     PaymentDate = DateOnly.FromDateTime(new DateTime(payment.PaymentYear, payment.PaymentMonth, 1)),
                     GrossAmount = payment.GrossAmount,
                     TdsRate = payment.TdsRate,
@@ -108,12 +108,12 @@ namespace Application.Services.Tax
                 };
 
                 // Check for LDC
-                if (!string.IsNullOrEmpty(employee?.PanNumber))
+                if (!string.IsNullOrEmpty(payment.ContractorPan))
                 {
                     var ldc = await _ldcRepo.GetValidCertificateAsync(
                         companyId,
-                        employee.PanNumber,
-                        "194J",
+                        payment.ContractorPan,
+                        payment.TdsSection ?? "194J",
                         DateOnly.FromDateTime(new DateTime(payment.PaymentYear, payment.PaymentMonth, 1)));
 
                     if (ldc != null)

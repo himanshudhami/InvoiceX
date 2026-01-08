@@ -22,5 +22,9 @@ namespace Core.Interfaces
         Task<bool> EmployeeIdExistsAsync(string employeeId, Guid? excludeId = null, Guid? companyId = null);
         Task<bool> EmailExistsAsync(string email, Guid? excludeId = null, Guid? companyId = null);
         Task<IEnumerable<Employees>> GetByManagerIdAsync(Guid managerId);
+
+        // Tally Migration support
+        Task<Employees?> GetByNameAsync(Guid companyId, string employeeName);
+        Task<Employees?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid);
     }
 }

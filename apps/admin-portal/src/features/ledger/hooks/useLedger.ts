@@ -17,11 +17,10 @@ import { ledgerKeys } from './ledgerKeys'
 /**
  * Fetch all accounts for a company
  */
-export const useAccounts = (companyId: string, enabled = true) => {
+export const useAccounts = (companyId?: string) => {
   return useQuery({
     queryKey: ledgerKeys.accountsList(companyId),
     queryFn: () => ledgerService.getAccounts(companyId),
-    enabled: enabled && !!companyId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })
@@ -126,11 +125,10 @@ export const useInitializeChartOfAccounts = () => {
 /**
  * Fetch all journal entries for a company
  */
-export const useJournalEntries = (companyId: string, enabled = true) => {
+export const useJournalEntries = (companyId?: string) => {
   return useQuery({
     queryKey: ledgerKeys.journalsList(companyId),
     queryFn: () => ledgerService.getJournalEntries(companyId),
-    enabled: enabled && !!companyId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   })

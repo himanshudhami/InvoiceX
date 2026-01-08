@@ -1,12 +1,13 @@
 namespace Core.Entities.Payroll
 {
     /// <summary>
-    /// Simplified payment record for contractors (consulting/contract work)
+    /// Payment record for contractors (consulting/contract work).
+    /// Links to parties table (unified vendor model) instead of employees.
     /// </summary>
     public class ContractorPayment
     {
         public Guid Id { get; set; }
-        public Guid EmployeeId { get; set; }
+        public Guid PartyId { get; set; }
         public Guid CompanyId { get; set; }
 
         // ==================== Period ====================
@@ -123,6 +124,23 @@ namespace Core.Entities.Payroll
 
         public string? Remarks { get; set; }
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Tally voucher GUID for duplicate detection
+        /// </summary>
+        public string? TallyVoucherGuid { get; set; }
+
+        /// <summary>
+        /// Tally voucher number for reference
+        /// </summary>
+        public string? TallyVoucherNumber { get; set; }
+
+        /// <summary>
+        /// Migration batch ID for rollback support
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Metadata ====================
 
         public DateTime? CreatedAt { get; set; }
@@ -131,7 +149,10 @@ namespace Core.Entities.Payroll
         public string? UpdatedBy { get; set; }
 
         // Navigation properties
-        public Employees? Employee { get; set; }
+        public Party? Party { get; set; }
         public Companies? Company { get; set; }
+
+        // Display property (populated from Party join)
+        public string? PartyName { get; set; }
     }
 }

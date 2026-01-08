@@ -21,9 +21,10 @@ namespace Core.Entities
         public Guid? CompanyId { get; set; }
 
         /// <summary>
-        /// Customer who made this payment (especially for non-invoice payments)
+        /// Party (customer) who made this payment.
+        /// References parties table where is_customer = true
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         // ==================== Payment Details ====================
 
@@ -111,10 +112,36 @@ namespace Core.Entities
         /// </summary>
         public string? InvoiceNumber { get; set; }
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Receipt Voucher GUID
+        /// </summary>
+        public string? TallyVoucherGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Voucher Number
+        /// </summary>
+        public string? TallyVoucherNumber { get; set; }
+
+        /// <summary>
+        /// Tally voucher type (Receipt, etc.)
+        /// </summary>
+        public string? TallyVoucherType { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Navigation Properties ====================
 
         public Invoices? Invoice { get; set; }
         public Companies? Company { get; set; }
-        public Customers? Customer { get; set; }
+
+        /// <summary>
+        /// Customer party (is_customer = true)
+        /// </summary>
+        public Party? Party { get; set; }
     }
 }

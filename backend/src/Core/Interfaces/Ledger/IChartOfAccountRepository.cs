@@ -72,5 +72,27 @@ namespace Core.Interfaces.Ledger
         /// Initialize default chart of accounts for a company
         /// </summary>
         Task InitializeDefaultAccountsAsync(Guid companyId, Guid? createdBy = null);
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get account by Tally ledger GUID
+        /// </summary>
+        Task<ChartOfAccount?> GetByTallyGuidAsync(Guid companyId, string tallyLedgerGuid);
+
+        /// <summary>
+        /// Get account by name within a company
+        /// </summary>
+        Task<ChartOfAccount?> GetByNameAsync(Guid companyId, string accountName);
+
+        /// <summary>
+        /// Get suspense account for a specific account type
+        /// </summary>
+        Task<ChartOfAccount?> GetSuspenseAccountAsync(Guid companyId, string accountType);
+
+        /// <summary>
+        /// Get maximum account code for a specific account type (for generating new codes)
+        /// </summary>
+        Task<string> GetMaxAccountCodeAsync(Guid companyId, string accountType);
     }
 }

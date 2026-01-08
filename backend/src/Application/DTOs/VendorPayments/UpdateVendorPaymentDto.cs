@@ -8,7 +8,7 @@ namespace Application.DTOs.VendorPayments
     public class UpdateVendorPaymentDto
     {
         public Guid? CompanyId { get; set; }
-        public Guid? VendorId { get; set; }
+        public Guid? PartyId { get; set; }
         public Guid? BankAccountId { get; set; }
 
         [Required(ErrorMessage = "Payment date is required")]

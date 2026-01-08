@@ -70,7 +70,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<InvoiceFormState>({
     companyId: '',
-    customerId: '',
+    partyId: '',
     invoiceNumber: '',
     invoiceDate: new Date().toISOString().split('T')[0],
     dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -148,7 +148,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     if (invoice) {
       setFormData({
         companyId: invoice.companyId || '',
-        customerId: invoice.customerId || '',
+        partyId: invoice.partyId || '',
         invoiceNumber: invoice.invoiceNumber || '',
         invoiceDate: invoice.invoiceDate?.split('T')[0] || '',
         dueDate: invoice.dueDate?.split('T')[0] || '',
@@ -183,10 +183,10 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     setFormData(prev => ({
       ...prev,
       companyId,
-      customerId: '',
+      partyId: '',
     }))
-    if (errors.customerId) {
-      setErrors(prev => ({ ...prev, customerId: '' }))
+    if (errors.partyId) {
+      setErrors(prev => ({ ...prev, partyId: '' }))
     }
   }
 
@@ -485,7 +485,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
         const updateData: UpdateInvoiceDto = {
           id: invoice.id,
           companyId: formData.companyId,
-          customerId: formData.customerId,
+          partyId: formData.partyId,
           invoiceNumber: formData.invoiceNumber,
           invoiceDate: formData.invoiceDate,
           dueDate: formData.dueDate,
@@ -519,7 +519,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       } else {
         const createData: CreateInvoiceDto = {
           companyId: formData.companyId,
-          customerId: formData.customerId,
+          partyId: formData.partyId,
           invoiceNumber: formData.invoiceNumber,
           invoiceDate: formData.invoiceDate,
           dueDate: formData.dueDate,

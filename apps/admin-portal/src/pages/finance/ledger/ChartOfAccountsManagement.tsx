@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { useAccounts, useDeleteAccount, useInitializeChartOfAccounts } from '@/features/ledger/hooks'
-import { useCompanies } from '@/hooks/api/useCompanies'
+import { useCompanyContext } from '@/contexts/CompanyContext'
 import { ChartOfAccount, AccountType } from '@/services/api/types'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
@@ -10,6 +10,7 @@ import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { Edit, Trash2, BookOpen, TrendingUp, TrendingDown, Wallet, DollarSign, PlayCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ChartOfAccountForm } from '@/components/forms/ChartOfAccountForm'
+import { useQueryState, parseAsString } from 'nuqs'
 
 const accountTypeConfig: Record<AccountType, { label: string; color: string; icon: React.ElementType }> = {
   asset: { label: 'Asset', color: 'bg-blue-100 text-blue-800', icon: Wallet },
@@ -20,14 +21,21 @@ const accountTypeConfig: Record<AccountType, { label: string; color: string; ico
 }
 
 const ChartOfAccountsManagement = () => {
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext()
+
+  // URL-backed filter state with nuqs
+  const [companyFilter, setCompanyFilter] = useQueryState('company', parseAsString.withDefault(''))
+  const [accountTypeFilter, setAccountTypeFilter] = useQueryState('type', parseAsString.withDefault(''))
+
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<ChartOfAccount | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<ChartOfAccount | null>(null)
-  const [companyFilter, setCompanyFilter] = useState<string>('')
-  const [accountTypeFilter, setAccountTypeFilter] = useState<string>('')
 
-  const { data: allAccounts = [], isLoading, error, refetch } = useAccounts(companyFilter, !!companyFilter)
-  const { data: companies = [] } = useCompanies()
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined)
+
+  const { data: allAccounts = [], isLoading, error, refetch } = useAccounts(effectiveCompanyId || undefined)
   const deleteAccount = useDeleteAccount()
   const initializeCoA = useInitializeChartOfAccounts()
 
@@ -259,8 +267,8 @@ const ChartOfAccountsManagement = () => {
             <p className="mt-1 text-sm text-gray-500">Please select a company to view its Chart of Accounts</p>
             <div className="mt-6 flex justify-center">
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
           </div>
@@ -318,8 +326,8 @@ const ChartOfAccountsManagement = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
             <div>

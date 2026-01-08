@@ -100,6 +100,13 @@ namespace Core.Entities.Tags
         // ==================== Status ====================
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Whether this is a system-seeded tag (cannot be deleted)
+        /// System tags include TDS sections, party types, compliance tags
+        /// </summary>
+        public bool IsSystem { get; set; } = false;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public Guid? CreatedBy { get; set; }
@@ -110,5 +117,10 @@ namespace Core.Entities.Tags
         public Tag? ParentTag { get; set; }
         public ICollection<Tag>? ChildTags { get; set; }
         public ICollection<TransactionTag>? TransactionTags { get; set; }
+
+        /// <summary>
+        /// TDS rules associated with this tag (for tds_section tags)
+        /// </summary>
+        public ICollection<TdsTagRule>? TdsTagRules { get; set; }
     }
 }

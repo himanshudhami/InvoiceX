@@ -6,18 +6,18 @@ export const CustomerDetails = () => {
 
   return (
     <div className="space-y-2">
-      <label htmlFor="customerId" className="block text-sm font-medium text-gray-700">
+      <label htmlFor="partyId" className="block text-sm font-medium text-gray-700">
         Bill To
       </label>
       <CustomerSelect
         customers={customers}
-        value={formData.customerId || ''}
-        onChange={(value) => updateField('customerId', value)}
+        value={formData.partyId || ''}
+        onChange={(value) => updateField('partyId', value)}
         placeholder="Select a customer"
       />
       
-      {formData.customerId && (() => {
-        const customer = customers.find(c => c.id === formData.customerId)
+      {formData.partyId && (() => {
+        const customer = customers.find(c => c.id === formData.partyId)
         return customer ? (
           <div className="mt-2 p-3 bg-gray-50 rounded-md text-sm">
             <p className="font-medium">{customer.name}</p>

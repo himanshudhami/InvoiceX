@@ -187,5 +187,21 @@ namespace Infrastructure.Data.Inventory
                 "SELECT * FROM warehouses WHERE tally_godown_guid = @tallyGodownGuid",
                 new { tallyGodownGuid });
         }
+
+        public async Task<Warehouse?> GetByTallyGuidAsync(Guid companyId, string tallyGodownGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Warehouse>(
+                "SELECT * FROM warehouses WHERE company_id = @companyId AND tally_godown_guid = @tallyGodownGuid",
+                new { companyId, tallyGodownGuid });
+        }
+
+        public async Task<Warehouse?> GetByNameAsync(Guid companyId, string name)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<Warehouse>(
+                "SELECT * FROM warehouses WHERE company_id = @companyId AND LOWER(name) = LOWER(@name)",
+                new { companyId, name });
+        }
     }
 }

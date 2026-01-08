@@ -86,15 +86,26 @@ namespace WebApi.Controllers
             if (RequiresCompanyIsolation && CurrentCompanyId == null)
                 return CompanyIdNotFoundResponse();
 
-            var filters = new Dictionary<string, object>();
             var effectiveCompanyId = GetEffectiveCompanyId(companyId);
+
+            // If we have a company ID, get all vendors for that company
             if (effectiveCompanyId.HasValue)
             {
-                filters["company_id"] = effectiveCompanyId.Value;
+                var companyResult = await _service.GetByCompanyIdAsync(effectiveCompanyId.Value);
+                if (companyResult.IsFailure)
+                {
+                    return companyResult.Error!.Type switch
+                    {
+                        ErrorType.Validation => BadRequest(companyResult.Error.Message),
+                        ErrorType.Internal => StatusCode(500, companyResult.Error.Message),
+                        _ => BadRequest(companyResult.Error.Message)
+                    };
+                }
+                return Ok(companyResult.Value);
             }
 
-            var result = await _service.GetPagedAsync(1, 100, null, null, false, filters);
-
+            // Admin/HR without company filter - get all vendors
+            var result = await _service.GetAllAsync();
             if (result.IsFailure)
             {
                 return result.Error!.Type switch
@@ -104,7 +115,7 @@ namespace WebApi.Controllers
                 };
             }
 
-            return Ok(result.Value.Items);
+            return Ok(result.Value);
         }
 
         /// <summary>
@@ -215,6 +226,37 @@ namespace WebApi.Controllers
                 return BadRequest(new { error = "Company ID is required" });
 
             var result = await _service.GetTdsApplicableVendorsAsync(effectiveCompanyId.Value);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.Validation => BadRequest(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get payment summary for vendors in a company
+        /// </summary>
+        /// <param name="companyId">Optional company ID (Admin/HR only)</param>
+        /// <returns>Payment summary with per-vendor breakdown</returns>
+        [HttpGet("payment-summary")]
+        [ProducesResponseType(typeof(VendorPaymentSummaryDto), 200)]
+        [ProducesResponseType(403)]
+        public async Task<IActionResult> GetPaymentSummary([FromQuery] Guid? companyId = null)
+        {
+            if (RequiresCompanyIsolation && CurrentCompanyId == null)
+                return CompanyIdNotFoundResponse();
+
+            var effectiveCompanyId = GetEffectiveCompanyId(companyId);
+            if (!effectiveCompanyId.HasValue)
+                return BadRequest(new { error = "Company ID is required" });
+
+            var result = await _service.GetPaymentSummaryAsync(effectiveCompanyId.Value);
 
             if (result.IsFailure)
             {

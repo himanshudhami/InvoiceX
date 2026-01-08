@@ -25,8 +25,12 @@ namespace Core.Interfaces
         Task<IEnumerable<VendorPayment>> GetTdsPaymentsAsync(Guid companyId, string financialYear);
         Task<IEnumerable<VendorPayment>> GetPendingTdsDepositAsync(Guid companyId);
 
-        // Tally migration
-        Task<VendorPayment?> GetByTallyGuidAsync(string tallyVoucherGuid);
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get vendor payment by Tally voucher GUID
+        /// </summary>
+        Task<VendorPayment?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
 
         // CRUD
         Task<VendorPayment> AddAsync(VendorPayment entity);

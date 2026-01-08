@@ -56,7 +56,7 @@ const InvoiceList = () => {
     searchTerm: debouncedSearchTerm || undefined,
     status: urlState.status || undefined,
     companyId: effectiveCompanyId || undefined,
-    customerId: urlState.customer || undefined,
+    partyId: urlState.customer || undefined,
   })
 
   const deleteInvoice = useDeleteInvoice()
@@ -93,9 +93,9 @@ const InvoiceList = () => {
     }
   }
 
-  const getCustomerName = (customerId?: string) => {
-    if (!customerId) return '—'
-    const customer = customers.find(c => c.id === customerId)
+  const getCustomerName = (partyId?: string) => {
+    if (!partyId) return '—'
+    const customer = customers.find(c => c.id === partyId)
     return customer ? `${customer.name}${customer.companyName ? ` (${customer.companyName})` : ''}` : '—'
   }
 
@@ -175,10 +175,10 @@ const InvoiceList = () => {
       },
     },
     {
-      accessorKey: 'customerId',
+      accessorKey: 'partyId',
       header: 'Customer',
       cell: ({ row }) => {
-        const customerName = getCustomerName(row.original.customerId)
+        const customerName = getCustomerName(row.original.partyId)
         return <div className="text-sm text-gray-900">{customerName}</div>
       },
     },

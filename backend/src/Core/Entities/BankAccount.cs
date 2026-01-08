@@ -97,6 +97,23 @@ namespace Core.Entities
         /// </summary>
         public Guid? LinkedAccountId { get; set; }
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Bank Ledger GUID
+        /// </summary>
+        public string? TallyLedgerGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Ledger Name
+        /// </summary>
+        public string? TallyLedgerName { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Timestamps ====================
 
         public DateTime? CreatedAt { get; set; }

@@ -25,4 +25,8 @@ public interface IWarehouseRepository
     Task<bool> ExistsAsync(Guid companyId, string name, Guid? excludeId = null);
     Task<bool> HasMovementsAsync(Guid warehouseId);
     Task SetDefaultAsync(Guid companyId, Guid warehouseId);
+
+    // ==================== Tally Migration ====================
+    Task<Warehouse?> GetByTallyGuidAsync(Guid companyId, string tallyGodownGuid);
+    Task<Warehouse?> GetByNameAsync(Guid companyId, string name);
 }

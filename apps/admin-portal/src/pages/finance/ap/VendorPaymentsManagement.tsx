@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   useVendorPayments,
@@ -9,7 +9,7 @@ import {
   useCancelVendorPayment,
 } from '@/features/vendors/hooks';
 import { useVendors } from '@/features/vendors/hooks';
-import { useCompanies } from '@/hooks/api/useCompanies';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { VendorPayment } from '@/services/api/types';
 import { DataTable } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
@@ -26,6 +26,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQueryState, parseAsString } from 'nuqs';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-800',
@@ -45,25 +46,29 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 const VendorPaymentsManagement = () => {
-  const [searchParams] = useSearchParams();
-  const vendorIdParam = searchParams.get('vendorId') || '';
+  // Get selected company from context (for multi-company users)
+  const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext();
+
+  // URL-backed filter state with nuqs
+  const [companyFilter, setCompanyFilter] = useQueryState('company', parseAsString.withDefault(''));
+  const [vendorFilter, setVendorFilter] = useQueryState('vendorId', parseAsString.withDefault(''));
+  const [statusFilter, setStatusFilter] = useQueryState('status', parseAsString.withDefault(''));
 
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<VendorPayment | null>(null);
   const [deletingPayment, setDeletingPayment] = useState<VendorPayment | null>(null);
-  const [companyFilter, setCompanyFilter] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>(vendorIdParam);
-  const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const { data: allPayments = [], isLoading, error, refetch } = useVendorPayments();
-  const { data: vendors = [] } = useVendors();
-  const { data: companies = [] } = useCompanies();
+  // Determine effective company ID: URL filter takes precedence, then context selection
+  const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined);
+
+  const { data: allPayments = [], isLoading, error, refetch } = useVendorPayments(effectiveCompanyId || undefined);
+  const { data: vendors = [] } = useVendors(effectiveCompanyId || undefined);
   const deletePayment = useDeleteVendorPayment();
   const approvePayment = useApproveVendorPayment();
   const processPayment = useProcessVendorPayment();
   const cancelPayment = useCancelVendorPayment();
 
-  // Get vendor lookup
+  // Get vendor lookup by party ID
   const vendorLookup = useMemo(() => {
     const lookup: Record<string, string> = {};
     vendors.forEach(v => { lookup[v.id] = v.name; });
@@ -77,7 +82,7 @@ const VendorPaymentsManagement = () => {
       filtered = filtered.filter(p => p.companyId === companyFilter);
     }
     if (vendorFilter) {
-      filtered = filtered.filter(p => p.vendorId === vendorFilter);
+      filtered = filtered.filter(p => p.partyId === vendorFilter);
     }
     if (statusFilter) {
       filtered = filtered.filter(p => p.status === statusFilter);
@@ -152,13 +157,13 @@ const VendorPaymentsManagement = () => {
       },
     },
     {
-      accessorKey: 'vendorId',
+      accessorKey: 'partyId',
       header: 'Vendor',
       cell: ({ row }) => {
         const payment = row.original;
         return (
           <div className="text-sm text-gray-900">
-            {vendorLookup[payment.vendorId] || payment.vendor?.name || 'Unknown'}
+            {vendorLookup[payment.partyId] || payment.vendor?.name || 'Unknown'}
           </div>
         );
       },
@@ -408,8 +413,8 @@ const VendorPaymentsManagement = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
               <CompanyFilterDropdown
-                value={companyFilter}
-                onChange={setCompanyFilter}
+                value={companyFilter ?? ''}
+                onChange={(value) => setCompanyFilter(value || null)}
               />
             </div>
             <div>

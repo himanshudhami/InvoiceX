@@ -10,7 +10,7 @@ namespace Application.DTOs.VendorInvoices
         public Guid? CompanyId { get; set; }
 
         [Required(ErrorMessage = "Vendor ID is required")]
-        public Guid VendorId { get; set; }
+        public Guid PartyId { get; set; }
 
         [Required(ErrorMessage = "Invoice number is required")]
         [StringLength(100, ErrorMessage = "Invoice number cannot exceed 100 characters")]

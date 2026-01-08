@@ -30,7 +30,7 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string;
   companyId?: string;
-  customerId?: string;
+  partyId?: string;  // References parties table (customer)
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -96,7 +96,7 @@ export interface Invoice {
 
 export interface CreateInvoiceDto {
   companyId?: string;
-  customerId?: string;
+  partyId?: string;  // References parties table (customer)
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -147,5 +147,5 @@ export interface InvoicesFilterParams extends PaginationParams {
   projectName?: string;
   currency?: string;
   companyId?: string;
-  customerId?: string;
+  partyId?: string;  // References parties table (customer)
 }

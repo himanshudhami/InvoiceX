@@ -32,7 +32,7 @@ namespace Core.Entities
         /// <summary>
         /// Optional customer reference
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         /// <summary>
         /// Name of the entity that deducted TDS

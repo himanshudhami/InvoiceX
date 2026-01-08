@@ -21,9 +21,9 @@ namespace Application.DTOs.Payments
         public Guid? CompanyId { get; set; }
 
         /// <summary>
-        /// CustomerId - required for direct payments, auto-filled for invoice payments
+        /// PartyId - required for direct payments, auto-filled for invoice payments
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         // ==================== Payment Details ====================
 

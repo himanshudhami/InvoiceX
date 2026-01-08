@@ -123,5 +123,10 @@ namespace Core.Interfaces.Payroll
             Guid companyId,
             string paymentType,
             string financialYear);
+
+        /// <summary>
+        /// Gets a statutory payment by its Tally voucher GUID (for migration duplicate detection)
+        /// </summary>
+        Task<StatutoryPayment?> GetByTallyGuidAsync(Guid companyId, string tallyGuid);
     }
 }

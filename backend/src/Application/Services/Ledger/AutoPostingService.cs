@@ -179,7 +179,7 @@ namespace Application.Services.Ledger
                 var sourceData = new Dictionary<string, object>
                 {
                     ["company_id"] = vendorInvoice.CompanyId.ToString(),
-                    ["vendor_id"] = vendorInvoice.VendorId.ToString(),
+                    ["vendor_id"] = vendorInvoice.PartyId.ToString(),
                     ["invoice_type"] = vendorInvoice.InvoiceType ?? "regular",
                     ["is_intra_state"] = isIntraState,
                     ["is_rcm"] = isRcm,
@@ -234,7 +234,7 @@ namespace Application.Services.Ledger
                 var sourceData = new Dictionary<string, object>
                 {
                     ["company_id"] = vendorPayment.CompanyId.ToString(),
-                    ["vendor_id"] = vendorPayment.VendorId.ToString(),
+                    ["vendor_id"] = vendorPayment.PartyId.ToString(),
                     ["payment_type"] = paymentType,
                     ["is_advance"] = isAdvance,
                     ["tds_applicable"] = hasTds,

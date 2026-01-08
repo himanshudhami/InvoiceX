@@ -54,6 +54,23 @@ namespace Core.Entities
         /// </summary>
         public string? PanNumber { get; set; }
 
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Original Tally Ledger GUID (from Sundry Debtors group)
+        /// </summary>
+        public string? TallyLedgerGuid { get; set; }
+
+        /// <summary>
+        /// Original Tally Ledger Name at time of import
+        /// </summary>
+        public string? TallyLedgerName { get; set; }
+
+        /// <summary>
+        /// Migration batch that imported this record
+        /// </summary>
+        public Guid? TallyMigrationBatchId { get; set; }
+
         // ==================== Timestamps ====================
 
         public DateTime? CreatedAt { get; set; }

@@ -283,10 +283,11 @@ export class PayrollService {
   }
 
   // ==================== Contractor Payments ====================
+  // Links to parties table (unified party model)
 
   async getContractorPayments(params: PaginationParams & {
     companyId?: string;
-    employeeId?: string;
+    partyId?: string;
     paymentMonth?: number;
     paymentYear?: number;
     status?: string;
@@ -325,8 +326,8 @@ export class PayrollService {
     return apiClient.get<Record<string, number>>(url);
   }
 
-  async getContractorYtdSummary(employeeId: string, financialYear: string): Promise<ContractorPaymentSummary> {
-    return apiClient.get<ContractorPaymentSummary>(`${this.contractorEndpoint}/ytd/${employeeId}`, { financialYear });
+  async getContractorYtdSummary(partyId: string, financialYear: string): Promise<ContractorPaymentSummary> {
+    return apiClient.get<ContractorPaymentSummary>(`${this.contractorEndpoint}/ytd/${partyId}`, { financialYear });
   }
 
   // ==================== Statutory Config ====================

@@ -63,8 +63,8 @@ namespace Application.Services.Reports
 
                 if (outstanding <= 0.01m) continue;  // Fully paid
 
-                var customer = invoice.CustomerId.HasValue
-                    ? await _customersRepository.GetByIdAsync(invoice.CustomerId.Value)
+                var customer = invoice.PartyId.HasValue
+                    ? await _customersRepository.GetByIdAsync(invoice.PartyId.Value)
                     : null;
 
                 var daysOutstanding = (effectiveDate.ToDateTime(TimeOnly.MinValue) - invoice.InvoiceDate.ToDateTime(TimeOnly.MinValue)).Days;
@@ -82,7 +82,7 @@ namespace Application.Services.Reports
                     InvoiceDate = invoice.InvoiceDate,
                     DueDate = invoice.DueDate,
                     DaysOutstanding = daysOutstanding,
-                    CustomerId = invoice.CustomerId ?? Guid.Empty,
+                    PartyId = invoice.PartyId ?? Guid.Empty,
                     CustomerName = customer?.Name ?? "Unknown",
                     Currency = invoice.Currency ?? "USD",
                     InvoiceAmount = invoice.TotalAmount,
@@ -183,7 +183,7 @@ namespace Application.Services.Reports
 
             foreach (var invoice in exportInvoices)
             {
-                var customerId = invoice.CustomerId ?? Guid.Empty;
+                var customerId = invoice.PartyId ?? Guid.Empty;
                 if (!customerReceivables.ContainsKey(customerId))
                 {
                     var customer = customerId != Guid.Empty
@@ -192,7 +192,7 @@ namespace Application.Services.Reports
 
                     customerReceivables[customerId] = new CustomerExportReceivableDto
                     {
-                        CustomerId = customerId,
+                        PartyId = customerId,
                         CustomerName = customer?.Name ?? "Unknown",
                         Country = customer?.Country,
                         PrimaryCurrency = invoice.Currency ?? "USD"
@@ -545,7 +545,7 @@ namespace Application.Services.Reports
                 report.TotalPendingValue += outstanding;
 
                 // Customer tracking
-                var customerId = invoice.CustomerId ?? Guid.Empty;
+                var customerId = invoice.PartyId ?? Guid.Empty;
                 if (!customerData.ContainsKey(customerId))
                 {
                     var customer = customerId != Guid.Empty
@@ -553,7 +553,7 @@ namespace Application.Services.Reports
                         : null;
                     customerData[customerId] = new CustomerRealizationDto
                     {
-                        CustomerId = customerId,
+                        PartyId = customerId,
                         CustomerName = customer?.Name ?? "Unknown"
                     };
                 }
@@ -599,8 +599,8 @@ namespace Application.Services.Reports
 
                 if (outstanding > 0.01m && daysToDeadline <= 60)
                 {
-                    var customer = invoice.CustomerId.HasValue
-                        ? await _customersRepository.GetByIdAsync(invoice.CustomerId.Value)
+                    var customer = invoice.PartyId.HasValue
+                        ? await _customersRepository.GetByIdAsync(invoice.PartyId.Value)
                         : null;
 
                     report.AtRiskInvoices.Add(new AtRiskInvoiceDto
@@ -779,8 +779,8 @@ namespace Application.Services.Reports
                         overdueCount++;
 
                     // Customer breakdown
-                    var customer = invoice.CustomerId.HasValue
-                        ? await _customersRepository.GetByIdAsync(invoice.CustomerId.Value)
+                    var customer = invoice.PartyId.HasValue
+                        ? await _customersRepository.GetByIdAsync(invoice.PartyId.Value)
                         : null;
                     var customerName = customer?.Name ?? "Unknown";
                     customerReceivables[customerName] = customerReceivables.GetValueOrDefault(customerName) + outstanding;

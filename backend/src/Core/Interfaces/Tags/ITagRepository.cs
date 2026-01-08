@@ -32,8 +32,9 @@ namespace Core.Interfaces.Tags
 
         // ==================== Lookups ====================
         Task<Tag?> GetByNameAsync(Guid companyId, string name, Guid? parentTagId = null);
+        Task<Tag?> GetByNameAndGroupAsync(Guid companyId, string name, string tagGroup);
         Task<Tag?> GetByCodeAsync(Guid companyId, string code);
-        Task<Tag?> GetByTallyGuidAsync(string tallyCostCenterGuid);
+        Task<Tag?> GetByTallyCostCenterGuidAsync(Guid companyId, string tallyCostCenterGuid);
 
         // ==================== Validation ====================
         Task<bool> ExistsAsync(Guid id);

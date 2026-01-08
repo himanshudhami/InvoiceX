@@ -138,6 +138,23 @@ const VendorPaymentsManagement = lazy(() => import('./pages/finance/ap/VendorPay
 const TagsManagement = lazy(() => import('./pages/settings/tags/TagsManagement'))
 const AttributionRulesManagement = lazy(() => import('./pages/settings/tags/AttributionRulesManagement'))
 
+// Inventory Management
+const WarehousesManagement = lazy(() => import('./pages/inventory/warehouses/WarehousesManagement'))
+const StockGroupsManagement = lazy(() => import('./pages/inventory/stockgroups/StockGroupsManagement'))
+const UnitsOfMeasureManagement = lazy(() => import('./pages/inventory/units/UnitsOfMeasureManagement'))
+const StockItemsManagement = lazy(() => import('./pages/inventory/items/StockItemsManagement'))
+const StockMovementsManagement = lazy(() => import('./pages/inventory/movements/StockMovementsManagement'))
+const StockTransfersManagement = lazy(() => import('./pages/inventory/transfers/StockTransfersManagement'))
+
+// Manufacturing
+const BomManagement = lazy(() => import('./pages/manufacturing/bom/BomManagement'))
+const ProductionOrdersManagement = lazy(() => import('./pages/manufacturing/production/ProductionOrdersManagement'))
+const SerialNumbersManagement = lazy(() => import('./pages/manufacturing/serial/SerialNumbersManagement'))
+
+// Tally Migration
+const TallyMigration = lazy(() => import('./pages/settings/migration/TallyMigration'))
+const TallyMigrationHistory = lazy(() => import('./pages/settings/migration/TallyMigrationHistory'))
+
 // Loading spinner for Suspense fallback
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -372,6 +389,24 @@ function AppRoutes() {
               {/* Tags & Attribution Routes (Cost Center Alternative) */}
               <Route path="/settings/tags" element={<TagsManagement />} />
               <Route path="/settings/attribution-rules" element={<AttributionRulesManagement />} />
+
+              {/* Inventory Management Routes */}
+              <Route path="/inventory/warehouses" element={<WarehousesManagement />} />
+              <Route path="/inventory/stock-groups" element={<StockGroupsManagement />} />
+              <Route path="/inventory/units" element={<UnitsOfMeasureManagement />} />
+              <Route path="/inventory/items" element={<StockItemsManagement />} />
+              <Route path="/inventory/movements" element={<StockMovementsManagement />} />
+              <Route path="/inventory/transfers" element={<StockTransfersManagement />} />
+
+              {/* Manufacturing Routes */}
+              <Route path="/manufacturing/bom" element={<BomManagement />} />
+              <Route path="/manufacturing/production" element={<ProductionOrdersManagement />} />
+              <Route path="/manufacturing/serial-numbers" element={<SerialNumbersManagement />} />
+
+              {/* Tally Migration Routes */}
+              <Route path="/settings/migration/tally" element={<TallyMigration />} />
+              <Route path="/settings/migration/history" element={<TallyMigrationHistory />} />
+              <Route path="/settings/migration/history/:batchId" element={<TallyMigrationHistory />} />
             </Route>
 
             {/* Catch-all redirect */}

@@ -4,7 +4,7 @@ namespace Core.Entities
     {
         public Guid Id { get; set; }
         public Guid? CompanyId { get; set; }
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
         public string QuoteNumber { get; set; } = string.Empty;
         public DateOnly QuoteDate { get; set; }
         public DateOnly ExpiryDate { get; set; }

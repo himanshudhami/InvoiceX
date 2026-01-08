@@ -3,6 +3,7 @@ using Core.Entities;
 using Core.Common;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
 
 namespace Application.Interfaces
 {
@@ -20,6 +21,11 @@ namespace Application.Interfaces
         /// Get all Vendors entities
         /// </summary>
         Task<Result<IEnumerable<Vendors>>> GetAllAsync();
+
+        /// <summary>
+        /// Get all Vendors for a specific company
+        /// </summary>
+        Task<Result<IEnumerable<Vendors>>> GetByCompanyIdAsync(Guid companyId);
 
         /// <summary>
         /// Get paginated Vendors entities with filtering and sorting
@@ -76,5 +82,10 @@ namespace Application.Interfaces
         /// Check if Vendors exists
         /// </summary>
         Task<Result<bool>> ExistsAsync(Guid id);
+
+        /// <summary>
+        /// Get payment summary for vendors in a company
+        /// </summary>
+        Task<Result<VendorPaymentSummaryDto>> GetPaymentSummaryAsync(Guid companyId);
     }
 }

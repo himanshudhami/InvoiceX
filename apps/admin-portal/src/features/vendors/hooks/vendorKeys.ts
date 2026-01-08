@@ -15,6 +15,7 @@ export const vendorKeys = {
   vendorOutstanding: (vendorId: string) => [...vendorKeys.all, 'vendor-outstanding', vendorId] as const,
   aging: (companyId: string, asOfDate?: string) => [...vendorKeys.all, 'aging', companyId, asOfDate] as const,
   tdsSummary: (companyId: string, financialYear?: string) => [...vendorKeys.all, 'tds-summary', companyId, financialYear] as const,
+  paymentSummary: (companyId: string) => [...vendorKeys.all, 'payment-summary', companyId] as const,
 };
 
 export const vendorInvoiceKeys = {

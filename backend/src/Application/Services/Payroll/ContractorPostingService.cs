@@ -441,7 +441,7 @@ namespace Application.Services.Payroll
                         Currency = "INR",
                         ExchangeRate = 1,
                         SubledgerType = "contractor",
-                        SubledgerId = payment.EmployeeId
+                        SubledgerId = payment.PartyId
                     });
                 }
             }

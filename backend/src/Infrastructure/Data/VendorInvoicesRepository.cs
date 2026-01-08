@@ -55,12 +55,12 @@ namespace Infrastructure.Data
                 new { companyId });
         }
 
-        public async Task<IEnumerable<VendorInvoice>> GetByVendorIdAsync(Guid vendorId)
+        public async Task<IEnumerable<VendorInvoice>> GetByVendorIdAsync(Guid partyId)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<VendorInvoice>(
-                "SELECT * FROM vendor_invoices WHERE vendor_id = @vendorId ORDER BY invoice_date DESC",
-                new { vendorId });
+                "SELECT * FROM vendor_invoices WHERE party_id = @partyId ORDER BY invoice_date DESC",
+                new { partyId });
         }
 
         public async Task<(IEnumerable<VendorInvoice> Items, int TotalCount)> GetPagedAsync(
@@ -73,7 +73,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var allowedColumns = new[] {
-                "id", "company_id", "vendor_id", "invoice_number", "internal_reference",
+                "id", "company_id", "party_id", "invoice_number", "internal_reference",
                 "invoice_date", "due_date", "received_date", "status",
                 "subtotal", "tax_amount", "discount_amount", "total_amount", "paid_amount",
                 "currency", "invoice_type", "supply_type", "reverse_charge", "rcm_applicable",
@@ -168,11 +168,27 @@ namespace Infrastructure.Data
                 new { tallyVoucherGuid });
         }
 
+        public async Task<VendorInvoice?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<VendorInvoice>(
+                "SELECT * FROM vendor_invoices WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
+                new { companyId, tallyVoucherGuid });
+        }
+
+        public async Task<VendorInvoice?> GetByNumberAsync(Guid companyId, string invoiceNumber)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<VendorInvoice>(
+                "SELECT * FROM vendor_invoices WHERE company_id = @companyId AND invoice_number = @invoiceNumber",
+                new { companyId, invoiceNumber });
+        }
+
         public async Task<VendorInvoice> AddAsync(VendorInvoice entity)
         {
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"INSERT INTO vendor_invoices (
-                company_id, vendor_id, invoice_number, internal_reference,
+                company_id, party_id, invoice_number, internal_reference,
                 invoice_date, due_date, received_date, status,
                 subtotal, tax_amount, discount_amount, total_amount, paid_amount,
                 currency, notes, po_number,
@@ -188,7 +204,7 @@ namespace Infrastructure.Data
                 tally_voucher_guid, tally_voucher_number, tally_migration_batch_id,
                 created_at, updated_at
             ) VALUES (
-                @CompanyId, @VendorId, @InvoiceNumber, @InternalReference,
+                @CompanyId, @PartyId, @InvoiceNumber, @InternalReference,
                 @InvoiceDate, @DueDate, @ReceivedDate, @Status,
                 @Subtotal, @TaxAmount, @DiscountAmount, @TotalAmount, @PaidAmount,
                 @Currency, @Notes, @PoNumber,
@@ -213,7 +229,7 @@ namespace Infrastructure.Data
             using var connection = new NpgsqlConnection(_connectionString);
             var sql = @"UPDATE vendor_invoices SET
                 company_id = @CompanyId,
-                vendor_id = @VendorId,
+                party_id = @PartyId,
                 invoice_number = @InvoiceNumber,
                 internal_reference = @InternalReference,
                 invoice_date = @InvoiceDate,

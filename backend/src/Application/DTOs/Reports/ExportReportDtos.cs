@@ -73,7 +73,7 @@ namespace Application.DTOs.Reports
         public DateOnly DueDate { get; set; }
         public int DaysOutstanding { get; set; }
         public string AgeingBucket { get; set; } = string.Empty;
-        public Guid CustomerId { get; set; }
+        public Guid PartyId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string Currency { get; set; } = string.Empty;
         public decimal InvoiceAmount { get; set; }
@@ -90,7 +90,7 @@ namespace Application.DTOs.Reports
     /// </summary>
     public class CustomerExportReceivableDto
     {
-        public Guid CustomerId { get; set; }
+        public Guid PartyId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string? Country { get; set; }
         public int InvoiceCount { get; set; }
@@ -364,7 +364,7 @@ namespace Application.DTOs.Reports
     /// </summary>
     public class CustomerRealizationDto
     {
-        public Guid CustomerId { get; set; }
+        public Guid PartyId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public int InvoiceCount { get; set; }
         public decimal TotalExportValue { get; set; }

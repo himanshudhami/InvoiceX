@@ -196,5 +196,13 @@ namespace Infrastructure.Data.Inventory
                 "SELECT * FROM units_of_measure WHERE tally_unit_guid = @tallyUnitGuid",
                 new { tallyUnitGuid });
         }
+
+        public async Task<UnitOfMeasure?> GetByTallyGuidAsync(Guid companyId, string tallyUnitGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<UnitOfMeasure>(
+                "SELECT * FROM units_of_measure WHERE company_id = @companyId AND tally_unit_guid = @tallyUnitGuid",
+                new { companyId, tallyUnitGuid });
+        }
     }
 }

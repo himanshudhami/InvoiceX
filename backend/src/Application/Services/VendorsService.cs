@@ -9,6 +9,7 @@ using AutoMapper;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Application.Services
@@ -19,17 +20,23 @@ namespace Application.Services
     public class VendorsService : IVendorsService
     {
         private readonly IVendorsRepository _repository;
+        private readonly IVendorPaymentsRepository _vendorPaymentsRepository;
+        private readonly IPartyRepository _partyRepository;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateVendorsDto> _createValidator;
         private readonly IValidator<UpdateVendorsDto> _updateValidator;
 
         public VendorsService(
             IVendorsRepository repository,
+            IVendorPaymentsRepository vendorPaymentsRepository,
+            IPartyRepository partyRepository,
             IMapper mapper,
             IValidator<CreateVendorsDto> createValidator,
             IValidator<UpdateVendorsDto> updateValidator)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _vendorPaymentsRepository = vendorPaymentsRepository ?? throw new ArgumentNullException(nameof(vendorPaymentsRepository));
+            _partyRepository = partyRepository ?? throw new ArgumentNullException(nameof(partyRepository));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -53,6 +60,17 @@ namespace Application.Services
         public async Task<Result<IEnumerable<Vendors>>> GetAllAsync()
         {
             var entities = await _repository.GetAllAsync();
+            return Result<IEnumerable<Vendors>>.Success(entities);
+        }
+
+        /// <inheritdoc />
+        public async Task<Result<IEnumerable<Vendors>>> GetByCompanyIdAsync(Guid companyId)
+        {
+            var validation = ServiceExtensions.ValidateGuid(companyId);
+            if (validation.IsFailure)
+                return validation.Error!;
+
+            var entities = await _repository.GetByCompanyIdAsync(companyId);
             return Result<IEnumerable<Vendors>>.Success(entities);
         }
 
@@ -255,6 +273,63 @@ namespace Application.Services
 
             var entity = await _repository.GetByIdAsync(id);
             return Result<bool>.Success(entity != null);
+        }
+
+        /// <inheritdoc />
+        public async Task<Result<VendorPaymentSummaryDto>> GetPaymentSummaryAsync(Guid companyId)
+        {
+            var validation = ServiceExtensions.ValidateGuid(companyId);
+            if (validation.IsFailure)
+                return validation.Error!;
+
+            // Get all payments for the company
+            var payments = await _vendorPaymentsRepository.GetByCompanyIdAsync(companyId);
+            var paymentsList = payments.Where(p => p.PartyId.HasValue).ToList();
+
+            if (!paymentsList.Any())
+            {
+                return Result<VendorPaymentSummaryDto>.Success(new VendorPaymentSummaryDto
+                {
+                    TotalPaid = 0,
+                    VendorCount = 0,
+                    PaymentCount = 0,
+                    Vendors = new List<VendorPaymentDetailDto>()
+                });
+            }
+
+            // Get unique party IDs (filter out nulls) and fetch their names
+            var partyIds = paymentsList
+                .Where(p => p.PartyId.HasValue)
+                .Select(p => p.PartyId!.Value)
+                .Distinct()
+                .ToList();
+            var parties = await _partyRepository.GetByIdsAsync(partyIds);
+            var partyNameMap = parties.ToDictionary(p => p.Id, p => p.Name);
+
+            // Aggregate by vendor
+            var vendorSummaries = paymentsList
+                .Where(p => p.PartyId.HasValue)
+                .GroupBy(p => p.PartyId!.Value)
+                .Select(g => new VendorPaymentDetailDto
+                {
+                    VendorId = g.Key,
+                    VendorName = partyNameMap.TryGetValue(g.Key, out var name) ? name : "Unknown",
+                    TotalPaid = g.Sum(p => p.Amount),
+                    PaymentCount = g.Count(),
+                    LastPaymentDate = g.Max(p => p.PaymentDate).ToDateTime(TimeOnly.MinValue)
+                })
+                .OrderByDescending(v => v.TotalPaid)
+                .ToList();
+
+            var summary = new VendorPaymentSummaryDto
+            {
+                TotalPaid = paymentsList.Sum(p => p.Amount),
+                VendorCount = vendorSummaries.Count,
+                PaymentCount = paymentsList.Count,
+                Vendors = vendorSummaries
+            };
+
+            return Result<VendorPaymentSummaryDto>.Success(summary);
         }
     }
 }

@@ -526,17 +526,20 @@ export interface UpdateEmployeeTaxDeclarationDto {
 }
 
 // ==================== Contractor Payments ====================
+// Links to parties table (unified party model) instead of employees
 export interface ContractorPayment {
   id: string;
-  employeeId: string;
+  partyId: string;
   companyId: string;
   paymentMonth: number;
   paymentYear: number;
   invoiceNumber?: string;
   contractReference?: string;
   grossAmount: number;
+  tdsSection: string;
   tdsRate: number;
   tdsAmount: number;
+  contractorPan?: string;
   otherDeductions: number;
   netPayable: number;
   gstApplicable: boolean;
@@ -551,16 +554,17 @@ export interface ContractorPayment {
   remarks?: string;
   createdAt?: string;
   updatedAt?: string;
-  employeeName?: string;
+  partyName?: string;
   companyName?: string;
 }
 
 export interface CreateContractorPaymentDto {
-  employeeId: string;
+  partyId: string;
   companyId: string;
   paymentMonth: number;
   paymentYear: number;
   grossAmount: number;
+  tdsSection?: string;
   tdsRate?: number;
   otherDeductions?: number;
   gstApplicable?: boolean;
@@ -574,6 +578,7 @@ export interface CreateContractorPaymentDto {
 
 export interface UpdateContractorPaymentDto {
   grossAmount?: number;
+  tdsSection?: string;
   tdsRate?: number;
   otherDeductions?: number;
   gstApplicable?: boolean;
@@ -591,7 +596,7 @@ export interface UpdateContractorPaymentDto {
 }
 
 export interface ContractorPaymentSummary {
-  employeeId: string;
+  partyId: string;
   financialYear: string;
   totalGross: number;
   totalTds: number;

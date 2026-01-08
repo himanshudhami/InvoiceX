@@ -259,5 +259,13 @@ namespace Infrastructure.Data.Inventory
                 "SELECT * FROM stock_items WHERE tally_stock_item_guid = @tallyStockItemGuid",
                 new { tallyStockItemGuid });
         }
+
+        public async Task<StockItem?> GetByTallyGuidAsync(Guid companyId, string tallyStockItemGuid)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<StockItem>(
+                "SELECT * FROM stock_items WHERE company_id = @companyId AND tally_stock_item_guid = @tallyStockItemGuid",
+                new { companyId, tallyStockItemGuid });
+        }
     }
 }

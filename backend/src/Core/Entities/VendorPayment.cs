@@ -17,9 +17,10 @@ namespace Core.Entities
         public Guid? CompanyId { get; set; }
 
         /// <summary>
-        /// Vendor receiving this payment
+        /// Party (vendor) receiving this payment.
+        /// References parties table where is_vendor = true
         /// </summary>
-        public Guid? VendorId { get; set; }
+        public Guid? PartyId { get; set; }
 
         /// <summary>
         /// Bank account from which payment is made
@@ -207,7 +208,10 @@ namespace Core.Entities
 
         // ==================== Navigation Properties ====================
 
-        public Vendors? Vendor { get; set; }
+        /// <summary>
+        /// Vendor party (is_vendor = true)
+        /// </summary>
+        public Party? Party { get; set; }
         public Companies? Company { get; set; }
         public BankAccount? BankAccount { get; set; }
         public ICollection<VendorPaymentAllocation>? Allocations { get; set; }

@@ -146,6 +146,23 @@ namespace Core.Interfaces
         /// Used for backfill migration.
         /// </summary>
         Task<IEnumerable<BankTransaction>> GetReconciledWithoutJeLinkAsync(Guid companyId);
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get bank transaction by Tally voucher GUID for deduplication
+        /// </summary>
+        Task<BankTransaction?> GetByTallyGuidAsync(string tallyVoucherGuid);
+
+        /// <summary>
+        /// Get all bank transactions for a Tally migration batch
+        /// </summary>
+        Task<IEnumerable<BankTransaction>> GetByTallyBatchIdAsync(Guid batchId);
+
+        /// <summary>
+        /// Delete all bank transactions for a Tally migration batch (for rollback)
+        /// </summary>
+        Task DeleteByTallyBatchIdAsync(Guid batchId);
     }
 
     /// <summary>

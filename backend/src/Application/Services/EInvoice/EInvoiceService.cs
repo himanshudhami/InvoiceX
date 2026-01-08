@@ -325,8 +325,8 @@ namespace Application.Services.EInvoice
         private async Task<IrpInvoiceSchema> BuildIrpSchemaAsync(Core.Entities.Invoices invoice)
         {
             var company = await _companiesRepository.GetByIdAsync(invoice.CompanyId!.Value);
-            var customer = invoice.CustomerId.HasValue
-                ? await _customersRepository.GetByIdAsync(invoice.CustomerId.Value)
+            var customer = invoice.PartyId.HasValue
+                ? await _customersRepository.GetByIdAsync(invoice.PartyId.Value)
                 : null;
 
             // Get invoice items using paged query with filter

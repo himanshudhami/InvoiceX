@@ -138,5 +138,12 @@ namespace Core.Interfaces.Ledger
         /// Used for BRS generation to get book balance from ledger perspective.
         /// </summary>
         Task<decimal> GetAccountBalanceAsync(Guid companyId, Guid accountId, DateOnly asOfDate);
+
+        // ==================== Tally Migration ====================
+
+        /// <summary>
+        /// Get journal entry by Tally voucher GUID
+        /// </summary>
+        Task<JournalEntry?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
     }
 }
