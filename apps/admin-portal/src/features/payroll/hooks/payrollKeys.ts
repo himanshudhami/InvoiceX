@@ -65,7 +65,9 @@ export const payrollKeys = {
     [...payrollKeys.contractorPayments(), 'summary', month, year, companyId ?? 'all'] as const,
   contractorYtd: (partyId: string, financialYear: string) =>
     [...payrollKeys.contractorPayments(), 'ytd', partyId, financialYear] as const,
-  
+  contractorPaymentBreakdown: (companyId: string) =>
+    [...payrollKeys.contractorPayments(), 'payment-breakdown', companyId] as const,
+
   // Statutory Config
   statutoryConfigs: () => [...payrollKeys.all, 'statutory-configs'] as const,
   statutoryConfig: (id: string) => [...payrollKeys.statutoryConfigs(), id] as const,

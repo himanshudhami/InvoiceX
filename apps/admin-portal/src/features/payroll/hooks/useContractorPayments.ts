@@ -6,6 +6,7 @@ import type {
   CreateContractorPaymentDto,
   UpdateContractorPaymentDto,
   ContractorPaymentSummary,
+  ContractorPaymentBreakdown,
 } from '@/features/payroll/types/payroll'
 import { payrollKeys } from './payrollKeys'
 import type { PaginationParams } from '@/services/api/types'
@@ -142,6 +143,19 @@ export const useMarkContractorPaymentAsPaid = () => {
     onError: (error: any) => {
       toast.error(error?.message ?? 'Failed to mark contractor payment as paid')
     },
+  })
+}
+
+export const useContractorPaymentBreakdown = (
+  companyId: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: payrollKeys.contractorPaymentBreakdown(companyId),
+    queryFn: () => payrollService.getContractorPaymentBreakdown(companyId),
+    enabled: enabled && !!companyId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   })
 }
 

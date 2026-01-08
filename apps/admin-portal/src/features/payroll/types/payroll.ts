@@ -605,6 +605,26 @@ export interface ContractorPaymentSummary {
   paymentCount: number;
 }
 
+// Payment breakdown for contractors (similar to VendorPaymentSummary)
+export interface ContractorPaymentBreakdown {
+  totalPaid: number;
+  totalGross: number;
+  totalTds: number;
+  contractorCount: number;
+  paymentCount: number;
+  contractors: ContractorPaymentDetail[];
+}
+
+export interface ContractorPaymentDetail {
+  contractorId: string;
+  contractorName: string;
+  totalPaid: number;
+  totalGross: number;
+  totalTds: number;
+  paymentCount: number;
+  lastPaymentDate?: string;
+}
+
 // ==================== Employee Payroll Info ====================
 export interface EmployeePayrollInfo {
   id: string;

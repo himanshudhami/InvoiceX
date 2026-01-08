@@ -130,6 +130,8 @@ const Layout: FC<Props> = ({ children }) => {
       icon: Truck,
       items: [
         { name: 'Vendors', href: '/finance/ap/vendors', icon: Users },
+        { name: 'Contractors', href: '/finance/ap/contractors', icon: UserCog },
+        { name: 'Contractor Payments', href: '/finance/ap/contractor-payments', icon: CreditCard },
         { name: 'Bills & Invoices', href: '/finance/ap/vendor-invoices', icon: FileText },
         { name: 'Vendor Payments', href: '/finance/ap/vendor-payments', icon: Banknote },
       ],
@@ -143,7 +145,6 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Payroll', href: '/payroll', icon: Wallet },
         { name: 'Salary Structures', href: '/payroll/salary-structures', icon: FileSpreadsheet },
         { name: 'Tax Declarations', href: '/payroll/tax-declarations', icon: Receipt },
-        { name: 'Contractor Payments', href: '/payroll/contractor-payments', icon: Banknote },
         { name: 'Calculation Rules', href: '/payroll/calculation-rules', icon: Calculator },
       ],
     },

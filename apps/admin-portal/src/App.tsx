@@ -133,6 +133,7 @@ const Form24QFilings = lazy(() => import('./pages/finance/statutory/Form24QFilin
 const VendorsManagement = lazy(() => import('./pages/finance/ap/VendorsManagement'))
 const VendorInvoicesManagement = lazy(() => import('./pages/finance/ap/VendorInvoicesManagement'))
 const VendorPaymentsManagement = lazy(() => import('./pages/finance/ap/VendorPaymentsManagement'))
+const ContractorsManagement = lazy(() => import('./pages/finance/ap/ContractorsManagement'))
 
 // Tags & Attribution (Cost Center Alternative)
 const TagsManagement = lazy(() => import('./pages/settings/tags/TagsManagement'))
@@ -298,7 +299,6 @@ function AppRoutes() {
               <Route path="/payroll/process" element={<PayrollProcess />} />
               <Route path="/payroll/salary-structures" element={<EmployeeSalaryStructures />} />
               <Route path="/payroll/tax-declarations" element={<EmployeeTaxDeclarations />} />
-              <Route path="/payroll/contractor-payments" element={<ContractorPaymentsPage />} />
               <Route path="/payroll/settings" element={<PayrollSettings />} />
               <Route path="/payroll/settings/pt-slabs" element={<ProfessionalTaxSlabsManagement />} />
               <Route path="/payroll/calculation-rules" element={<CalculationRulesPage />} />
@@ -381,10 +381,12 @@ function AppRoutes() {
               <Route path="/statutory/esi-return" element={<EsiReturnManagement />} />
               <Route path="/statutory/form24q" element={<Form24QFilings />} />
 
-              {/* Accounts Payable Routes (Vendors, Bills, Payments) */}
+              {/* Accounts Payable Routes (Vendors, Bills, Payments, Contractors) */}
               <Route path="/finance/ap/vendors" element={<VendorsManagement />} />
               <Route path="/finance/ap/vendor-invoices" element={<VendorInvoicesManagement />} />
               <Route path="/finance/ap/vendor-payments" element={<VendorPaymentsManagement />} />
+              <Route path="/finance/ap/contractors" element={<ContractorsManagement />} />
+              <Route path="/finance/ap/contractor-payments" element={<ContractorPaymentsPage />} />
 
               {/* Tags & Attribution Routes (Cost Center Alternative) */}
               <Route path="/settings/tags" element={<TagsManagement />} />

@@ -23,6 +23,7 @@ import type {
   CreateContractorPaymentDto,
   UpdateContractorPaymentDto,
   ContractorPaymentSummary,
+  ContractorPaymentBreakdown,
   CompanyStatutoryConfig,
   CreateCompanyStatutoryConfigDto,
   UpdateCompanyStatutoryConfigDto,
@@ -328,6 +329,10 @@ export class PayrollService {
 
   async getContractorYtdSummary(partyId: string, financialYear: string): Promise<ContractorPaymentSummary> {
     return apiClient.get<ContractorPaymentSummary>(`${this.contractorEndpoint}/ytd/${partyId}`, { financialYear });
+  }
+
+  async getContractorPaymentBreakdown(companyId: string): Promise<ContractorPaymentBreakdown> {
+    return apiClient.get<ContractorPaymentBreakdown>(`${this.contractorEndpoint}/payment-breakdown`, { companyId });
   }
 
   // ==================== Statutory Config ====================

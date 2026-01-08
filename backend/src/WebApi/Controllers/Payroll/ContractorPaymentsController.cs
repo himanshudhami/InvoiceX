@@ -1,4 +1,5 @@
 using Application.DTOs.Payroll;
+using Application.DTOs.Contractors;
 using Application.Services.Payroll;
 using Core.Entities.Payroll;
 using Core.Interfaces;
@@ -24,6 +25,7 @@ public class ContractorPaymentsController : ControllerBase
     private readonly PayrollCalculationService _calculationService;
     private readonly ICompaniesRepository _companiesRepository;
     private readonly IContractorPostingService _postingService;
+    private readonly IPartyRepository _partyRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<ContractorPaymentsController> _logger;
 
@@ -32,6 +34,7 @@ public class ContractorPaymentsController : ControllerBase
         PayrollCalculationService calculationService,
         ICompaniesRepository companiesRepository,
         IContractorPostingService postingService,
+        IPartyRepository partyRepository,
         IMapper mapper,
         ILogger<ContractorPaymentsController> logger)
     {
@@ -39,6 +42,7 @@ public class ContractorPaymentsController : ControllerBase
         _calculationService = calculationService;
         _companiesRepository = companiesRepository;
         _postingService = postingService;
+        _partyRepository = partyRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -396,5 +400,72 @@ public class ContractorPaymentsController : ControllerBase
             TotalNet = summary.TryGetValue("YtdNet", out var n) ? n : 0,
             PaymentCount = (int)(summary.TryGetValue("PaymentCount", out var c) ? c : 0)
         });
+    }
+
+    /// <summary>
+    /// Get payment breakdown for contractors in a company (similar to vendor payment summary)
+    /// </summary>
+    /// <param name="companyId">Company ID to filter payments</param>
+    /// <returns>Payment breakdown with per-contractor details</returns>
+    [HttpGet("payment-breakdown")]
+    [ProducesResponseType(typeof(ContractorPaymentBreakdownDto), 200)]
+    [ProducesResponseType(400)]
+    public async Task<IActionResult> GetPaymentBreakdown([FromQuery] Guid companyId)
+    {
+        if (companyId == Guid.Empty)
+            return BadRequest(new { error = "Company ID is required" });
+
+        // Get all contractor payments for the company
+        var payments = await _repository.GetByCompanyIdAsync(companyId);
+        var paymentsList = payments.ToList();
+
+        if (!paymentsList.Any())
+        {
+            return Ok(new ContractorPaymentBreakdownDto
+            {
+                TotalPaid = 0,
+                TotalGross = 0,
+                TotalTds = 0,
+                ContractorCount = 0,
+                PaymentCount = 0,
+                Contractors = new List<ContractorPaymentDetailDto>()
+            });
+        }
+
+        // Get unique party IDs and fetch their names
+        var partyIds = paymentsList
+            .Select(p => p.PartyId)
+            .Distinct()
+            .ToList();
+        var parties = await _partyRepository.GetByIdsAsync(partyIds);
+        var partyNameMap = parties.ToDictionary(p => p.Id, p => p.Name);
+
+        // Aggregate by contractor
+        var contractorSummaries = paymentsList
+            .GroupBy(p => p.PartyId)
+            .Select(g => new ContractorPaymentDetailDto
+            {
+                ContractorId = g.Key,
+                ContractorName = partyNameMap.TryGetValue(g.Key, out var name) ? name : "Unknown",
+                TotalPaid = g.Sum(p => p.NetPayable),
+                TotalGross = g.Sum(p => p.GrossAmount),
+                TotalTds = g.Sum(p => p.TdsAmount),
+                PaymentCount = g.Count(),
+                LastPaymentDate = g.Max(p => p.PaymentDate)
+            })
+            .OrderByDescending(c => c.TotalPaid)
+            .ToList();
+
+        var breakdown = new ContractorPaymentBreakdownDto
+        {
+            TotalPaid = paymentsList.Sum(p => p.NetPayable),
+            TotalGross = paymentsList.Sum(p => p.GrossAmount),
+            TotalTds = paymentsList.Sum(p => p.TdsAmount),
+            ContractorCount = contractorSummaries.Count(),
+            PaymentCount = paymentsList.Count(),
+            Contractors = contractorSummaries
+        };
+
+        return Ok(breakdown);
     }
 }
