@@ -143,7 +143,7 @@ const Layout: FC<Props> = ({ children }) => {
         { name: 'Payroll', href: '/payroll', icon: Wallet },
         { name: 'Salary Structures', href: '/payroll/salary-structures', icon: FileSpreadsheet },
         { name: 'Tax Declarations', href: '/payroll/tax-declarations', icon: Receipt },
-        { name: 'Contractors', href: '/payroll/contractors', icon: Users },
+        { name: 'Contractor Payments', href: '/payroll/contractor-payments', icon: Banknote },
         { name: 'Calculation Rules', href: '/payroll/calculation-rules', icon: Calculator },
       ],
     },

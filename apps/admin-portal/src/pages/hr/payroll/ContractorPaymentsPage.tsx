@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -7,19 +8,26 @@ import {
   useApproveContractorPayment,
   useMarkContractorPaymentAsPaid,
 } from '@/features/payroll/hooks'
-import { useEmployees } from '@/hooks/api/useEmployees'
-import { useCompanies } from '@/hooks/api/useCompanies'
+import { useVendorsPaged } from '@/features/parties/hooks'
+import type { PartyListItem } from '@/services/api/types'
 import { ContractorPayment } from '@/features/payroll/types/payroll'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { formatINR } from '@/lib/currency'
-import { Edit, Trash2, Plus, CheckCircle, DollarSign, ArrowLeft, Eye } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import {
+  Edit,
+  Trash2,
+  CheckCircle,
+  DollarSign,
+  Eye,
+  CreditCard,
+  Banknote,
+  AlertTriangle,
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { ContractorPaymentForm } from '@/components/forms/ContractorPaymentForm'
 import {
   MarkAsPaidDrawer,
@@ -29,8 +37,14 @@ import {
   type MarkAsPaidResult,
 } from '@/components/payments'
 
+const STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-gray-100 text-gray-800',
+  approved: 'bg-blue-100 text-blue-800',
+  paid: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+}
+
 const ContractorPaymentsPage = () => {
-  const navigate = useNavigate()
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<ContractorPayment | null>(null)
   const [deletingPayment, setDeletingPayment] = useState<ContractorPayment | null>(null)
@@ -52,7 +66,7 @@ const ContractorPaymentsPage = () => {
     { history: 'push' }
   )
 
-  const { data, isLoading, error } = useContractorPayments({
+  const { data, isLoading, error, refetch } = useContractorPayments({
     pageNumber: urlState.page,
     pageSize: urlState.pageSize,
     searchTerm: urlState.searchTerm || undefined,
@@ -63,11 +77,25 @@ const ContractorPaymentsPage = () => {
     status: urlState.status || undefined,
   })
 
-  const { data: employees = [] } = useEmployees(urlState.companyId || undefined)
-  const { data: companies = [] } = useCompanies()
+  // Fetch contractors (vendors are used as contractors)
+  const { data: vendorsData } = useVendorsPaged({
+    // @ts-ignore companyId works at runtime but type definition doesn't include it
+    companyId: urlState.companyId || undefined,
+    pageSize: 100,
+  })
+  const contractors: PartyListItem[] = (vendorsData as { items?: PartyListItem[] })?.items || []
   const deleteContractorPayment = useDeleteContractorPayment()
   const approveContractorPayment = useApproveContractorPayment()
   const markContractorPaymentAsPaid = useMarkContractorPaymentAsPaid()
+
+  // Calculate summary stats
+  const stats = useMemo(() => {
+    const items = data?.items || []
+    const totalAmount = items.reduce((sum, p) => sum + (p.netPayable || 0), 0)
+    const totalTds = items.reduce((sum, p) => sum + (p.tdsAmount || 0), 0)
+    const pendingCount = items.filter(p => ['pending', 'approved'].includes(p.status)).length
+    return { totalAmount, totalTds, pendingCount, count: items.length }
+  }, [data?.items])
 
   const handleEdit = (payment: ContractorPayment) => {
     setEditingPayment(payment)
@@ -145,16 +173,13 @@ const ContractorPaymentsPage = () => {
     setPaymentEntity(null)
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-gray-100 text-gray-800' },
-      approved: { label: 'Approved', className: 'bg-green-100 text-green-800' },
-      paid: { label: 'Paid', className: 'bg-blue-100 text-blue-800' },
-      cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-800' },
-    }
-
-    const config = statusConfig[status] || statusConfig.pending
-    return <Badge className={config.className}>{config.label}</Badge>
+  const getStatusDisplay = (status: string) => {
+    const displayStatus = status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Pending'
+    return (
+      <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${STATUS_COLORS[status] || STATUS_COLORS.pending}`}>
+        {displayStatus}
+      </div>
+    )
   }
 
   const getMonthYear = (month: number, year: number) => {
@@ -166,32 +191,78 @@ const ContractorPaymentsPage = () => {
     {
       accessorKey: 'partyName',
       header: 'Contractor',
-      cell: ({ row }) => row.original.partyName || '—',
+      cell: ({ row }) => {
+        const payment = row.original
+        return (
+          <div>
+            <div className="text-sm text-gray-900">{payment.partyName || '—'}</div>
+            {payment.invoiceNumber && (
+              <div className="text-xs text-gray-500">Inv: {payment.invoiceNumber}</div>
+            )}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'paymentMonth',
       header: 'Period',
-      cell: ({ row }) => getMonthYear(row.original.paymentMonth, row.original.paymentYear),
+      cell: ({ row }) => {
+        const payment = row.original
+        return (
+          <div className="text-sm text-gray-900">
+            {getMonthYear(payment.paymentMonth, payment.paymentYear)}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'grossAmount',
       header: 'Gross Amount',
-      cell: ({ row }) => formatINR(row.original.grossAmount),
+      cell: ({ row }) => {
+        const payment = row.original
+        return (
+          <div className="text-sm font-medium text-gray-900">
+            {formatINR(payment.grossAmount)}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'tdsAmount',
-      header: 'TDS (10%)',
-      cell: ({ row }) => formatINR(row.original.tdsAmount),
+      header: 'TDS',
+      cell: ({ row }) => {
+        const payment = row.original
+        if (!payment.tdsAmount) {
+          return <span className="text-gray-500">—</span>
+        }
+        return (
+          <div>
+            <div className="text-sm text-purple-600">
+              {formatINR(payment.tdsAmount)}
+            </div>
+            <div className="text-xs text-gray-500">
+              {payment.tdsSection} @ {payment.tdsRate}%
+            </div>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'netPayable',
       header: 'Net Payable',
-      cell: ({ row }) => formatINR(row.original.netPayable),
+      cell: ({ row }) => {
+        const payment = row.original
+        return (
+          <div className="text-sm font-medium text-green-600">
+            {formatINR(payment.netPayable)}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }) => getStatusBadge(row.original.status),
+      cell: ({ row }) => getStatusDisplay(row.original.status),
     },
     {
       id: 'actions',
@@ -259,58 +330,175 @@ const ContractorPaymentsPage = () => {
     },
   ]
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Failed to load contractor payments</div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/payroll')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-      </div>
-      <div className="flex justify-between items-start">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contractor Payments</h1>
-          <p className="text-gray-600 mt-1">Manage contractor and freelancer payments</p>
+          <div className="flex items-center gap-2">
+            <Link to="/payroll" className="text-gray-500 hover:text-gray-700">
+              Payroll
+            </Link>
+            <span className="text-gray-400">/</span>
+            <h1 className="text-3xl font-bold text-gray-900">Contractor Payments</h1>
+          </div>
+          <p className="text-gray-600 mt-2">Manage contractor and freelancer payments</p>
         </div>
-        <div className="flex gap-3">
-          <CompanyFilterDropdown
-            value={urlState.companyId || ''}
-            onChange={(value) => setUrlState({ companyId: value || null })}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center">
+            <CreditCard className="h-8 w-8 text-blue-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Total Payments</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.count}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center">
+            <Banknote className="h-8 w-8 text-green-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Total Amount</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center">
+            <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-purple-600 font-semibold text-sm">TDS</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Total TDS</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.totalTds.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center">
+            <AlertTriangle className="h-8 w-8 text-yellow-600" />
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-500">Pending</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.pendingCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6">
+          <div className="mb-4 flex flex-wrap items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
+              <CompanyFilterDropdown
+                value={urlState.companyId ?? ''}
+                onChange={(value) => setUrlState({ companyId: value || null, page: 1 })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Contractor</label>
+              <select
+                value={urlState.partyId || ''}
+                onChange={(e) => setUrlState({ partyId: e.target.value || null, page: 1 })}
+                className="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All Contractors</option>
+                {contractors.map((c: PartyListItem) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select
+                value={urlState.status || ''}
+                onChange={(e) => setUrlState({ status: e.target.value || null, page: 1 })}
+                className="w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="paid">Paid</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+              <select
+                value={urlState.paymentMonth || ''}
+                onChange={(e) => setUrlState({ paymentMonth: e.target.value ? parseInt(e.target.value) : null, page: 1 })}
+                className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  <option key={month} value={month}>
+                    {new Date(2000, month - 1, 1).toLocaleString('default', { month: 'short' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+              <select
+                value={urlState.paymentYear || ''}
+                onChange={(e) => setUrlState({ paymentYear: e.target.value ? parseInt(e.target.value) : null, page: 1 })}
+                className="w-28 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">All</option>
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DataTable
+            columns={columns}
+            data={data?.items || []}
+            searchPlaceholder="Search by contractor name, invoice number..."
+            searchValue={urlState.searchTerm || ''}
+            onSearchChange={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
+            onAdd={() => setIsCreateDrawerOpen(true)}
+            addButtonText="Add Payment"
+            pagination={{
+              pageIndex: (data?.pageNumber || urlState.page) - 1,
+              pageSize: data?.pageSize || urlState.pageSize,
+              totalCount: data?.totalCount || 0,
+              onPageChange: (page) => setUrlState({ page: page + 1 }),
+              onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
+            }}
           />
-          <Button onClick={() => setIsCreateDrawerOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Payment
-          </Button>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">Failed to load contractor payments</p>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center mb-3 text-sm text-gray-600">
-        <span>{isLoading ? 'Loading contractor payments...' : `${data?.totalCount || 0} contractor payments`}</span>
-        <span className="text-gray-500">
-          Page {(data?.pageNumber || urlState.page)} of {data?.totalPages || 1}
-        </span>
-      </div>
-
-      <DataTable
-        columns={columns}
-        data={data?.items || []}
-        searchPlaceholder="Search by contractor name, invoice number..."
-        searchValue={urlState.searchTerm || ''}
-        onSearchChange={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
-        pagination={{
-          pageIndex: (data?.pageNumber || urlState.page) - 1,
-          pageSize: data?.pageSize || urlState.pageSize,
-          totalCount: data?.totalCount || 0,
-          onPageChange: (page) => setUrlState({ page: page + 1 }),
-          onPageSizeChange: (size) => setUrlState({ pageSize: size, page: 1 }),
-        }}
-      />
 
       {/* Create/Edit Drawer */}
       <Drawer

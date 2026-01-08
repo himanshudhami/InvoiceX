@@ -298,7 +298,7 @@ function AppRoutes() {
               <Route path="/payroll/process" element={<PayrollProcess />} />
               <Route path="/payroll/salary-structures" element={<EmployeeSalaryStructures />} />
               <Route path="/payroll/tax-declarations" element={<EmployeeTaxDeclarations />} />
-              <Route path="/payroll/contractors" element={<ContractorPaymentsPage />} />
+              <Route path="/payroll/contractor-payments" element={<ContractorPaymentsPage />} />
               <Route path="/payroll/settings" element={<PayrollSettings />} />
               <Route path="/payroll/settings/pt-slabs" element={<ProfessionalTaxSlabsManagement />} />
               <Route path="/payroll/calculation-rules" element={<CalculationRulesPage />} />
