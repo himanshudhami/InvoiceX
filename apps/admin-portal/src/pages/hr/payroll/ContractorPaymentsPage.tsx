@@ -14,6 +14,8 @@ import { ContractorPayment } from '@/features/payroll/types/payroll'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
+import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog'
+import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
 import { formatINR } from '@/lib/currency'
 import {
@@ -27,6 +29,8 @@ import {
   AlertTriangle,
   Clock,
   Landmark,
+  Link2,
+  Unlink,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -55,6 +59,7 @@ const ContractorPaymentsPage = () => {
   const [approvingPayment, setApprovingPayment] = useState<ContractorPayment | null>(null)
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
   const [paymentEntity, setPaymentEntity] = useState<PaymentEntity | null>(null)
+  const [reconcilingPayment, setReconcilingPayment] = useState<ContractorPayment | null>(null)
 
   const [urlState, setUrlState] = useQueryStates(
     {
@@ -102,6 +107,7 @@ const ContractorPaymentsPage = () => {
   const deleteContractorPayment = useDeleteContractorPayment()
   const approveContractorPayment = useApproveContractorPayment()
   const markContractorPaymentAsPaid = useMarkContractorPaymentAsPaid()
+  const unreconcileTransaction = useUnreconcileTransaction()
 
   // Calculate summary stats
   const stats = useMemo(() => {
@@ -118,6 +124,16 @@ const ContractorPaymentsPage = () => {
 
   const handleDelete = (payment: ContractorPayment) => {
     setDeletingPayment(payment)
+  }
+
+  const handleUnreconcile = async (payment: ContractorPayment) => {
+    if (!payment.bankTransactionId) return
+    try {
+      await unreconcileTransaction.mutateAsync(payment.bankTransactionId)
+      refetch()
+    } catch (error) {
+      console.error('Failed to unreconcile contractor payment:', error)
+    }
   }
 
   const handleDeleteConfirm = async () => {
@@ -338,6 +354,8 @@ const ContractorPaymentsPage = () => {
       cell: ({ row }) => {
         const payment = row.original
         const status = (payment.status || '').toLowerCase()
+        const isReconciled = payment.isReconciled || !!payment.bankTransactionId
+        const canReconcile = status === 'paid' && !isReconciled
         return (
           <div className="flex items-center gap-1">
             <Button
@@ -400,6 +418,29 @@ const ContractorPaymentsPage = () => {
                   <Edit className="w-4 h-4" />
                 </Button>
               </>
+            )}
+            {canReconcile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setReconcilingPayment(payment)}
+                title="Reconcile"
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Link2 className="w-4 h-4" />
+              </Button>
+            )}
+            {isReconciled && payment.bankTransactionId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleUnreconcile(payment)}
+                disabled={unreconcileTransaction.isPending}
+                title="Unreconcile"
+                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+              >
+                <Unlink className="w-4 h-4" />
+              </Button>
             )}
           </div>
         )
@@ -798,6 +839,29 @@ const ContractorPaymentsPage = () => {
           </div>
         )}
       </Drawer>
+
+      <ReconcilePaymentDialog
+        isOpen={!!reconcilingPayment}
+        reconciledType="contractor"
+        transactionType="debit"
+        payment={
+          reconcilingPayment
+            ? {
+                id: reconcilingPayment.id,
+                amount: reconcilingPayment.netPayable,
+                paymentDate: reconcilingPayment.paymentDate,
+                payeeName: reconcilingPayment.partyName,
+                description: reconcilingPayment.description || reconcilingPayment.remarks,
+                referenceNumber: reconcilingPayment.paymentReference,
+              }
+            : null
+        }
+        onClose={() => setReconcilingPayment(null)}
+        onReconciled={() => {
+          setReconcilingPayment(null)
+          refetch()
+        }}
+      />
 
       {/* Mark as Paid Drawer */}
       <MarkAsPaidDrawer

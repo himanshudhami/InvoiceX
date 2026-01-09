@@ -2,8 +2,10 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useOutgoingPayments, useOutgoingPaymentsSummary } from '@/hooks/api/useOutgoingPayments'
 import { useCompanies } from '@/hooks/api/useCompanies'
+import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions'
 import { OutgoingPayment, OutgoingPaymentsFilterParams } from '@/services/api/types'
 import { CompanySelect } from '@/components/ui/CompanySelect'
+import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog'
 import {
   ArrowLeft,
   CheckCircle,
@@ -18,7 +20,9 @@ import {
   CreditCard,
   FileText,
   Briefcase,
-  Wrench
+  Wrench,
+  Link2,
+  Unlink
 } from 'lucide-react'
 
 const OutgoingPaymentsReconciliation = () => {
@@ -26,9 +30,11 @@ const OutgoingPaymentsReconciliation = () => {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterReconciled, setFilterReconciled] = useState<'all' | 'reconciled' | 'unreconciled'>('unreconciled')
   const [currentPage, setCurrentPage] = useState(1)
+  const [reconcilingPayment, setReconcilingPayment] = useState<OutgoingPayment | null>(null)
   const pageSize = 20
 
   const { data: companies = [] } = useCompanies()
+  const unreconcileTransaction = useUnreconcileTransaction()
 
   const filterParams: OutgoingPaymentsFilterParams = useMemo(() => ({
     pageNumber: currentPage,
@@ -68,6 +74,16 @@ const OutgoingPaymentsReconciliation = () => {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const handleUnreconcile = async (payment: OutgoingPayment) => {
+    if (!payment.bankTransactionId) return
+    try {
+      await unreconcileTransaction.mutateAsync(payment.bankTransactionId)
+      refetch()
+    } catch (error) {
+      console.error('Failed to unreconcile payment:', error)
+    }
   }
 
   const getTypeIcon = (type: string) => {
@@ -302,20 +318,35 @@ const OutgoingPaymentsReconciliation = () => {
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    {payment.isReconciled && payment.bankTransactionId ? (
-                      <Link
-                        to={`/finance/banking?accountId=${payment.bankTransactionId}`}
+                    {payment.isReconciled || payment.bankTransactionId ? (
+                      <div className="inline-flex items-center gap-2">
+                        {payment.bankTransactionId && (
+                          <Link
+                            to={`/finance/banking?accountId=${payment.bankTransactionId}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1"
+                          >
+                            View <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        )}
+                        {payment.bankTransactionId && (
+                          <button
+                            onClick={() => handleUnreconcile(payment)}
+                            disabled={unreconcileTransaction.isPending}
+                            className="text-orange-600 hover:text-orange-800 text-sm inline-flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <Unlink className="w-3 h-3" />
+                            Unreconcile
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setReconcilingPayment(payment)}
                         className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center gap-1"
                       >
-                        View <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    ) : (
-                      <Link
-                        to="/finance/banking"
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Find Match
-                      </Link>
+                        <Link2 className="w-3 h-3" />
+                        Reconcile
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -352,6 +383,29 @@ const OutgoingPaymentsReconciliation = () => {
           )}
         </div>
       )}
+
+      <ReconcilePaymentDialog
+        isOpen={!!reconcilingPayment}
+        reconciledType={reconcilingPayment?.type || ''}
+        transactionType="debit"
+        payment={
+          reconcilingPayment
+            ? {
+                id: reconcilingPayment.id,
+                amount: reconcilingPayment.amount,
+                paymentDate: reconcilingPayment.paymentDate,
+                payeeName: reconcilingPayment.payeeName,
+                description: reconcilingPayment.description || reconcilingPayment.category,
+                referenceNumber: reconcilingPayment.referenceNumber,
+              }
+            : null
+        }
+        onClose={() => setReconcilingPayment(null)}
+        onReconciled={() => {
+          setReconcilingPayment(null)
+          refetch()
+        }}
+      />
     </div>
   )
 }

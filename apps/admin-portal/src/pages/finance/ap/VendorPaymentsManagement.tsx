@@ -14,6 +14,8 @@ import { VendorPayment } from '@/services/api/types';
 import { DataTable } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
 import { Drawer } from '@/components/ui/Drawer';
+import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog';
+import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import {
   Edit,
@@ -24,6 +26,8 @@ import {
   Banknote,
   Clock,
   AlertTriangle,
+  Link2,
+  Unlink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useQueryState, parseAsString } from 'nuqs';
@@ -57,6 +61,7 @@ const VendorPaymentsManagement = () => {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<VendorPayment | null>(null);
   const [deletingPayment, setDeletingPayment] = useState<VendorPayment | null>(null);
+  const [reconcilingPayment, setReconcilingPayment] = useState<VendorPayment | null>(null);
 
   // Determine effective company ID: URL filter takes precedence, then context selection
   const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined);
@@ -67,6 +72,7 @@ const VendorPaymentsManagement = () => {
   const approvePayment = useApproveVendorPayment();
   const processPayment = useProcessVendorPayment();
   const cancelPayment = useCancelVendorPayment();
+  const unreconcileTransaction = useUnreconcileTransaction();
 
   // Get vendor lookup by party ID
   const vendorLookup = useMemo(() => {
@@ -124,6 +130,16 @@ const VendorPaymentsManagement = () => {
       refetch();
     } catch (error) {
       console.error('Failed to cancel payment:', error);
+    }
+  };
+
+  const handleUnreconcile = async (payment: VendorPayment) => {
+    if (!payment.bankTransactionId) return;
+    try {
+      await unreconcileTransaction.mutateAsync(payment.bankTransactionId);
+      refetch();
+    } catch (error) {
+      console.error('Failed to unreconcile payment:', error);
     }
   };
 
@@ -269,6 +285,8 @@ const VendorPaymentsManagement = () => {
         const canProcess = payment.status === 'approved';
         const canEdit = payment.status === 'draft';
         const canCancel = !['cancelled', 'processed'].includes(payment.status || '');
+        const isReconciled = payment.isReconciled || !!payment.bankTransactionId;
+        const canReconcile = payment.status === 'processed' && !isReconciled;
 
         return (
           <div className="flex space-x-1">
@@ -315,6 +333,25 @@ const VendorPaymentsManagement = () => {
                 title="Delete"
               >
                 <Trash2 size={16} />
+              </button>
+            )}
+            {canReconcile && (
+              <button
+                onClick={() => setReconcilingPayment(payment)}
+                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                title="Reconcile"
+              >
+                <Link2 size={16} />
+              </button>
+            )}
+            {isReconciled && payment.bankTransactionId && (
+              <button
+                onClick={() => handleUnreconcile(payment)}
+                disabled={unreconcileTransaction.isPending}
+                className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors disabled:opacity-50"
+                title="Unreconcile"
+              >
+                <Unlink size={16} />
               </button>
             )}
           </div>
@@ -530,6 +567,29 @@ const VendorPaymentsManagement = () => {
           </div>
         )}
       </Modal>
+
+      <ReconcilePaymentDialog
+        isOpen={!!reconcilingPayment}
+        reconciledType="vendor_payment"
+        transactionType="debit"
+        payment={
+          reconcilingPayment
+            ? {
+                id: reconcilingPayment.id,
+                amount: reconcilingPayment.amount,
+                paymentDate: reconcilingPayment.paymentDate,
+                payeeName: vendorLookup[reconcilingPayment.partyId] || reconcilingPayment.vendor?.name,
+                description: reconcilingPayment.notes,
+                referenceNumber: reconcilingPayment.referenceNumber,
+              }
+            : null
+        }
+        onClose={() => setReconcilingPayment(null)}
+        onReconciled={() => {
+          setReconcilingPayment(null);
+          refetch();
+        }}
+      />
     </div>
   );
 };

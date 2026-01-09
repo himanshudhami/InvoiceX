@@ -107,10 +107,11 @@ export const useBankTransactionsByAccountDateRange = (
 /**
  * Hook for fetching unreconciled transactions
  */
-export const useUnreconciledTransactions = () => {
+export const useUnreconciledTransactions = (enabled: boolean = true) => {
   return useQuery({
     queryKey: bankTransactionKeys.unreconciled(),
     queryFn: () => bankTransactionService.getUnreconciled(),
+    enabled,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });

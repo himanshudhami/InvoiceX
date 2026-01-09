@@ -42,6 +42,9 @@ export interface ExpenseClaim {
   rejectionReason?: string;
   reimbursedAt?: string;
   reimbursementReference?: string;
+  bankTransactionId?: string;
+  reconciledAt?: string;
+  reconciledBy?: string;
   createdAt: string;
   updatedAt: string;
 }

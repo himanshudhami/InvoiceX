@@ -3,6 +3,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/ui/DataTable'
 import { Modal } from '@/components/ui/Modal'
 import { Drawer } from '@/components/ui/Drawer'
+import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog'
+import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions'
 import {
   Eye,
   CheckCircle,
@@ -19,6 +21,8 @@ import {
   Upload,
   X,
   Loader2,
+  Link2,
+  Unlink,
 } from 'lucide-react'
 import { useCompanyContext } from '@/contexts/CompanyContext'
 import {
@@ -74,6 +78,7 @@ const ExpenseClaimsManagement = () => {
   const [viewingClaim, setViewingClaim] = useState<ExpenseClaim | null>(null)
   const [rejectingClaim, setRejectingClaim] = useState<ExpenseClaim | null>(null)
   const [reimbursingClaim, setReimbursingClaim] = useState<ExpenseClaim | null>(null)
+  const [reconcilingClaim, setReconcilingClaim] = useState<ExpenseClaim | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [reimbursementReference, setReimbursementReference] = useState('')
   const [proofFiles, setProofFiles] = useState<UploadedProofFile[]>([])
@@ -91,6 +96,7 @@ const ExpenseClaimsManagement = () => {
   const approveClaim = useApproveExpenseClaim()
   const rejectClaim = useRejectExpenseClaim()
   const reimburseClaim = useReimburseExpenseClaim()
+  const unreconcileTransaction = useUnreconcileTransaction()
 
   const claims = data?.items || []
   const totalCount = data?.totalCount || 0
@@ -157,6 +163,16 @@ const ExpenseClaimsManagement = () => {
       refetch()
     } catch (error) {
       console.error('Failed to reimburse claim:', error)
+    }
+  }
+
+  const handleUnreconcile = async (claim: ExpenseClaim) => {
+    if (!claim.bankTransactionId) return
+    try {
+      await unreconcileTransaction.mutateAsync(claim.bankTransactionId)
+      refetch()
+    } catch (error) {
+      console.error('Failed to unreconcile claim:', error)
     }
   }
 
@@ -282,6 +298,28 @@ const ExpenseClaimsManagement = () => {
       },
     },
     {
+      id: 'reconciled',
+      header: 'Reconciled',
+      cell: ({ row }) => {
+        const claim = row.original
+        if (claim.status !== ExpenseClaimStatus.Reimbursed) {
+          return <span className="text-gray-400">—</span>
+        }
+        const isReconciled = !!claim.bankTransactionId || !!claim.reconciledAt
+        return isReconciled ? (
+          <div className="inline-flex items-center text-green-600">
+            <CheckCircle size={14} className="mr-1" />
+            <span className="text-xs">Yes</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center text-yellow-600">
+            <Clock size={14} className="mr-1" />
+            <span className="text-xs">Pending</span>
+          </div>
+        )
+      },
+    },
+    {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
@@ -289,6 +327,8 @@ const ExpenseClaimsManagement = () => {
         const canApprove = claim.status === ExpenseClaimStatus.Submitted ||
                           claim.status === ExpenseClaimStatus.PendingApproval
         const canReimburse = claim.status === ExpenseClaimStatus.Approved
+        const isReconciled = !!claim.bankTransactionId || !!claim.reconciledAt
+        const canReconcile = claim.status === ExpenseClaimStatus.Reimbursed && !isReconciled
 
         return (
           <div className="flex space-x-1">
@@ -325,6 +365,25 @@ const ExpenseClaimsManagement = () => {
                 title="Mark as reimbursed"
               >
                 <Wallet size={16} />
+              </button>
+            )}
+            {canReconcile && (
+              <button
+                onClick={() => setReconcilingClaim(claim)}
+                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                title="Reconcile"
+              >
+                <Link2 size={16} />
+              </button>
+            )}
+            {isReconciled && claim.bankTransactionId && (
+              <button
+                onClick={() => handleUnreconcile(claim)}
+                disabled={unreconcileTransaction.isPending}
+                className="text-orange-600 hover:text-orange-800 p-1 rounded hover:bg-orange-50 transition-colors disabled:opacity-50"
+                title="Unreconcile"
+              >
+                <Unlink size={16} />
               </button>
             )}
           </div>
@@ -679,6 +738,29 @@ const ExpenseClaimsManagement = () => {
           </div>
         )}
       </Modal>
+
+      <ReconcilePaymentDialog
+        isOpen={!!reconcilingClaim}
+        reconciledType="expense_claim"
+        transactionType="debit"
+        payment={
+          reconcilingClaim
+            ? {
+                id: reconcilingClaim.id,
+                amount: reconcilingClaim.amount,
+                paymentDate: reconcilingClaim.reimbursedAt || reconcilingClaim.approvedAt,
+                payeeName: reconcilingClaim.employeeName,
+                description: reconcilingClaim.title,
+                referenceNumber: reconcilingClaim.reimbursementReference,
+              }
+            : null
+        }
+        onClose={() => setReconcilingClaim(null)}
+        onReconciled={() => {
+          setReconcilingClaim(null)
+          refetch()
+        }}
+      />
     </div>
   )
 }
