@@ -560,7 +560,7 @@ namespace Infrastructure.Data
                         'contractor' as type,
                         cp.payment_date,
                         cp.net_payable as amount,
-                        e.employee_name as payee_name,
+                        p.name as payee_name,
                         cp.remarks as description,
                         cp.payment_reference as reference_number,
                         cp.bank_transaction_id IS NOT NULL as is_reconciled,
@@ -571,8 +571,8 @@ namespace Infrastructure.Data
                         'Contractor' as category,
                         cp.status
                     FROM contractor_payments cp
-                    JOIN employees e ON e.id = cp.employee_id
-                    WHERE e.company_id = @companyId
+                    LEFT JOIN parties p ON p.id = cp.party_id
+                    WHERE cp.company_id = @companyId
                       AND cp.status = 'paid'
                       AND cp.payment_date >= @fromDate
                       AND cp.payment_date <= @toDate
@@ -756,7 +756,7 @@ namespace Infrastructure.Data
                         'contractor' as type,
                         cp.payment_date,
                         cp.net_payable as amount,
-                        e.employee_name as payee_name,
+                        p.name as payee_name,
                         cp.remarks as description,
                         cp.payment_reference as reference_number,
                         cp.bank_transaction_id IS NOT NULL as is_reconciled,
@@ -767,8 +767,8 @@ namespace Infrastructure.Data
                         'Contractor' as category,
                         cp.status
                     FROM contractor_payments cp
-                    JOIN employees e ON e.id = cp.employee_id
-                    WHERE e.company_id = @companyId
+                    LEFT JOIN parties p ON p.id = cp.party_id
+                    WHERE cp.company_id = @companyId
                       AND cp.status = 'paid'");
             }
 
@@ -956,8 +956,7 @@ namespace Infrastructure.Data
                         cp.bank_transaction_id IS NOT NULL as is_reconciled,
                         cp.payment_date
                     FROM contractor_payments cp
-                    JOIN employees e ON e.id = cp.employee_id
-                    WHERE e.company_id = @companyId AND cp.status = 'paid'
+                    WHERE cp.company_id = @companyId AND cp.status = 'paid'
 
                     UNION ALL
 
