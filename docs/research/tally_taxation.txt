@@ -1,0 +1,542 @@
+Title: Taxation & Compliance Features | TallyPrime
+
+URL Source: http://tallysolutions.com/features/taxation/
+
+Published Time: Fri, 09 Jan 2026 13:29:53 GMT
+
+Markdown Content:
+Taxation & Compliance Features | TallyPrime
+===============
+
+[![Image 16: Tally Logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/tally-logo-black.svg)](http://tallysolutions.com/)
+
+*   [Company](http://tallysolutions.com/)
+
+Company
+
+    *   [About us](http://tallysolutions.com/about-tally/)
+    *   [Careers](http://tallysolutions.com/careers/)
+    *   [TallyTogether](http://tallysolutions.com/tally-together/)
+    *   [Media & News](http://tallysolutions.com/tally-news/)
+
+*   [TallyPrime](https://tallysolutions.com/)
+*   [TallyCapital](https://tallycapital.tallysolutions.com/)
+*   [TallyEducation](https://tallyeducation.com/tepl)
+*   [TallyEdge](https://tallyedge.com/)
+
+![Image 17: logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/tally_logo_white.svg)
+
+![Image 18: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/close-white.svg)
+
+* * *
+
+*   [About us](http://tallysolutions.com/about-tally/)
+*   [Careers](http://tallysolutions.com/careers/)
+*   [Tally Together](http://tallysolutions.com/tally-together/)
+*   [Media & News](http://tallysolutions.com/tally-news/)
+
+*   [Product](http://tallysolutions.com/)
+
+TALLYPRIME
+
+[![Image 19: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/product-overview.svg) Product Overview](http://tallysolutions.com/tally-prime) [![Image 20: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/new-icon.svg) What's New](https://tallysolutions.com/tally-prime-upgrade/)  
+
+* * *
+
+[Take a Free Trial ![Image 21: arrow-up-right-sharp](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/arrow-up-right-sharp.svg)](https://tallysolutions.com/business-software-7day-free-trial/?strCampaignID=918/)  FEATURES
+
+[![Image 22: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tax.svg) Taxation & Compliance](https://tallysolutions.com/features/taxation/#features) [![Image 23: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/accounting.svg) Accounting](https://tallysolutions.com/features/invoicing-and-accounting/#features) [![Image 24: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/connected-services.svg) Connected Services](https://tallysolutions.com/features/connected-services/#features) [![Image 25: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/banking.svg) Banking](https://tallysolutions.com/features/banking/#features)  [View all Features ![Image 26: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/features)   
+
+DO MORE WITH TALLYPRIME
+
+    *   [Tally Software Services](https://tallysolutions.com/tally-software-service/)
+    *   [TallyPrime Cloud Access](https://tallysolutions.com/tallyprime-cloud-access/)
+    *   [TallyPrime with Whatsapp](https://tallysolutions.com/tallyprime-with-whatsapp-business/)
+    *   [TallyPrime Server](https://tallysolutions.com/tally-prime-server/)
+    *   [TallyPrime Developer](https://tallysolutions.com/tally-prime-developer/)
+
+[Explore Customizations & Integrations ![Image 27: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customizations-and-integrations/)
+
+*   [Pricing](http://tallysolutions.com/buy-tally)
+*   [Community](http://tallysolutions.com/features/taxation/#)
+
+LEARN
+
+    *   [![Image 28: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/instant-demo.svg) Instant Demo](https://tallysolutions.com/tally-prime-demo/#explore-demos)
+    *   [![Image 29: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/smart-moves.svg) Smart moves](https://tallysolutions.com/smart-moves/)
+    *   [![Image 30: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/blog.svg) Blogs](https://tallysolutions.com/blogs/)
+    *   [![Image 31: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/learning-hub.svg)Learning hub](https://tallysolutions.com/learning-hub/)
+
+DISCOVER
+
+    *   [![Image 32: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/product-roadmap.svg) Product Roadmap](https://tallysolutions.com/product-roadmap/)
+    *   [![Image 33: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/customer-stories.svg) Customer Stories](https://tallysolutions.com/customer-stories/)
+    *   [![Image 34: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/startup.svg) Tally StartUp offer](https://tallysolutions.com/tally-for-startup/)
+
+CONNECT
+
+    *   [![Image 35: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/ca-community.svg) CA Community](https://community.tallysolutions.com/)
+    *   [![Image 36: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/webnar.svg) Events and Webinars](https://tallysolutions.com/event-calendar/)
+    *   [![Image 37: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/anchor.svg)Tally Anchors](https://tallysolutions.com/tally-anchors/)
+
+SERVICES
+
+    *   [![Image 38: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/locate-a-patner.svg) Locate a Partner](https://tallysolutions.com/partners/#find-a-partner)
+    *   [![Image 39: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tally-job-portal.svg) Tally Job Portal](https://tallyeducation.com/tepl/tepl/employer)
+    *   [![Image 40: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/hire-gstp.svg) Hire a GSTP](https://tallysolutions.com/gstp-locator/)
+
+FLAGSHIP PROGRAMS
+
+    *   [![Image 41: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/msme.svg) MSME Honours](https://tallysolutions.com/msme-honours/)
+    *   [![Image 42: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/government.svg) Govt Skilling Program](https://tallyeducation.com/tepl/tepl/government-skilling-programme/)
+    *   [![Image 43: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/msme.svg) Tally Apex](https://tallysolutions.com/tally-apex/)
+
+*   [Customer Hub](http://tallysolutions.com/features/taxation/#)
+
+Do more with TallyPrime
+
+Discover powerful features and capabilities to get the most out of TallyPrime for your business.
+
+[View all Features ![Image 44: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/features/invoicing-and-accounting/)   ###### ![Image 45: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/new-icon.svg)Smart financial statements for non-corporates
+
+Generate ICAI-compliant financial statements for non-corporates using the Excel template. Import the XML from TallyPrime and 60-70% of the details will be auto mapped. [Enable Add-On ![Image 46: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/addon-financial-statements-nce-tallyprime/)   
+
+Manage subscriptions
+
+    *   [Tally Software Services](https://tallysolutions.com/customer-hub/#tss)[Renew Now ![Image 47: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#tss)
+    *   [TallyPrime Cloud Access](https://tallysolutions.com/customer-hub/#cloud-access)[Renew Now ![Image 48: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#cloud-access)
+    *   [TallyPrime Rental](https://tallysolutions.com/customer-hub/#tallyprime)[Renew Now ![Image 49: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#tallyprime)
+    *   [TallyPrime with Whatsapp](https://tallysolutions.com/customer-hub/#whatsapp)[Renew Now ![Image 50: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#whatsapp)
+
+[Customer Hub ![Image 51: arrow-up-right-sharp](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/arrow-up-right-sharp.svg)](https://tallysolutions.com/customer-hub/)
+
+Reach us :
+
+###### [![Image 52: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tally-help-icon.svg)Tally Help](https://help.tallysolutions.com/)
+
+###### [![Image 53: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/whats-app-icon.svg) Whatsapp](https://api.whatsapp.com/send/?phone=919019910043&text=Hi&type=phone_number&app_absent=0)
+
+###### [![Image 54: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/phone-icon.svg) Call us](tel:+918068103666)
+
+###### [![Image 55: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/email-icon.svg) Email](mailto:support@tallysolutions.com)
+
+[Support ![Image 56: arrow-up-right-sharp](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/arrow-up-right-sharp.svg)](https://tallysolutions.com/support/)
+
+[![Image 57: Tally Logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tally-prime-only-white-logo.svg)](http://tallysolutions.com/)
+
+![Image 58: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/search-white.svg)
+
+![Image 59: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/global-white.svg)
+
+*   [India](https://tallysolutions.com/)
+
+* * *
+
+*   [Bangladesh (English)](https://tallysolutions.com/bd/en/)
+*   [Bangladesh (বাংলা)](https://tallysolutions.com/bd/)
+*   [Middle East (English)](https://tallysolutions.com/mena/)
+*   [Middle East (عربي )](https://tallysolutions.com/mena/ar/)
+*   [Africa](https://tallysolutions.com/ssa/)
+*   [APAC](https://tallysolutions.com/apac/)
+*   [North America](https://tallysolutions.com/us/)
+*   [International](https://tallysolutions.com/global/)
+
+[Log In](http://tallysolutions.com/features/taxation/)
+
+Tally...
+
+*   [Account](https://tallysolutions.com/)
+*   Logout
+
+[Download ![Image 60](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/download/)
+
+[![Image 61: tallyprime-vertical-white-logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tallyprime-vertical-white-logo.svg)](http://tallysolutions.com/)
+
+![Image 62: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/search-white.svg)![Image 63: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/global-white.svg)
+
+![Image 64: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/menu-white.svg)![Image 65: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/close-white.svg)
+
+[Take a Free Trial ![Image 66: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/business-software-7day-free-trial/?strCampaignID=918/)[Login](http://tallysolutions.com/features/taxation/#)
+
+*   [Product ![Image 67: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-right-black.svg)](http://tallysolutions.com/features/taxation/#)
+*   [Pricing](https://tallysolutions.com/buy-tally/)
+*   [Community ![Image 68: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-right-black.svg)](http://tallysolutions.com/)
+*   [Customer Hub ![Image 69: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-right-black.svg)](https://tallysolutions.com/customer-hub/)
+
+[![Image 70: Tally Logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tally-with-treadmark-balck-veretical-logo.svg)](http://tallysolutions.com/features/taxation/#)
+*   [![Image 71: tallyprime-horizontal-black-logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tallyprime-horizontal-black-logo.svg)](http://tallysolutions.com/)
+*   [![Image 72: tally-capital-horizontal-balck-logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tally-capital-horizontal-balck-logo.svg)](https://tallycapital.tallysolutions.com/)
+*   [![Image 73: tally-education-horizontal-black-logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tally-education-horizontal-black-logo.svg)](https://tallysolutions.com/tally-prime-upgrade/)
+*   [![Image 74: tally-edge-horizontal-black-log](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/prime-logo/tally-edge-horizontal-black-log.svg)](https://tallyedge.com/)
+
+*   [Home](https://tallysolutions.com/)
+*   [About Us](https://tallysolutions.com/about-tally/)
+*   [Careers](https://tallysolutions.com/careers/)
+*   [Tally Together](https://tallysolutions.com/tally-together/)
+*   [Media & News](https://tallysolutions.com/tally-news/)
+
+[![Image 75: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-left-black.svg) Product](http://tallysolutions.com/features/taxation/)
+
+TALLYPRIME
+
+[![Image 76: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/product-overview.svg) Product Overview](https://tallysolutions.com/tally-prime/)[![Image 77: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/new-icon.svg) What's New](https://tallysolutions.com/tally-prime-upgrade/)
+
+FEATURES
+
+[![Image 78: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tax.svg) Taxation & Compliance](https://tallysolutions.com/features/taxation/#features)
+
+[![Image 79: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/accounting.svg) Accounting](https://tallysolutions.com/features/invoicing-and-accounting/#features)
+
+[![Image 80: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/connected-services.svg) Connected Services](https://tallysolutions.com/features/connected-services/#features)
+
+[![Image 81: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/banking.svg) Banking](https://tallysolutions.com/features/banking/#features)
+
+[View all Features ![Image 82: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/features/invoicing-and-accounting/)
+
+DO MORE WITH TALLYPRIME
+
+*   [Tally Software Services](https://tallysolutions.com/tally-software-service/)
+*   [TallyPrime Cloud Access](https://tallysolutions.com/tallyprime-cloud-access/)
+*   [TallyPrime with Whatsapp](https://tallysolutions.com/tallyprime-with-whatsapp-business/)
+*   [TallyPrime Server](https://tallysolutions.com/tally-prime-server/)
+*   [TallyPrime Developer](https://tallysolutions.com/tally-prime-developer/)
+
+[Explore Customizations & Integrations ![Image 83: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customizations-and-integrations/)
+
+[![Image 84: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-left-black.svg) Community](http://tallysolutions.com/features/taxation/)
+
+LEARN
+
+*   [![Image 85: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/instant-demo.svg) Instant Demo](https://tallysolutions.com/tally-prime-demo/#explore-demos)
+*   [![Image 86: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/smart-moves.svg) Smart moves](https://tallysolutions.com/smart-moves/)
+*   [![Image 87: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/blog.svg) Blogs](https://tallysolutions.com/blogs/)
+*   [![Image 88: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/learning-hub.svg)Learning hub](https://tallysolutions.com/learning-hub/)
+
+DISCOVER
+
+*   [![Image 89: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/product-roadmap.svg) Product Roadmap](https://tallysolutions.com/product-roadmap/)
+*   [![Image 90: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/customer-stories.svg) Customer Stories](https://tallysolutions.com/customer-stories/)
+*   [![Image 91: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/startup.svg) Tally StartUp offer](https://tallysolutions.com/tally-for-startup/)
+
+SERVICES
+
+*   [![Image 92: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/locate-a-patner.svg) Locate a Partner](https://tallysolutions.com/partners/#find-a-partner)
+*   [![Image 93: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tally-job-portal.svg) Tally Job Portal](https://tallyeducation.com/tepl/tepl/employer)
+*   [![Image 94: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/hire-gstp.svg) Hire a GSTP](https://tallysolutions.com/gstp-locator/)
+
+CONNECT
+
+*   [![Image 95: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/ca-community.svg) CA Community](https://community.tallysolutions.com/)
+*   [![Image 96: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/webnar.svg) Events and Webinars](https://tallysolutions.com/event-calendar/)
+*   [![Image 97: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/anchor.svg)Tally Anchors](https://tallysolutions.com/tally-anchors/)
+
+FLAGSHIP PROGRAMS
+
+*   [![Image 98: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/msme.svg) MSME Honours](https://tallysolutions.com/msme-honours/)
+*   [![Image 99: icon](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/government.svg) Govt Skilling Program](https://tallyeducation.com/tepl/tepl/government-skilling-programme/)
+
+[![Image 100: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-left-black.svg) Community](http://tallysolutions.com/features/taxation/)
+
+Do more with TallyPrime
+
+Discover powerful features and capabilities to get the most out of TallyPrime for your business.
+
+[View all Features ![Image 101: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/tally-prime-upgrade/)
+
+What's new?
+
+###### Smart financial statements for non-corporates
+
+Generate ICAI-compliant financial statements for non-corporates using the Excel template. Import the XML from TallyPrime and 60-70% of the details will be auto mapped.
+
+[Enable Add-On ![Image 102: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/addon-financial-statements-nce-tallyprime/)
+
+Manage subscriptions
+
+*   [Tally Software Services](https://tallysolutions.com/customer-hub/#tss)[Renew Now ![Image 103: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#tss)
+*   [TallyPrime Cloud Access](https://tallysolutions.com/customer-hub/#cloud-access)[Renew Now ![Image 104: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#cloud-access)
+*   [TallyPrime Rental](https://tallysolutions.com/customer-hub/#tallyprime)[Renew Now ![Image 105: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#tallyprime)
+*   [TallyPrime with Whatsapp](https://tallysolutions.com/customer-hub/#whatsapp)[Renew Now ![Image 106: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/#whatsapp)
+
+Customer Support
+
+*   [Support](https://tallysolutions.com/support/) [Customer hub ![Image 107: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-blue.svg)](https://tallysolutions.com/customer-hub/)
+
+Reach us :
+
+###### [![Image 108: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/tally-help-icon.svg)Tally Help](https://help.tallysolutions.com/)
+
+###### [![Image 109: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/whats-app-icon.svg) Whatsapp](https://api.whatsapp.com/send/?phone=919019910043&text=Hi&type=phone_number&app_absent=0)
+
+###### [![Image 110: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/phone-icon.svg) Call US](tel:+918068103666)
+
+###### [![Image 111: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/mail.svg) Email](mailto:support@tallysolutions.com)
+
+[![Image 112: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-left-black.svg) Back](http://tallysolutions.com/features/taxation/)
+
+*   [India](https://tallysolutions.com/)
+*   [Bangladesh (English)](https://tallysolutions.com/bd/en/)
+*   [Bangladesh (বাংলা)](https://tallysolutions.com/bd/)
+*   [Middle East (English)](https://tallysolutions.com/mena/)
+*   [Middle East (عربي )](https://tallysolutions.com/mena/ar/)
+*   [Africa](https://tallysolutions.com/ssa/)
+*   [APAC](https://tallysolutions.com/apac/)
+*   [North America](https://tallysolutions.com/us/)
+*   [International](https://tallysolutions.com/global/)
+
+GST & Compliance
+----------------
+
+![Image 113: Smart financial statements for non-corporates ](https://resources.tallysolutions.com/wp-content/uploads/2025/05/Manufacturing%E2%80%A8journal-2.svg)
+
+Smart financial statements for non-corporates
+
+TallyPrime’s Excel-based template is designed Chartered Accountants, tax practitioners and businesses to simplify and speed up financial reporting for non-corporate. Built as per ICAI's latest guidelines, it enables easy import of trial balance/balance sheet/ profit & loss a/c from TallyPrime and auto-captures the details to financial statement template, saving hours of manual effort. [Enable Add-On ![Image 114: arrow-up-right-sharp](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/arrow-up-right-sharp.svg)](http://tallysolutions.com/addon-financial-statements-nce-tallyprime/)
+
+![Image 115: Invoice Management System (IMS)](https://resources.tallysolutions.com/wp-content/uploads/2025/06/Multiple-billing-1.svg)
+
+Invoice Management System (IMS)
+
+TallyPrime’s connected IMS solution enables you to seamlessly download, reconcile, and take actions—Accept, Reject, or Pending on e-invoices—directly within TallyPrime, keeping your books and IMS dashboard in sync. What’s more? Perform bulk actions for accept/reject/pending, auto-accept invoice and reconciliation with one-click, complete summary for tracking actions and tasks and much, to simplify IMS compliance and give you greater control over ITC claims.
+
+![Image 116: One-click reconciliation of GSTR-2B and GSTR-2A](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Manufacturing%E2%80%A8journal-5.svg)
+
+One-click reconciliation of GSTR-2B and GSTR-2A
+
+With TallyPrime's connected GST solution you can download and automatically reconcile GSTR-2A and GSTR-2B with a click and get detailed summary of reconciled transactions and mismatches. Also, supports GST-1 and GSTR-3B reconciliation.
+
+![Image 117: Direct upload and filing of GST returns](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Manufacturing%E2%80%A8journal-4.svg)
+
+Direct upload and filing of GST returns
+
+TallyPrime seamlessly connects with the GST portal, enabling you to exchange GST data and file returns directly from TallyPrime. Upload GSTR-1 data, file and sign returns, and upload GSTR-3B data for filing directly. Also, supports returns in JSON and Excel.
+
+![Image 118: ITC at-risk insights in payables reports](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Practitioner-6.svg)
+
+ITC at-risk insights in payables reports
+
+TallyPrime’s accounts payables report gives you valuable insights on ITC at-risk. With automated GSTR-2A/2B reconciliation, the report highlights any ITC at-risk and even suggests the balance to be paid to avoid any issues, enabling you to stay on top of your ITC status.
+
+![Image 119: Fully connected e-way bill solution](https://resources.tallysolutions.com/wp-content/uploads/2025/02/e-way-bill-1-1.svg)
+
+Fully connected e-way bill solution
+
+Just record your invoice, and TallyPrime will automatically generate the e-way bill and capture the e-way bill number on the invoice. You can also manage e-way bills—extend, cancel, or update details—directly within TallyPrime, all in a seamless flow.
+
+[Start Demo![Image 120](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/tally-prime-demo/gst-returns-reconciliation/)
+
+![Image 121: <b>Instant Demo</b> - GSTR Reconciliation](https://resources.tallysolutions.com/wp-content/uploads/2025/03/Compliance-1.svg)
+
+**Instant Demo** - GSTR Reconciliation
+
+With Connected GST in TallyPrime, download and auto-reconcile GST returns effortlessly. No installation required. Try it now!
+
+![Image 122: Manage MSME payment compliance](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Multiple%E2%80%A8Pricing-levels-4.svg)
+
+Manage MSME payment compliance
+
+With TallyPrime, tracking MSME payables and ensuring timely payments is simple. Filter upcoming dues by bill date, MSME credit period, or whichever is earlier. The revised MSME Form 1, aligned with the latest MCA guidelines, lets you view outstanding amounts in a Supplier Summary format, ensuring better transparency and compliance.
+
+![Image 123: Audit trail compliant as per MCA’s guidelines](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Practitioner-7.svg)
+
+Audit trail compliant as per MCA’s guidelines
+
+Stay compliant with TallyPrime’s audit trail (edit log), which records every change—what changed, when, and by whom. The new Edit Log Summary gives you a quick, structured view of these changes across vouchers and masters, helping you spot anomalies faster and simplify audits.
+
+![Image 124: Multi-GSTIN support in a single company](https://resources.tallysolutions.com/wp-content/uploads/2025/02/Multi-Company-Support-1.svg)
+
+Multi-GSTIN support in a single company
+
+Create multiple GST registrations and manage transactions and returns related to all the GSTINs in a single company. Easy to categorize or identify transactions GSTN-wise and flexible to view/export GST returns and reports for a single GSTIN or a combined report for all GSTINs.
+
+![Image 125: Managing TDS and TCS is no longer tedious](https://resources.tallysolutions.com/wp-content/uploads/2025/02/e-Invoicing.svg)
+
+Managing TDS and TCS is no longer tedious
+
+Manage TDS and TCS requirements for your business in an accurate and simplified manner. The return forms are designed to detect errors/incomplete details and allow you to correct them seamlessly, so that the return is 100% fool-proof.
+
+Experience TallyPrime firsthand, no installation required
+---------------------------------------------------------
+
+Invoice Management System (IMS)
+
+ Track vendor sales in real time and ensure smooth Input Tax Credit claims and GST compliance. 
+
+[Start Demo ![Image 126](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/tally-prime-demo/tallyprime-invoice-management-system-demo/)
+
+GSTR Reconciliation
+
+ Automatically download and reconcile GSTR-1, GSTR-2A, and GSTR-2B with just a click. 
+
+[Start Demo ![Image 127](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/tally-prime-demo/gst-returns-reconciliation/)
+
+Connected GST Returns
+
+ Upload and file GSTR-1 directly in TallyPrime, eliminating the need to visit the GST portal. 
+
+[Start Demo ![Image 128](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)](https://tallysolutions.com/tally-prime-demo/uploading-and-filing-gstr-1/)
+
+Additional GST & compliance features in TallyPrime
+==================================================
+
+*    Easy and quick to configure the tax details via GST Rate Set-up 
+*    Export the auto-filled return data in the multiple formats or directly upload from TallyPrime. For e.g. GST Return data in JSON and MS-Excel 
+*    Create GSTIN-wise voucher numbering series (e.g. B2B and B2C) for the same voucher type and maintain unique numbering for each GSTIN 
+*    Support for previous tax regimes such as VAT, CST, Excise and Services tax 
+*    Mark returns as ‘Signed’ to track filings and identify amendments for action, ensuring proper reporting in subsequent GSTR-1 and GSTR-3B 
+*    TallyPrime simplifies compliance for businesses in the composition scheme, from recording Bill of Supply to generating GSTR-4/CMP-08 in the required format 
+
+![Image 129: additional-fetaures-right-img](https://resources.tallysolutions.com/wp-content/uploads/2025/03/Taxation-Compliance-Additional-Feature1.svg)
+
+![Image 130: logo](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/tally-logo-white.svg)
+
+Tally is India's leading business management software solution company, which today enables nearly 2.5 million businesses worldwide. [Read More ![Image 131: icons](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/arrow-up-right-yellow-sharp.svg)](https://tallysolutions.com/about-tally/)
+
+##### Our Products
+
+*   [Tally Software Service](https://tallysolutions.com/tally-software-service/)
+*   [TallyPrime Server](https://tallysolutions.com/tally-prime-server/)
+*   [TallyPrime Cloud Access](https://tallysolutions.com/tallyprime-cloud-access/)
+*   [TallyPrime Developer](https://tallysolutions.com/tally-prime-developer/)
+*   [TallyCapital](https://tallycapital.tallysolutions.com/)
+*   [TallyEdge](https://tallyedge.com/)
+*   [Shoper9](https://tallysolutions.com/tally-shoper-9/)
+
+##### Product Subscription
+
+*   [Renew Tally Software Service](https://tallysolutions.com/renew-tss/)
+*   [TallyPrime Monthly Subscription](https://tallysolutions.com/tally-monthly-subscription/)
+*   [TallyPrime Lifetime License](https://tallysolutions.com/lifetime-license/)
+*   [TallyPrime Pricing & Purchase Options](https://tallysolutions.com/buy-tally/)
+*   [Download TallyPrime](https://tallysolutions.com/download/)
+
+##### TallyPrime's Features
+
+*   [Banking](https://tallysolutions.com/features/banking/)
+*   [Credit and Cashflow Management](https://tallysolutions.com/features/credit-and-cashflow-management/)
+*   [Dashboards & Reports](https://tallysolutions.com/features/business-reports/)
+*   [Enhanced Security Management](https://tallysolutions.com/features/enhanced-security-management/)
+*   [Inventory Management](https://tallysolutions.com/features/inventory-management/)
+*   [Business Operations](https://tallysolutions.com/features/business-operations/)
+
+*   [Invoicing and Accounting](https://tallysolutions.com/features/invoicing-and-accounting/)
+*   [Connected Services](https://tallysolutions.com/features/connected-services/)
+*   [Payroll Management](https://tallysolutions.com/features/payroll-management/)
+*   [Taxation and Compliance](https://tallysolutions.com/features/taxation/)
+
+##### Solutions for Startups
+
+*   [Accounting Software for Startups](https://tallysolutions.com/accounting-software-for-startups/)
+
+##### Solutions for SMBs
+
+*   [Accounting Software](https://tallysolutions.com/accounting-software/)
+*   [Billing Software](https://tallysolutions.com/billing-software/)
+*   [Bookkeeping Software](https://tallysolutions.com/bookkeeping-software/)
+*   [Business Management Software](https://tallysolutions.com/business-management-software/)
+*   [e-Invoicing Software](https://tallysolutions.com/e-invoicing-software/)
+*   [GST Software](https://tallysolutions.com/gst-software/)
+*   [Inventory Management Software](https://tallysolutions.com/inventory-management-software/)
+
+##### Free Business Tools & Templates
+
+*   [Invoice Generator](https://tallysolutions.com/business-tools-templates/invoice-generator/)
+*   [Revenue Forecaster](https://tallysolutions.com/business-tools-templates/revenue-forecaster/)
+*   [GST Calculator](https://tallysolutions.com/business-tools-templates/gst-calculator/)
+*   [Accounting Templates](https://tallysolutions.com/business-tools-templates/accounting-templates/)
+*   [Invoice Template](https://tallysolutions.com/business-tools-templates/free-invoice-template/)
+*   [Quotation Generator](https://tallysolutions.com/business-tools-templates/quotation-generator/)
+*   [Cashflow Generator](https://tallysolutions.com/business-tools-templates/cash-flow-generator/)
+
+##### Get GST-Compliant
+
+*   [GST Registration](https://tallysolutions.com/gst/gst-registration/)
+*   [File GST Returns](https://tallysolutions.com/gst/gst-return/)
+*   [GSTR 1](https://tallysolutions.com/gst/gstr1-filing-format-due-date/)
+*   [GSTR 2A Reconciliation](https://tallysolutions.com/gst/gstr2a-reconciliation/)
+*   [GSTR 2B Reconciliation](https://tallysolutions.com/gst/complete-guide-on-gstr-2b/)
+*   [GSTR 3B](https://tallysolutions.com/gst/gstr3b-filing-format-due-date/)
+*   [Generate e-Invoice in TallyPrime](https://tallysolutions.com/gst/generate-e-invoice-instantly-in-tallyprime/)
+
+*   [GST e-Invoice Format](https://tallysolutions.com/gst/e-invoice-in-gst/)
+*   [e-Invoicing FAQs](https://tallysolutions.com/gst/e-invoicing-faqs/)
+
+##### Resources
+
+*   [Smart Moves](https://tallysolutions.com/smart-moves/)
+*   [Blogs](https://tallysolutions.com/blogs/)
+*   [Learning Hub](https://tallysolutions.com/learning-hub/)
+*   [Business Tales](https://tallysolutions.com/web-stories/)
+*   [Event Calendar](https://tallysolutions.com/event-calendar/)
+
+*   [MSME Honours](https://tallysolutions.com/msme-honours/)
+*   [Customer Stories](https://tallysolutions.com/customer-stories/)
+*   [Careers](https://tallysolutions.com/careers/)
+*   [Sitemap](https://tallysolutions.com/sitemap/)
+
+##### Our Network
+
+*   [Partners](https://tallysolutions.com/partners/)
+*   [CA Community](https://community.tallysolutions.com/)
+*   [MSME Advisory Services](https://tallysolutions.com/tally-xcelerator/)
+*   [Tally Education](https://tallyeducation.com/tepl)
+*   [Our Presence](https://tallysolutions.com/contact-us/)
+*   [Media & News](https://tallysolutions.com/tally-news/)
+
+##### Contact Info
+
+ AMR Tech Park II, No.23 & 24,
+
+ Hongasandra, Hosur Main Road,
+
+ Bangalore 560 068, India
+
+ Customer Care: 080 68103666 
+
+##### Product Support
+
+[TallyHelp](https://help.tallysolutions.com/)
+
+[support@tallysolutions.com](mailto:support@tallysolutions.com)
+
+##### Registered Office
+
+ No. 331-336, Raheja Arcade,
+
+ Koramangala, Bangalore- 560095 
+
+CIN : U72200KA1991PTC012483
+
+[![Image 132](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/linkedin.svg)](https://www.linkedin.com/company/tallysolutions)[![Image 133](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/facebook.svg)](https://www.facebook.com/tallysolutions)[![Image 134](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/instagram.svg)](https://www.instagram.com/tallysolutions/channel/)[![Image 135](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/x.svg)](https://x.com/tallysolutions?mx=2)[![Image 136](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/youtube.svg)](https://www.youtube.com/tallysolutions)
+
+Copyright © 2026 Tally Solutions Private Limited | [Privacy Policy](https://tallysolutions.com/privacy-policy/) | [Terms of Use](https://tallysolutions.com/terms-of-use/)
+
+[![Image 137](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/linkedin.svg)](https://www.linkedin.com/company/tallysolutions)[![Image 138](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/facebook.svg)](https://www.facebook.com/tallysolutions)[![Image 139](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/nstagram.svg)](https://www.instagram.com/tallysolutions/channel/)[![Image 140](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/x.svg)](https://x.com/tallysolutions?mx=2)[![Image 141](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/youtube.svg)](https://www.youtube.com/tallysolutions)
+
+#### WELCOME!
+
+Tally.NET ID 
+
+ Looks good! 
+
+ Please provide a Name. 
+
+Password 
+
+ Looks good! 
+
+ Please provide a Phone. 
+
+- [x]  Remember me  
+
+LOGIN ![Image 142](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/icons/arrow-up-right-black.svg)
+
+##### [Forgot ID/Password?](https://tallysolutions.com/tallyweb/modules/admin/usm/CGetAccountAdminIDCtlr.php)
+
+##### [Reset Password](https://tallysolutions.com/tallyweb/modules/admin/usm/CResetPwdWithCnfCtlr.php)
+
+![Image 143: Close](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/close-icon-blue.svg)![Image 144: Close](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/close-icon-blue.svg)[![Image 145: login image](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/login-popup-prime.jpg)](https://help.tallysolutions.com/quick-start-guide-tally-prime/#upgrade-to-the-latest-release-of-tallyprime)
+
+![Image 146: Close](https://resources.tallysolutions.com/wp-content/themes/tally/assets/images/close-x.svg)
+
+![Image 150](https://bat.bing.com/action/0?ti=23000015&tm=gtm002&Ver=2&mid=f5e122de-50bd-46dc-a8a9-2cc734c96b04&bo=1&sid=4acec410ed5f11f0be1d0b4a1284225b&vid=4aceec20ed5f11f096916f25e8910280&vids=1&msclkid=N&pi=918639831&lg=en-US&sw=800&sh=600&sc=24&tl=Taxation%20%26%20Compliance%20Features%20%7C%20TallyPrime&p=https%3A%2F%2Ftallysolutions.com%2Ffeatures%2Ftaxation%2F&r=&lt=1600&evt=pageLoad&sv=2&cdb=AQAQ&rn=335527)

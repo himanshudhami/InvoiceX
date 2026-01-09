@@ -1,0 +1,1475 @@
+Title: India — Odoo 17.0 documentation
+
+URL Source: http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html
+
+Markdown Content:
+India — Odoo 17.0 documentation
+===============
+
+##### On this page
+
+*   [India](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+    *   [Installation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#installation)
+    *   [e-Invoice system](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-system) 
+        *   [Setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#setup) 
+            *   [NIC e-Invoice registration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#nic-e-invoice-registration)
+            *   [Configuration in Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#configuration-in-odoo) 
+                *   [Journals](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#journals)
+
+        *   [Workflow](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#workflow) 
+            *   [Invoice validation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-validation)
+            *   [Invoice PDF report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-pdf-report)
+            *   [e-Invoice cancellation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-cancellation)
+            *   [GST e-Invoice verification](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gst-e-invoice-verification)
+
+    *   [E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill) 
+        *   [Setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-setup) 
+            *   [API registration on NIC E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#api-registration-on-nic-e-way-bill)
+            *   [Configuration in Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-configuration)
+
+        *   [Workflow](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-workflow) 
+            *   [Send an E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-an-e-way-bill)
+            *   [Invoice validation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-invoice-validation-e-way)
+            *   [Invoice PDF report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#id6)
+            *   [E-Way bill cancellation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill-cancellation)
+
+        *   [E-waybill creation from receipts and delivery orders](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-waybill-creation-from-receipts-and-delivery-orders)
+
+    *   [Indian GST Return filing](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-return-filing) 
+        *   [Enable API access](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#enable-api-access)
+        *   [Indian GST Service In Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-service-in-odoo)
+        *   [File-in GST Return](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#file-in-gst-return) 
+            *   [Send GSTR-1](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-gstr-1)
+            *   [Receive GSTR-2B](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#receive-gstr-2b)
+            *   [GSTR-3 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-3-report)
+
+    *   [Tax reports](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#tax-reports) 
+        *   [GSTR-1 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-1-report)
+        *   [GSTR-3 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-3-report)
+
+*   [User Docs](http://www.odoo.com/documentation/17.0/applications.html) 
+    *   [Odoo essentials](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Activities](http://www.odoo.com/documentation/17.0/applications/essentials/activities.html)
+        *   [Reporting](http://www.odoo.com/documentation/17.0/applications/essentials/reporting.html)
+        *   [Search, filter, and group records](http://www.odoo.com/documentation/17.0/applications/essentials/search.html)
+        *   [Contacts](http://www.odoo.com/documentation/17.0/applications/essentials/contacts.html) 
+            *   [Merge contacts](http://www.odoo.com/documentation/17.0/applications/essentials/contacts/merge.html)
+
+        *   [Export and import data](http://www.odoo.com/documentation/17.0/applications/essentials/export_import_data.html)
+        *   [In-app purchases (IAP)](http://www.odoo.com/documentation/17.0/applications/essentials/in_app_purchase.html)
+        *   [Keyboard shortcuts](http://www.odoo.com/documentation/17.0/applications/essentials/keyboard_shortcuts.html)
+
+    *   [Finance](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Accounting and Invoicing](http://www.odoo.com/documentation/17.0/applications/finance/accounting.html) 
+            *   [Get started](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started.html) 
+                *   [Accounting cheat sheet](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started/cheat_sheet.html)
+                *   [Chart of accounts](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started/chart_of_accounts.html)
+                *   [Multi-currency system](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started/multi_currency.html)
+                *   [Average price on returned goods](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started/avg_price_valuation.html)
+                *   [Tax units](http://www.odoo.com/documentation/17.0/applications/finance/accounting/get_started/tax_units.html)
+
+            *   [Taxes](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes.html) 
+                *   [Cash basis taxes](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/cash_basis.html)
+                *   [Withholding taxes](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/retention.html)
+                *   [VAT numbers verification (VIES)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/vat_verification.html)
+                *   [Fiscal positions (tax and account mapping)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/fiscal_positions.html)
+                *   [AvaTax integration](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/avatax.html) 
+                    *   [AvaTax use](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/avatax/avatax_use.html)
+                    *   [Avalara (Avatax) portal](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/avatax/avalara_portal.html)
+
+                *   [TaxCloud integration](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/taxcloud.html)
+                *   [EU intra-community distance selling](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/eu_distance_selling.html)
+                *   [B2B (tax excluded) and B2C (tax included) pricing](http://www.odoo.com/documentation/17.0/applications/finance/accounting/taxes/B2B_B2C.html)
+
+            *   [Customer invoices](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices.html) 
+                *   [Invoicing processes](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/overview.html)
+                *   [Delivery and invoice addresses](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/customer_addresses.html)
+                *   [Payment terms and installment plans](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/payment_terms.html)
+                *   [Default terms and conditions (T&C)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/terms_conditions.html)
+                *   [Cash discounts and tax reduction](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/cash_discounts.html)
+                *   [Credit notes and refunds](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/credit_notes.html)
+                *   [Cash rounding](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/cash_rounding.html)
+                *   [Deferred revenues](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/deferred_revenues.html)
+                *   [Electronic invoicing (EDI)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/electronic_invoicing.html)
+                *   [Invoice sequence](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/sequence.html)
+                *   [Snailmail](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/snailmail.html)
+                *   [EPC QR codes](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/epc_qr_code.html)
+                *   [Incoterms](http://www.odoo.com/documentation/17.0/applications/finance/accounting/customer_invoices/incoterms.html)
+
+            *   [Vendor bills](http://www.odoo.com/documentation/17.0/applications/finance/accounting/vendor_bills.html) 
+                *   [Document digitization](http://www.odoo.com/documentation/17.0/applications/finance/accounting/vendor_bills/invoice_digitization.html)
+                *   [Non-current assets and fixed assets](http://www.odoo.com/documentation/17.0/applications/finance/accounting/vendor_bills/assets.html)
+                *   [Deferred expenses](http://www.odoo.com/documentation/17.0/applications/finance/accounting/vendor_bills/deferred_expenses.html)
+                *   [Vendor bill sequence](http://www.odoo.com/documentation/17.0/applications/finance/accounting/vendor_bills/sequence.html)
+
+            *   [Payments](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments.html) 
+                *   [Online payments](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/online.html)
+                *   [Checks](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/checks.html)
+                *   [Batch payments](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/batch.html)
+                *   [SEPA Direct Debit (SDD) customer payments](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/batch_sdd.html)
+                *   [Follow-up on invoices](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/follow_up.html)
+                *   [Internal transfers](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/internal_transfers.html)
+                *   [Pay with SEPA](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/pay_sepa.html)
+                *   [Pay by checks](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/pay_checks.html)
+                *   [Forecast future bills to pay](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/forecast.html)
+                *   [Trusted accounts (send money)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/payments/trusted_accounts.html)
+
+            *   [Bank and cash accounts](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank.html) 
+                *   [Bank synchronization](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/bank_synchronization.html) 
+                    *   [Salt Edge](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/bank_synchronization/saltedge.html)
+                    *   [Ponto](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/bank_synchronization/ponto.html)
+                    *   [Enable Banking](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/bank_synchronization/enablebanking.html)
+
+                *   [Transactions](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/transactions.html)
+                *   [Bank reconciliation](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/reconciliation.html)
+                *   [Reconciliation models](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/reconciliation_models.html)
+                *   [Manage a bank account in a foreign currency](http://www.odoo.com/documentation/17.0/applications/finance/accounting/bank/foreign_currency.html)
+
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting.html) 
+                *   [Tax return (VAT declaration)](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/tax_returns.html)
+                *   [Tax carryover](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/tax_carryover.html)
+                *   [Analytic accounting](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/analytic_accounting.html)
+                *   [Analytic budgets](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/budget.html)
+                *   [Intrastat](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/intrastat.html)
+                *   [Data inalterability check report](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/data_inalterability.html)
+                *   [Silverfin integration](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/silverfin.html)
+                *   [Custom reports](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/customize.html)
+                *   [Year-end closing](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/year_end.html)
+
+        *   [Expenses](http://www.odoo.com/documentation/17.0/applications/finance/expenses.html) 
+            *   [Approve expenses](http://www.odoo.com/documentation/17.0/applications/finance/expenses/approve_expenses.html)
+            *   [Log expenses](http://www.odoo.com/documentation/17.0/applications/finance/expenses/log_expenses.html)
+            *   [Expense reports](http://www.odoo.com/documentation/17.0/applications/finance/expenses/expense_reports.html)
+            *   [Post expenses](http://www.odoo.com/documentation/17.0/applications/finance/expenses/post_expenses.html)
+            *   [Reimburse employees](http://www.odoo.com/documentation/17.0/applications/finance/expenses/reimburse.html)
+            *   [Re-invoice expenses](http://www.odoo.com/documentation/17.0/applications/finance/expenses/reinvoice_expenses.html)
+
+        *   [Online payments](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers.html) 
+            *   [Wire transfers](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/wire_transfer.html)
+            *   [SEPA Direct Debit](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/sdd.html)
+            *   [Adyen](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/adyen.html)
+            *   [Alipay](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/alipay.html)
+            *   [Amazon Payment Services](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/amazon_payment_services.html)
+            *   [AsiaPay](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/asiapay.html)
+            *   [Authorize.Net](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/authorize.html)
+            *   [Buckaroo](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/buckaroo.html)
+            *   [Demo](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/demo.html)
+            *   [Flutterwave](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/flutterwave.html)
+            *   [Mercado Pago](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/mercado_pago.html)
+            *   [Mollie](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/mollie.html)
+            *   [Ogone](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/ogone.html)
+            *   [PayPal](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/paypal.html)
+            *   [Razorpay](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/razorpay.html)
+            *   [SIPS](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/sips.html)
+            *   [Stripe](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/stripe.html)
+            *   [Worldline](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/worldline.html)
+            *   [Xendit](http://www.odoo.com/documentation/17.0/applications/finance/payment_providers/xendit.html)
+
+        *   [Fiscal localizations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations.html) 
+            *   [Argentina](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/argentina.html)
+            *   [Australia](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/australia.html)
+            *   [Austria](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/austria.html)
+            *   [Belgium](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/belgium.html)
+            *   [Brazil](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/brazil.html)
+            *   [Canada](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/canada.html)
+            *   [Chile](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/chile.html)
+            *   [Colombia](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/colombia.html)
+            *   [Denmark](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/denmark.html)
+            *   [Ecuador](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/ecuador.html)
+            *   [Egypt](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/egypt.html)
+            *   [France](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/france.html)
+            *   [Germany](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/germany.html)
+            *   [Hong Kong](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/hong_kong.html)
+            *   [India](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#)
+            *   [Indonesia](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/indonesia.html)
+            *   [Italy](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/italy.html)
+            *   [Jordan](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/jordan.html)
+            *   [Kenya](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/kenya.html)
+            *   [Luxembourg](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/luxembourg.html)
+            *   [Malaysia](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/malaysia.html)
+            *   [Mexico](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/mexico.html)
+            *   [Netherlands](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/netherlands.html)
+            *   [Romania](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/romania.html)
+            *   [Peru](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/peru.html)
+            *   [Philippines](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/philippines.html)
+            *   [Saudi Arabia](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/saudi_arabia.html)
+            *   [Singapore](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/singapore.html)
+            *   [Spain](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/spain.html)
+            *   [Switzerland](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/switzerland.html)
+            *   [Thailand](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/thailand.html)
+            *   [Vietnam](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/vietnam.html)
+            *   [United Arab Emirates](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/united_arab_emirates.html)
+            *   [United Kingdom](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/united_kingdom.html)
+            *   [United States](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/united_states.html)
+            *   [Uruguay](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/uruguay.html)
+
+    *   [Sales](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [CRM](http://www.odoo.com/documentation/17.0/applications/sales/crm.html) 
+            *   [Organize the pipeline](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Manage lost opportunities](http://www.odoo.com/documentation/17.0/applications/sales/crm/pipeline/lost_opportunities.html)
+                *   [Merge similar leads and opportunities](http://www.odoo.com/documentation/17.0/applications/sales/crm/pipeline/merge_similar.html)
+                *   [Manage sales teams](http://www.odoo.com/documentation/17.0/applications/sales/crm/pipeline/manage_sales_teams.html)
+
+            *   [Acquire leads](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Convert leads into opportunities](http://www.odoo.com/documentation/17.0/applications/sales/crm/acquire_leads/convert.html)
+                *   [Create opportunities from web contact forms](http://www.odoo.com/documentation/17.0/applications/sales/crm/acquire_leads/opportunities_form.html)
+                *   [Create leads (from email or manually)](http://www.odoo.com/documentation/17.0/applications/sales/crm/acquire_leads/email_manual.html)
+                *   [Create and send quotations](http://www.odoo.com/documentation/17.0/applications/sales/crm/acquire_leads/send_quotes.html)
+                *   [Lead mining](http://www.odoo.com/documentation/17.0/applications/sales/crm/acquire_leads/lead_mining.html)
+
+            *   [Assign and track leads](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Assign leads with predictive lead scoring](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/lead_scoring.html)
+                *   [Unattended leads report](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/unattended_leads_report.html)
+                *   [Quality leads report](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/quality_leads_report.html)
+                *   [Resellers](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/resellers.html)
+                *   [Marketing attribution reports](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/marketing_attribution.html)
+                *   [Lead distribution report](http://www.odoo.com/documentation/17.0/applications/sales/crm/track_leads/lead_distribution_report.html)
+
+            *   [Analyze performance](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Pipeline Analysis](http://www.odoo.com/documentation/17.0/applications/sales/crm/performance/win_loss.html)
+                *   [Expected revenue report](http://www.odoo.com/documentation/17.0/applications/sales/crm/performance/expected_revenue_report.html)
+                *   [Forecast report](http://www.odoo.com/documentation/17.0/applications/sales/crm/performance/forecast_report.html)
+
+            *   [Optimize your Day-to-Day work](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Enrich contacts with partner autocomplete](http://www.odoo.com/documentation/17.0/applications/sales/crm/optimize/partner_autocomplete.html)
+                *   [CRM Gamification](http://www.odoo.com/documentation/17.0/applications/sales/crm/optimize/gamification.html)
+                *   [Utilize activities for sales teams](http://www.odoo.com/documentation/17.0/applications/sales/crm/optimize/utilize_activities.html)
+                *   [Lead enrichment](http://www.odoo.com/documentation/17.0/applications/sales/crm/optimize/lead_enrichment.html)
+
+        *   [Sales](http://www.odoo.com/documentation/17.0/applications/sales/sales.html) 
+            *   [Send Quotations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Create quotations](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/create_quotations.html)
+                *   [Quotation templates](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/quote_template.html)
+                *   [Optional products](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/optional_products.html)
+                *   [Online signatures for order confirmations](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/get_signature_to_validate.html)
+                *   [Online payment order confirmation](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/get_paid_to_validate.html)
+                *   [Quotation deadlines](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/deadline.html)
+                *   [Deliveries and invoices to different addresses](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/different_addresses.html)
+                *   [Product variants on quotations and sales orders](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/orders_and_variants.html)
+                *   [PDF quote builder](http://www.odoo.com/documentation/17.0/applications/sales/sales/send_quotations/pdf_quote_builder.html)
+
+            *   [Invoicing Method](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Invoicing policies](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/invoicing_policy.html)
+                *   [Down payments](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/down_payment.html)
+                *   [Pro-forma invoices](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/proforma.html)
+                *   [Invoicing based on time and materials](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/time_materials.html)
+                *   [Invoice project milestones](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/milestone.html)
+                *   [Reinvoice expenses to customers](http://www.odoo.com/documentation/17.0/applications/sales/sales/invoicing/expense.html)
+
+            *   [Products & Prices](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Manage your products](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                    *   [Import products](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/products/import.html)
+                    *   [Product variants](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/products/variants.html)
+                    *   [Product images with Google Images](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/products/product_images.html)
+
+                *   [Manage your pricing](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                    *   [Pricelists, discounts, and formulas](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/prices/pricing.html)
+                    *   [Foreign currencies](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/prices/currencies.html)
+
+                *   [Returns and refunds](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/returns.html)
+                *   [Use eWallets and gift cards](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/ewallets_giftcards.html)
+                *   [Discount and loyalty programs](http://www.odoo.com/documentation/17.0/applications/sales/sales/products_prices/loyalty_discount.html)
+
+            *   [Amazon Connector](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Amazon Connector features](http://www.odoo.com/documentation/17.0/applications/sales/sales/amazon_connector/features.html)
+                *   [Amazon Connector configuration](http://www.odoo.com/documentation/17.0/applications/sales/sales/amazon_connector/setup.html)
+                *   [Amazon order management](http://www.odoo.com/documentation/17.0/applications/sales/sales/amazon_connector/manage.html)
+
+            *   [eBay Connector](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [eBay connector setup](http://www.odoo.com/documentation/17.0/applications/sales/sales/ebay_connector/setup.html)
+                *   [How to list a product?](http://www.odoo.com/documentation/17.0/applications/sales/sales/ebay_connector/manage.html)
+                *   [Troubleshooting eBay connector](http://www.odoo.com/documentation/17.0/applications/sales/sales/ebay_connector/troubleshooting.html)
+                *   [Linking existing listings](http://www.odoo.com/documentation/17.0/applications/sales/sales/ebay_connector/linking_listings.html)
+
+        *   [Point of Sale](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale.html) 
+            *   [Configuration](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/configuration.html) 
+                *   [IoT system connection](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/configuration/pos_iot.html)
+                *   [ePOS printers](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/configuration/epos_printers.html)
+                *   [Secure connection (HTTPS)](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/configuration/https.html)
+                *   [Self-signed certificate for ePOS printers](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/configuration/epos_ssc.html)
+
+            *   [Multi-employee management](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/employee_login.html)
+            *   [Receipts and invoices](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/receipts_invoices.html)
+            *   [Preparation display](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/preparation.html)
+            *   [Self-ordering](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/self_order.html)
+            *   [Product combos](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/combos.html)
+            *   [Shop features](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Sales orders](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/shop/sales_order.html)
+                *   [Barcodes](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/shop/barcode.html)
+                *   [Serial numbers and lots](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/shop/serial_numbers.html)
+                *   [Ship later](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/shop/ship_later.html)
+                *   [Customer display](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/shop/customer_display.html)
+
+            *   [Restaurant features](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/restaurant.html) 
+                *   [Floors and tables](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/restaurant/floors_tables.html)
+                *   [Orders printing](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/restaurant/kitchen_printing.html)
+                *   [Bills](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/restaurant/bill_printing.html)
+                *   [Tips](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/restaurant/tips.html)
+
+            *   [Pricing features](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Discounts](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/discounts.html)
+                *   [Discount tags (barcode scanner)](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/discount_tags.html)
+                *   [Loyalty programs](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/loyalty.html)
+                *   [Pricelists](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/pricelists.html)
+                *   [Flexible taxes (fiscal positions)](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/fiscal_position.html)
+                *   [Cash rounding](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/cash_rounding.html)
+                *   [Electronic shelf labels](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/pricing/electronic_labels.html)
+
+            *   [Payment methods](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods.html) 
+                *   [Payment terminals](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals.html) 
+                    *   [Adyen](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/adyen.html)
+                    *   [Ingenico](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/ingenico.html)
+                    *   [Mercado Pago](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/mercado_pago.html)
+                    *   [Razorpay](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/razorpay.html)
+                    *   [SIX](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/six.html)
+                    *   [Stripe](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/stripe.html)
+                    *   [Vantiv](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/vantiv.html)
+                    *   [Viva Wallet](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/viva_wallet.html)
+                    *   [Worldline](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/payment_methods/terminals/worldline.html)
+
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/sales/point_of_sale/reporting.html)
+
+        *   [Subscriptions](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions.html) 
+            *   [Subscriptions in the eCommerce shop](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/ecommerce.html)
+            *   [Upsell subscriptions](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/upselling.html)
+            *   [Renew subscriptions](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/renewals.html)
+            *   [Close subscriptions](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/closing.html)
+            *   [Automation rules](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/automatic_alerts.html)
+            *   [Scheduled actions](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/scheduled_actions.html)
+            *   [Subscription reports](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/reports.html)
+            *   [Subscriptions and automatic payments](http://www.odoo.com/documentation/17.0/applications/sales/subscriptions/automatic_payments.html)
+
+        *   [Rental](http://www.odoo.com/documentation/17.0/applications/sales/rental.html)
+        *   [Members](http://www.odoo.com/documentation/17.0/applications/sales/members.html) 
+            *   [Members analysis](http://www.odoo.com/documentation/17.0/applications/sales/members/members_analysis.html)
+
+    *   [Websites](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Website](http://www.odoo.com/documentation/17.0/applications/websites/website.html) 
+            *   [Web design](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Building blocks](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/building_blocks.html) 
+                    *   [Structure](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/building_blocks/structure.html)
+                    *   [Features](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/building_blocks/features.html)
+                    *   [Dynamic content](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/building_blocks/dynamic_content.html)
+                    *   [Inner content](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/building_blocks/inner_content.html)
+
+                *   [Website themes](http://www.odoo.com/documentation/17.0/applications/websites/website/web_design/themes.html)
+
+            *   [Pages](http://www.odoo.com/documentation/17.0/applications/websites/website/pages.html) 
+                *   [Menus](http://www.odoo.com/documentation/17.0/applications/websites/website/pages/menus.html)
+                *   [Search Engine Optimization (SEO)](http://www.odoo.com/documentation/17.0/applications/websites/website/pages/seo.html)
+
+            *   [Configuration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Domain names](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/domain_names.html)
+                *   [Address autocomplete](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/address_autocomplete.html)
+                *   [Google Search Console](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/google_search_console.html)
+                *   [Cookies bar](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/cookies_bar.html)
+                *   [Translations](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/translate.html)
+                *   [Multiple websites](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/multi_website.html)
+                *   [Forms spam protection](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/spam_protection.html)
+                *   [Set up a content delivery network (CDN)](http://www.odoo.com/documentation/17.0/applications/websites/website/configuration/cdn.html)
+
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Website analytics](http://www.odoo.com/documentation/17.0/applications/websites/website/reporting/analytics.html)
+                *   [Link tracker](http://www.odoo.com/documentation/17.0/applications/websites/website/reporting/link_tracker.html)
+
+            *   [Mail groups](http://www.odoo.com/documentation/17.0/applications/websites/website/mail_groups.html)
+
+        *   [eCommerce](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce.html) 
+            *   [Products](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/products.html) 
+                *   [Catalog](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/products/catalog.html)
+                *   [Price management](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/products/price_management.html)
+                *   [Cross-selling and upselling](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/products/cross_upselling.html)
+
+            *   [Add to cart](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/cart.html)
+            *   [Checkout](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/checkout.html)
+            *   [Payment providers](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/payments.html)
+            *   [Shipping](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/shipping.html)
+            *   [Order handling](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/order_handling.html)
+            *   [Customer accounts](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/customer_accounts.html)
+            *   [Performance management](http://www.odoo.com/documentation/17.0/applications/websites/ecommerce/performance.html)
+
+        *   [eLearning](http://www.odoo.com/documentation/17.0/applications/websites/elearning.html)
+        *   [Forum](http://www.odoo.com/documentation/17.0/applications/websites/forum.html)
+        *   [Blog](http://www.odoo.com/documentation/17.0/applications/websites/blog.html)
+        *   [Live Chat](http://www.odoo.com/documentation/17.0/applications/websites/livechat.html) 
+            *   [Ratings](http://www.odoo.com/documentation/17.0/applications/websites/livechat/ratings.html)
+            *   [Commands and canned responses](http://www.odoo.com/documentation/17.0/applications/websites/livechat/responses.html)
+            *   [Chatbots](http://www.odoo.com/documentation/17.0/applications/websites/livechat/chatbots.html)
+            *   [Reports](http://www.odoo.com/documentation/17.0/applications/websites/livechat/reports.html)
+            *   [Participate in live chat](http://www.odoo.com/documentation/17.0/applications/websites/livechat/participate.html)
+
+    *   [Supply Chain](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Inventory](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory.html) 
+            *   [Product management](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Configure product](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/configure.html) 
+                    *   [Product type](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/configure/type.html)
+                    *   [Units of measure](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/configure/uom.html)
+                    *   [Packages](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/configure/package.html)
+                    *   [Packaging](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/configure/packaging.html)
+
+                *   [Product tracking](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking.html) 
+                    *   [Use serial numbers to track products](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/serial_numbers.html)
+                    *   [Assign serial numbers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/create_sn.html)
+                    *   [Lot numbers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/lots.html)
+                    *   [Reassign lot/serial numbers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/reassign.html)
+                    *   [Expiration dates](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/expiration_dates.html)
+
+                *   [Inventory valuation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                    *   [Automatic inventory valuation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/inventory_valuation/inventory_valuation_config.html)
+                    *   [Using inventory valuation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/inventory_valuation/using_inventory_valuation.html)
+                    *   [Landed costs](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/product_management/inventory_valuation/landed_costs.html)
+
+            *   [Warehouses and storage](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Inventory management](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management.html) 
+                    *   [Warehouses](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/warehouses.html)
+                    *   [Locations](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/use_locations.html)
+                    *   [Inventory adjustments](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/count_products.html)
+                    *   [Cycle counts](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/cycle_counts.html)
+                    *   [Scrap inventory](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/inventory_management/scrap_inventory.html)
+
+                *   [Replenishment](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment.html) 
+                    *   [Replenish on order (MTO)](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment/mto.html)
+                    *   [Reordering rules](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment/reordering_rules.html)
+                    *   [Replenishment report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment/report.html)
+                    *   [Lead times](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment/lead_times.html)
+                    *   [Inter-warehouse replenishment](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/replenishment/resupply_warehouses.html)
+
+                *   [Reporting](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                    *   [Stock report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/stock.html)
+                    *   [Locations dashboard](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/locations.html)
+                    *   [Moves history dashboard](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/moves_history.html)
+                    *   [Inventory aging report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/aging.html)
+
+            *   [Shipping and receiving](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Inbound and outbound flows](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations.html) 
+                    *   [Routes and push/pull rules](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/use_routes.html)
+                    *   [One-step receipt and delivery](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/receipts_delivery_one_step.html)
+                    *   [Two-step receipt and delivery](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/receipts_delivery_two_steps.html)
+                    *   [Three-step receipt](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/receipts_three_steps.html)
+                    *   [Three-step delivery](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/delivery_three_steps.html)
+                    *   [Putaway rules](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/putaway.html)
+                    *   [Storage categories](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/storage_category.html)
+                    *   [Organize a cross-dock in a warehouse](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/cross_dock.html)
+                    *   [Sell stock from multiple warehouses using virtual locations](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/stock_warehouses.html)
+                    *   [Consignment: buy and sell stock without owning it](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/owned_stock.html)
+                    *   [Dropshipping](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations/dropshipping.html)
+
+                *   [Delivery methods](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration.html) 
+                    *   [Third-party shipping carriers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/third_party_shipper.html)
+                    *   [Print shipping labels](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/labels.html)
+                    *   [Bpost integration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/bpost.html)
+                    *   [DHL integration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/dhl_credentials.html)
+                    *   [FedEx integration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/fedex.html)
+                    *   [Sendcloud integration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/sendcloud_shipping.html)
+                    *   [Starshipit shipping](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/starshipit_shipping.html)
+                    *   [UPS integration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/ups_credentials.html)
+                    *   [Zebra label configuration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/zebra.html)
+                    *   [How to cancel a shipping request to a shipper?](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/cancel.html)
+                    *   [Shipping cost invoicing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/invoicing.html)
+                    *   [Change shipping label size](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/label_type.html)
+                    *   [Multi-package shipments](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/multipack.html)
+                    *   [Printable delivery PDFs](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/setup_configuration/print_on_validation.html)
+
+                *   [Reservation methods](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/reservation_methods.html) 
+                    *   [At confirmation reservation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/reservation_methods/at_confirmation.html)
+                    *   [Manual reservation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/reservation_methods/manually.html)
+                    *   [Before scheduled date reservation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/reservation_methods/before_scheduled_date.html)
+
+                *   [Picking methods](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                    *   [Batch picking](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/picking_methods/batch.html)
+                    *   [Cluster picking](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/picking_methods/cluster.html)
+                    *   [Process wave transfers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/picking_methods/wave.html)
+
+                *   [Removal strategies](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies.html) 
+                    *   [FIFO removal](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies/fifo.html)
+                    *   [LIFO removal](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies/lifo.html)
+                    *   [FEFO removal](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies/fefo.html)
+                    *   [Closest location removal](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies/closest_location.html)
+                    *   [Least packages removal](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/removal_strategies/least_packages.html)
+
+        *   [Manufacturing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing.html) 
+            *   [Basic setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Manufacturing product configuration](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/configure_manufacturing_product.html)
+                *   [Bill of materials](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/bill_configuration.html)
+                *   [One-step manufacturing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/one_step_manufacturing.html)
+                *   [Two-step manufacturing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/two_step_manufacturing.html)
+                *   [Three-step manufacturing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/three_step_manufacturing.html)
+                *   [Manufacturing order costs](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/basic_setup/mo_costs.html)
+
+            *   [Advanced configuration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Managing BoMs for product variants](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/advanced_configuration/product_variants.html)
+                *   [Kits](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/advanced_configuration/kit_shipping.html)
+                *   [Manage semi-finished products](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/advanced_configuration/sub_assemblies.html)
+                *   [Manage work orders using work centers](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/advanced_configuration/using_work_centers.html)
+                *   [Work order dependencies](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/advanced_configuration/work_order_dependencies.html)
+
+            *   [Workflows](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Master production schedule](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/use_mps.html)
+                *   [Work center time off](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/work_center_time_off.html)
+                *   [Scrap during manufacturing](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/scrap_manufacturing.html)
+                *   [Manufacturing backorders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/manufacturing_backorders.html)
+                *   [Split and merge manufacturing orders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/split_merge.html)
+                *   [Unbuild orders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/unbuild_orders.html)
+                *   [By-Products](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/byproducts.html)
+                *   [Continuous product improvement](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/workflows/continuous_improvement.html)
+
+            *   [Shop Floor](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Shop Floor overview](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/shop_floor/shop_floor_overview.html)
+                *   [Shop Floor time tracking](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/shop_floor/shop_floor_tracking.html)
+
+            *   [Subcontracting](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting.html) 
+                *   [Basic subcontracting](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/subcontracting_basic.html)
+                *   [Basic subcontracting lead times](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/basic_subcontracting_lead_times.html)
+                *   [Resupply subcontractor](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/subcontracting_resupply.html)
+                *   [Resupply subcontracting lead times](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/resupply_subcontracting_lead_times.html)
+                *   [Dropship to subcontractor](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/subcontracting_dropship.html)
+                *   [Dropship subcontracting lead times](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/subcontracting/dropship_subcontracting_lead_times.html)
+
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Allocation reports](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/reporting/allocation.html)
+                *   [Overall equipment effectiveness](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/reporting/oee.html)
+                *   [Production analysis](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/manufacturing/reporting/production_analysis.html)
+
+        *   [Purchase](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase.html) 
+            *   [Products](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Import vendor pricelist](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/products/pricelist.html)
+                *   [Configure reordering rules](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/products/reordering.html)
+                *   [Temporary reordering rules](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/products/temporary_reordering.html)
+                *   [Purchase units of measure](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/products/uom.html)
+
+            *   [Manage deals](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Requests for quotation](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/manage_deals/rfq.html)
+                *   [Blanket orders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/manage_deals/blanket_orders.html)
+                *   [Call for tenders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/manage_deals/calls_for_tenders.html)
+                *   [Bill control policies](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/manage_deals/control_bills.html)
+                *   [Manage vendor bills](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/manage_deals/manage.html)
+
+            *   [Advanced](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Purchase Analysis report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/advanced/analyze.html)
+                *   [Vendor costs report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/advanced/vendor_costs_report.html)
+                *   [Procurement expenses report](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/purchase/advanced/procurement_expenses_report.html)
+
+        *   [Barcode](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode.html) 
+            *   [Setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Barcode device troubleshooting](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/setup/device_troubleshooting.html)
+                *   [Barcode scanner setup](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/setup/hardware.html)
+                *   [Activate the Barcodes in Odoo](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/setup/software.html)
+
+            *   [Daily operations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Apply inventory adjustments with barcodes](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/adjustments.html)
+                *   [Process receipts and deliveries with barcodes](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/receipts_deliveries.html)
+                *   [Create and process transfers with barcodes](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/transfers_scratch.html)
+                *   [Default barcode nomenclature](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/barcode_nomenclature.html)
+                *   [GS1 barcode nomenclature](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/gs1_nomenclature.html)
+                *   [GS1 barcode usage](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/barcode/operations/gs1_usage.html)
+
+        *   [Quality](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality.html) 
+            *   [Quality control basics](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Quality control points](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_management/quality_control_points.html)
+                *   [Quality alerts](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_management/quality_alerts.html)
+                *   [Quality checks](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_management/quality_checks.html)
+                *   [Failure locations](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_management/failure_locations.html)
+
+            *   [Quality check types](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Instructions quality check](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_check_types/instructions_check.html)
+                *   [Pass - Fail quality check](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_check_types/pass_fail_check.html)
+                *   [Measure quality check](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_check_types/measure_check.html)
+                *   [Take a Picture quality check](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/quality/quality_check_types/picture_check.html)
+
+        *   [Maintenance](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/maintenance.html) 
+            *   [Add new equipment](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/maintenance/add_new_equipment.html)
+            *   [Maintenance calendar](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/maintenance/maintenance_calendar.html)
+            *   [Maintenance requests](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/maintenance/maintenance_requests.html)
+            *   [Maintenance setup](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/maintenance/maintenance_setup.html)
+
+        *   [Product lifecycle management](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/plm.html) 
+            *   [Change management](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Engineering change orders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/plm/manage_changes/engineering_change_orders.html)
+                *   [ECO type](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/plm/manage_changes/eco_type.html)
+                *   [Version control](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/plm/manage_changes/version_control.html)
+
+            *   [Project management](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Approvals](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/plm/management/approvals.html)
+
+        *   [Repairs](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/repairs.html) 
+            *   [Process repair orders](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/repairs/repair_orders.html)
+
+    *   [Human resources](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Attendances](http://www.odoo.com/documentation/17.0/applications/hr/attendances.html) 
+            *   [Check in and out](http://www.odoo.com/documentation/17.0/applications/hr/attendances/check_in_check_out.html)
+            *   [Kiosks](http://www.odoo.com/documentation/17.0/applications/hr/attendances/kiosks.html)
+            *   [Hardware](http://www.odoo.com/documentation/17.0/applications/hr/attendances/hardware.html)
+
+        *   [Employees](http://www.odoo.com/documentation/17.0/applications/hr/employees.html) 
+            *   [New employees](http://www.odoo.com/documentation/17.0/applications/hr/employees/new_employee.html)
+            *   [Departments](http://www.odoo.com/documentation/17.0/applications/hr/employees/departments.html)
+            *   [Certifications](http://www.odoo.com/documentation/17.0/applications/hr/employees/certifications.html)
+            *   [Offboarding](http://www.odoo.com/documentation/17.0/applications/hr/employees/offboarding.html)
+            *   [Employee retention report](http://www.odoo.com/documentation/17.0/applications/hr/employees/retention_report.html)
+
+        *   [Appraisals](http://www.odoo.com/documentation/17.0/applications/hr/appraisals.html) 
+            *   [New appraisals](http://www.odoo.com/documentation/17.0/applications/hr/appraisals/new_appraisals.html)
+            *   [Goals](http://www.odoo.com/documentation/17.0/applications/hr/appraisals/goals.html)
+            *   [Appraisal analysis](http://www.odoo.com/documentation/17.0/applications/hr/appraisals/appraisal_analysis.html)
+            *   [Skills evolution](http://www.odoo.com/documentation/17.0/applications/hr/appraisals/skills_evolution.html)
+
+        *   [Frontdesk](http://www.odoo.com/documentation/17.0/applications/hr/frontdesk.html) 
+            *   [Visitors](http://www.odoo.com/documentation/17.0/applications/hr/frontdesk/visitors.html)
+
+        *   [Fleet](http://www.odoo.com/documentation/17.0/applications/hr/fleet.html) 
+            *   [Vehicle models](http://www.odoo.com/documentation/17.0/applications/hr/fleet/models.html)
+            *   [New vehicles](http://www.odoo.com/documentation/17.0/applications/hr/fleet/new_vehicle.html)
+            *   [Services](http://www.odoo.com/documentation/17.0/applications/hr/fleet/service.html)
+            *   [Accidents](http://www.odoo.com/documentation/17.0/applications/hr/fleet/accidents.html)
+
+        *   [Payroll](http://www.odoo.com/documentation/17.0/applications/hr/payroll.html) 
+            *   [Contracts](http://www.odoo.com/documentation/17.0/applications/hr/payroll/contracts.html)
+            *   [Work entries](http://www.odoo.com/documentation/17.0/applications/hr/payroll/work_entries.html)
+            *   [Salary attachments](http://www.odoo.com/documentation/17.0/applications/hr/payroll/salary_attachments.html)
+            *   [Payslips](http://www.odoo.com/documentation/17.0/applications/hr/payroll/payslips.html)
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/hr/payroll/reporting.html)
+            *   [Work entry analysis](http://www.odoo.com/documentation/17.0/applications/hr/payroll/work_entry_analysis.html)
+            *   [Salary attachment report](http://www.odoo.com/documentation/17.0/applications/hr/payroll/salary_attachment.html)
+
+        *   [Time Off](http://www.odoo.com/documentation/17.0/applications/hr/time_off.html) 
+            *   [Allocations](http://www.odoo.com/documentation/17.0/applications/hr/time_off/allocations.html)
+            *   [Request time off](http://www.odoo.com/documentation/17.0/applications/hr/time_off/request_time_off.html)
+            *   [My time](http://www.odoo.com/documentation/17.0/applications/hr/time_off/my_time.html)
+            *   [Management](http://www.odoo.com/documentation/17.0/applications/hr/time_off/management.html)
+
+        *   [Recruitment](http://www.odoo.com/documentation/17.0/applications/hr/recruitment.html) 
+            *   [Job positions](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/new_job.html)
+            *   [Recruitment flow](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/recruitment-flow.html)
+            *   [Add new applicants](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/add-new-applicants.html)
+            *   [Schedule interviews](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/schedule_interviews.html)
+            *   [Offer job positions](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/offer_job_positions.html)
+            *   [Refuse applicants](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/refuse_applicant.html)
+            *   [Source analysis reporting](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/source_analysis.html)
+            *   [Recruitment analysis](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/recruitment_analysis.html)
+            *   [Time in stage analysis](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/time_in_stage.html)
+            *   [Team performance reporting](http://www.odoo.com/documentation/17.0/applications/hr/recruitment/team_performance.html)
+
+        *   [Referrals](http://www.odoo.com/documentation/17.0/applications/hr/referrals.html) 
+            *   [Share job positions](http://www.odoo.com/documentation/17.0/applications/hr/referrals/share_jobs.html)
+            *   [Referral points](http://www.odoo.com/documentation/17.0/applications/hr/referrals/points.html)
+            *   [Rewards](http://www.odoo.com/documentation/17.0/applications/hr/referrals/rewards.html)
+            *   [Alerts](http://www.odoo.com/documentation/17.0/applications/hr/referrals/alerts.html)
+            *   [Reporting](http://www.odoo.com/documentation/17.0/applications/hr/referrals/reporting.html)
+
+        *   [Lunch](http://www.odoo.com/documentation/17.0/applications/hr/lunch.html) 
+            *   [Vendors](http://www.odoo.com/documentation/17.0/applications/hr/lunch/vendors.html)
+            *   [Products](http://www.odoo.com/documentation/17.0/applications/hr/lunch/products.html)
+            *   [Orders](http://www.odoo.com/documentation/17.0/applications/hr/lunch/orders.html)
+            *   [Manage user accounts](http://www.odoo.com/documentation/17.0/applications/hr/lunch/user-accounts.html)
+            *   [Lunch management](http://www.odoo.com/documentation/17.0/applications/hr/lunch/management.html)
+
+    *   [Marketing](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Email Marketing](http://www.odoo.com/documentation/17.0/applications/marketing/email_marketing.html) 
+            *   [Mailing lists](http://www.odoo.com/documentation/17.0/applications/marketing/email_marketing/mailing_lists.html)
+            *   [Manage unsubscriptions (blacklist)](http://www.odoo.com/documentation/17.0/applications/marketing/email_marketing/unsubscriptions.html)
+            *   [Lost leads reactivation email](http://www.odoo.com/documentation/17.0/applications/marketing/email_marketing/lost_leads_email.html)
+            *   [Analyze metrics](http://www.odoo.com/documentation/17.0/applications/marketing/email_marketing/analyze_metrics.html)
+
+        *   [Marketing Automation](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation.html) 
+            *   [Audience targeting](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation/target_audience.html)
+            *   [Campaign workflow activities](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation/workflow_activities.html)
+            *   [Testing/running campaigns](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation/testing_running.html)
+            *   [Campaign metrics](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation/understanding_metrics.html)
+            *   [Campaign templates](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Double Opt-in](http://www.odoo.com/documentation/17.0/applications/marketing/marketing_automation/campaign_templates/double_optin.html)
+
+        *   [SMS Marketing](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing.html) 
+            *   [Create SMS messages](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/create_sms.html)
+            *   [SMS analysis](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/sms_analysis.html)
+            *   [SMS campaign settings](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/marketing_campaigns.html)
+            *   [Mailing lists and blacklists](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/mailing_lists_blacklists.html)
+            *   [SMS Pricing and FAQ](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/pricing_and_faq.html)
+            *   [SMS via Twilio](http://www.odoo.com/documentation/17.0/applications/marketing/sms_marketing/twilio.html)
+
+        *   [Events](http://www.odoo.com/documentation/17.0/applications/marketing/events.html) 
+            *   [Create events](http://www.odoo.com/documentation/17.0/applications/marketing/events/create_events.html)
+            *   [Sell event tickets](http://www.odoo.com/documentation/17.0/applications/marketing/events/sell_tickets.html)
+            *   [Talks, proposals, and agenda](http://www.odoo.com/documentation/17.0/applications/marketing/events/track_manage_talks.html)
+            *   [Event templates](http://www.odoo.com/documentation/17.0/applications/marketing/events/event_templates.html)
+            *   [Event booths](http://www.odoo.com/documentation/17.0/applications/marketing/events/event_booths.html)
+            *   [Event tracks](http://www.odoo.com/documentation/17.0/applications/marketing/events/event_tracks.html)
+            *   [Registration Desk](http://www.odoo.com/documentation/17.0/applications/marketing/events/registration_desk.html)
+            *   [Revenues report](http://www.odoo.com/documentation/17.0/applications/marketing/events/revenues_report.html)
+
+        *   [Surveys](http://www.odoo.com/documentation/17.0/applications/marketing/surveys.html) 
+            *   [Create surveys](http://www.odoo.com/documentation/17.0/applications/marketing/surveys/create.html)
+            *   [Scoring surveys](http://www.odoo.com/documentation/17.0/applications/marketing/surveys/scoring.html)
+            *   [Create questions](http://www.odoo.com/documentation/17.0/applications/marketing/surveys/questions.html)
+            *   [Live Session surveys](http://www.odoo.com/documentation/17.0/applications/marketing/surveys/live_session.html)
+            *   [Survey analysis](http://www.odoo.com/documentation/17.0/applications/marketing/surveys/analysis.html)
+
+        *   [Social Marketing](http://www.odoo.com/documentation/17.0/applications/marketing/social_marketing.html) 
+            *   [Social posts](http://www.odoo.com/documentation/17.0/applications/marketing/social_marketing/social_posts.html)
+            *   [Social marketing campaigns](http://www.odoo.com/documentation/17.0/applications/marketing/social_marketing/social_campaigns.html)
+
+    *   [Services](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Project](http://www.odoo.com/documentation/17.0/applications/services/project.html) 
+            *   [Project management](http://www.odoo.com/documentation/17.0/applications/services/project/project_management.html)
+            *   [Project dashboard](http://www.odoo.com/documentation/17.0/applications/services/project/project_dashboard.html)
+            *   [Task management](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Task stages and statuses](http://www.odoo.com/documentation/17.0/applications/services/project/tasks/task_stages_statuses.html)
+                *   [Task creation](http://www.odoo.com/documentation/17.0/applications/services/project/tasks/task_creation.html)
+                *   [Recurring tasks](http://www.odoo.com/documentation/17.0/applications/services/project/tasks/recurring_tasks.html)
+                *   [Sub-tasks](http://www.odoo.com/documentation/17.0/applications/services/project/tasks/sub-tasks.html)
+                *   [Task dependencies](http://www.odoo.com/documentation/17.0/applications/services/project/tasks/task_dependencies.html)
+
+        *   [Timesheets](http://www.odoo.com/documentation/17.0/applications/services/timesheets.html) 
+            *   [Overview](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Create Timesheets upon Time Off Validation](http://www.odoo.com/documentation/17.0/applications/services/timesheets/overview/time_off.html)
+
+        *   [Planning](http://www.odoo.com/documentation/17.0/applications/services/planning.html)
+        *   [Field Service](http://www.odoo.com/documentation/17.0/applications/services/field_service.html) 
+            *   [Creating field service tasks](http://www.odoo.com/documentation/17.0/applications/services/field_service/creating_tasks.html)
+            *   [Product management](http://www.odoo.com/documentation/17.0/applications/services/field_service/product_management.html)
+            *   [Planning an itinerary](http://www.odoo.com/documentation/17.0/applications/services/field_service/planning_itinerary.html)
+            *   [Worksheets](http://www.odoo.com/documentation/17.0/applications/services/field_service/worksheets.html)
+
+        *   [Helpdesk](http://www.odoo.com/documentation/17.0/applications/services/helpdesk.html) 
+            *   [Overview](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Receiving tickets](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/overview/receiving_tickets.html)
+                *   [Help Center](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/overview/help_center.html)
+                *   [Service level agreements (SLA)](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/overview/sla.html)
+                *   [Reporting](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/overview/reports.html)
+                *   [Customer ratings](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/overview/ratings.html)
+
+            *   [Advanced](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [After-Sales services](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/advanced/after_sales.html)
+                *   [Close tickets](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/advanced/close_tickets.html)
+                *   [Track and bill time](http://www.odoo.com/documentation/17.0/applications/services/helpdesk/advanced/track_and_bill.html)
+
+    *   [Productivity](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Documents](http://www.odoo.com/documentation/17.0/applications/productivity/documents.html)
+        *   [Sign](http://www.odoo.com/documentation/17.0/applications/productivity/sign.html)
+        *   [Spreadsheet](http://www.odoo.com/documentation/17.0/applications/productivity/spreadsheet.html) 
+            *   [Link Odoo data](http://www.odoo.com/documentation/17.0/applications/productivity/spreadsheet/insert.html)
+            *   [Functions](http://www.odoo.com/documentation/17.0/applications/productivity/spreadsheet/functions.html)
+            *   [Templates](http://www.odoo.com/documentation/17.0/applications/productivity/spreadsheet/templates.html)
+            *   [Global filters](http://www.odoo.com/documentation/17.0/applications/productivity/spreadsheet/global_filters.html)
+
+        *   [Knowledge](http://www.odoo.com/documentation/17.0/applications/productivity/knowledge.html) 
+            *   [Articles editing](http://www.odoo.com/documentation/17.0/applications/productivity/knowledge/articles_editing.html)
+            *   [Articles management](http://www.odoo.com/documentation/17.0/applications/productivity/knowledge/management.html)
+            *   [Properties](http://www.odoo.com/documentation/17.0/applications/productivity/knowledge/properties.html)
+
+        *   [Calendar](http://www.odoo.com/documentation/17.0/applications/productivity/calendar.html) 
+            *   [Outlook Calendar synchronization](http://www.odoo.com/documentation/17.0/applications/productivity/calendar/outlook.html)
+            *   [Google Calendar synchronization](http://www.odoo.com/documentation/17.0/applications/productivity/calendar/google.html)
+
+        *   [Discuss](http://www.odoo.com/documentation/17.0/applications/productivity/discuss.html) 
+            *   [Use channels for team communication](http://www.odoo.com/documentation/17.0/applications/productivity/discuss/team_communication.html)
+            *   [Configure ICE servers with Twilio](http://www.odoo.com/documentation/17.0/applications/productivity/discuss/ice_servers.html)
+            *   [Chatter](http://www.odoo.com/documentation/17.0/applications/productivity/discuss/chatter.html)
+
+        *   [Data Cleaning](http://www.odoo.com/documentation/17.0/applications/productivity/data_cleaning.html)
+        *   [WhatsApp](http://www.odoo.com/documentation/17.0/applications/productivity/whatsapp.html)
+        *   [VoIP (Voice over Internet Protocol)](http://www.odoo.com/documentation/17.0/applications/productivity/voip.html) 
+            *   [Use VoIP services in Odoo with OnSIP](http://www.odoo.com/documentation/17.0/applications/productivity/voip/onsip.html)
+            *   [Axivox configuration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [VoIP services in Odoo with Axivox](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/axivox_config.html)
+                *   [Manage users in Axivox](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/manage_users.html)
+                *   [Voicemails and audio messages](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/vm_audio_messages.html)
+                *   [Dynamic caller ID](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/dynamic_caller_id.html)
+                *   [Conference calls](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/conference_calls.html)
+                *   [Dial plan basics](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/dial_plan_basics.html)
+                *   [Advanced dial plans](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/dial_plan_advanced.html)
+                *   [Call queues](http://www.odoo.com/documentation/17.0/applications/productivity/voip/axivox/call_queues.html)
+
+            *   [VoIP widget](http://www.odoo.com/documentation/17.0/applications/productivity/voip/voip_widget.html)
+            *   [Devices and integrations](http://www.odoo.com/documentation/17.0/applications/productivity/voip/devices_integrations.html)
+            *   [Make, receive, transfer, and forward calls](http://www.odoo.com/documentation/17.0/applications/productivity/voip/transfer_forward.html)
+
+        *   [To-do](http://www.odoo.com/documentation/17.0/applications/productivity/to_do.html)
+
+    *   [Studio](http://www.odoo.com/documentation/17.0/applications/studio.html) 
+        *   [Fields and widgets](http://www.odoo.com/documentation/17.0/applications/studio/fields.html)
+        *   [Views](http://www.odoo.com/documentation/17.0/applications/studio/views.html)
+        *   [Models, modules, and apps](http://www.odoo.com/documentation/17.0/applications/studio/models_modules_apps.html)
+        *   [Automation rules](http://www.odoo.com/documentation/17.0/applications/studio/automated_actions.html)
+        *   [PDF reports](http://www.odoo.com/documentation/17.0/applications/studio/pdf_reports.html)
+        *   [Approval rules](http://www.odoo.com/documentation/17.0/applications/studio/approval_rules.html)
+
+    *   [General settings](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+        *   [Apps and modules](http://www.odoo.com/documentation/17.0/applications/general/apps_modules.html)
+        *   [Users](http://www.odoo.com/documentation/17.0/applications/general/users.html) 
+            *   [Change languages](http://www.odoo.com/documentation/17.0/applications/general/users/language.html)
+            *   [Two-factor authentication](http://www.odoo.com/documentation/17.0/applications/general/users/2fa.html)
+            *   [Access rights](http://www.odoo.com/documentation/17.0/applications/general/users/access_rights.html)
+            *   [Portal access](http://www.odoo.com/documentation/17.0/applications/general/users/portal.html)
+            *   [Facebook sign-in authentication](http://www.odoo.com/documentation/17.0/applications/general/users/facebook.html)
+            *   [Google Sign-In Authentication](http://www.odoo.com/documentation/17.0/applications/general/users/google.html)
+            *   [Microsoft Azure sign-in authentication](http://www.odoo.com/documentation/17.0/applications/general/users/azure.html)
+            *   [LDAP authentication](http://www.odoo.com/documentation/17.0/applications/general/users/ldap.html)
+
+        *   [Companies](http://www.odoo.com/documentation/17.0/applications/general/companies.html) 
+            *   [Multi-company](http://www.odoo.com/documentation/17.0/applications/general/companies/multi_company.html)
+            *   [Digest emails](http://www.odoo.com/documentation/17.0/applications/general/companies/digest_emails.html)
+            *   [Email templates](http://www.odoo.com/documentation/17.0/applications/general/companies/email_template.html)
+
+        *   [Internet of Things (IoT)](http://www.odoo.com/documentation/17.0/applications/general/iot.html) 
+            *   [IoT box](http://www.odoo.com/documentation/17.0/applications/general/iot/iot_box.html)
+            *   [Windows virtual IoT](http://www.odoo.com/documentation/17.0/applications/general/iot/windows_iot.html)
+            *   [IoT system connection to Odoo](http://www.odoo.com/documentation/17.0/applications/general/iot/connect.html)
+            *   [Advanced](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [HTTPS certificate (IoT)](http://www.odoo.com/documentation/17.0/applications/general/iot/iot_advanced/https_certificate_iot.html)
+                *   [IoT system updates](http://www.odoo.com/documentation/17.0/applications/general/iot/iot_advanced/updating_iot.html)
+                *   [IoT box SSH connection](http://www.odoo.com/documentation/17.0/applications/general/iot/iot_advanced/ssh_connect.html)
+
+            *   [Devices](http://www.odoo.com/documentation/17.0/applications/general/iot/devices.html) 
+                *   [Connect a screen](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/screen.html)
+                *   [Connect a measurement tool](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/measurement_tool.html)
+                *   [Connect a camera](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/camera.html)
+                *   [Connect a footswitch](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/footswitch.html)
+                *   [Connect a printer](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/printer.html)
+                *   [Connect a scale](http://www.odoo.com/documentation/17.0/applications/general/iot/devices/scale.html)
+
+        *   [Communication in Odoo by email](http://www.odoo.com/documentation/17.0/applications/general/email_communication.html) 
+            *   [Manage inbound messages](http://www.odoo.com/documentation/17.0/applications/general/email_communication/email_servers_inbound.html)
+            *   [Manage outbound messages](http://www.odoo.com/documentation/17.0/applications/general/email_communication/email_servers_outbound.html)
+            *   [Configure DNS records to send emails in Odoo](http://www.odoo.com/documentation/17.0/applications/general/email_communication/email_domain.html)
+            *   [Connect Microsoft Outlook 365 to Odoo using Azure OAuth](http://www.odoo.com/documentation/17.0/applications/general/email_communication/azure_oauth.html)
+            *   [Connect Gmail to Odoo using Google OAuth](http://www.odoo.com/documentation/17.0/applications/general/email_communication/google_oauth.html)
+            *   [Mailjet API](http://www.odoo.com/documentation/17.0/applications/general/email_communication/mailjet_api.html)
+            *   [Common emailing issues and solutions](http://www.odoo.com/documentation/17.0/applications/general/email_communication/faq.html)
+
+        *   [Integrations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [Mail Plugins](http://www.odoo.com/documentation/17.0/applications/general/integrations/mail_plugins.html) 
+                *   [Outlook Plugin](http://www.odoo.com/documentation/17.0/applications/general/integrations/mail_plugins/outlook.html)
+                *   [Gmail Plugin](http://www.odoo.com/documentation/17.0/applications/general/integrations/mail_plugins/gmail.html)
+
+            *   [Unsplash](http://www.odoo.com/documentation/17.0/applications/general/integrations/unsplash.html)
+            *   [Geolocation](http://www.odoo.com/documentation/17.0/applications/general/integrations/geolocation.html)
+            *   [Google Translate](http://www.odoo.com/documentation/17.0/applications/general/integrations/google_translate.html)
+
+        *   [Developer mode (debug mode)](http://www.odoo.com/documentation/17.0/applications/general/developer_mode.html)
+
+*   [Database management](http://www.odoo.com/documentation/17.0/administration.html) 
+    *   [Hosting](http://www.odoo.com/documentation/17.0/administration/hosting.html)
+    *   [Odoo Online](http://www.odoo.com/documentation/17.0/administration/odoo_online.html)
+    *   [Odoo.sh](http://www.odoo.com/documentation/17.0/administration/odoo_sh.html) 
+        *   [Getting started](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started.html) 
+            *   [Create a project](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started/create.html)
+            *   [Branches](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started/branches.html)
+            *   [Builds](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started/builds.html)
+            *   [Settings](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started/settings.html)
+            *   [Online editor](http://www.odoo.com/documentation/17.0/administration/odoo_sh/getting_started/online_editor.html)
+
+        *   [Your first module](http://www.odoo.com/documentation/17.0/administration/odoo_sh/first_module.html)
+        *   [Advanced](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [Containers](http://www.odoo.com/documentation/17.0/administration/odoo_sh/advanced/containers.html)
+            *   [Submodules](http://www.odoo.com/documentation/17.0/administration/odoo_sh/advanced/submodules.html)
+            *   [Frequent Technical Questions](http://www.odoo.com/documentation/17.0/administration/odoo_sh/advanced/frequent_technical_questions.html)
+
+    *   [On-premise](http://www.odoo.com/documentation/17.0/administration/on_premise.html) 
+        *   [Packaged installers](http://www.odoo.com/documentation/17.0/administration/on_premise/packages.html)
+        *   [Source install](http://www.odoo.com/documentation/17.0/administration/on_premise/source.html)
+        *   [Bugfix updates](http://www.odoo.com/documentation/17.0/administration/on_premise/update.html)
+        *   [System configuration](http://www.odoo.com/documentation/17.0/administration/on_premise/deploy.html)
+        *   [Email gateway](http://www.odoo.com/documentation/17.0/administration/on_premise/email_gateway.html)
+        *   [Geo IP](http://www.odoo.com/documentation/17.0/administration/on_premise/geo_ip.html)
+        *   [Switch from Community to Enterprise](http://www.odoo.com/documentation/17.0/administration/on_premise/community_to_enterprise.html)
+
+    *   [Upgrade](http://www.odoo.com/documentation/17.0/administration/upgrade.html)
+    *   [Neutralized database](http://www.odoo.com/documentation/17.0/administration/neutralized_database.html)
+    *   [Standard and extended support](http://www.odoo.com/documentation/17.0/administration/standard_extended_support.html)
+    *   [Odoo mobile apps](http://www.odoo.com/documentation/17.0/administration/mobile.html)
+    *   [Odoo.com account](http://www.odoo.com/documentation/17.0/administration/odoo_accounts.html)
+
+*   [Developer](http://www.odoo.com/documentation/17.0/developer.html) 
+    *   [Tutorials](http://www.odoo.com/documentation/17.0/developer/tutorials.html) 
+        *   [Setup guide](http://www.odoo.com/documentation/17.0/developer/tutorials/setup_guide.html)
+        *   [Server framework 101](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101.html) 
+            *   [Chapter 1: Architecture Overview](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/01_architecture.html)
+            *   [Chapter 2: A New Application](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/02_newapp.html)
+            *   [Chapter 3: Models And Basic Fields](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/03_basicmodel.html)
+            *   [Chapter 4: Security - A Brief Introduction](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/04_securityintro.html)
+            *   [Chapter 5: Finally, Some UI To Play With](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/05_firstui.html)
+            *   [Chapter 6: Basic Views](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/06_basicviews.html)
+            *   [Chapter 7: Relations Between Models](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/07_relations.html)
+            *   [Chapter 8: Computed Fields And Onchanges](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/08_compute_onchange.html)
+            *   [Chapter 9: Ready For Some Action?](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/09_actions.html)
+            *   [Chapter 10: Constraints](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/10_constraints.html)
+            *   [Chapter 11: Add The Sprinkles](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/11_sprinkles.html)
+            *   [Chapter 12: Inheritance](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/12_inheritance.html)
+            *   [Chapter 13: Interact With Other Modules](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/13_other_module.html)
+            *   [Chapter 14: A Brief History Of QWeb](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/14_qwebintro.html)
+            *   [Chapter 15: The final word](http://www.odoo.com/documentation/17.0/developer/tutorials/server_framework_101/15_final_word.html)
+
+        *   [Discover the web framework](http://www.odoo.com/documentation/17.0/developer/tutorials/discover_js_framework.html) 
+            *   [Chapter 1: Owl components](http://www.odoo.com/documentation/17.0/developer/tutorials/discover_js_framework/01_owl_components.html)
+            *   [Chapter 2: Build a dashboard](http://www.odoo.com/documentation/17.0/developer/tutorials/discover_js_framework/02_build_a_dashboard.html)
+
+        *   [Master the web framework](http://www.odoo.com/documentation/17.0/developer/tutorials/master_odoo_web_framework.html) 
+            *   [Chapter 1: Build a Clicker game](http://www.odoo.com/documentation/17.0/developer/tutorials/master_odoo_web_framework/01_build_clicker_game.html)
+            *   [Chapter 2: Create a Gallery View](http://www.odoo.com/documentation/17.0/developer/tutorials/master_odoo_web_framework/02_create_gallery_view.html)
+            *   [Chapter 3: Customize a kanban view](http://www.odoo.com/documentation/17.0/developer/tutorials/master_odoo_web_framework/03_customize_kanban_view.html)
+
+        *   [Define module data](http://www.odoo.com/documentation/17.0/developer/tutorials/define_module_data.html)
+        *   [Restrict access to data](http://www.odoo.com/documentation/17.0/developer/tutorials/restrict_data_access.html)
+        *   [Safeguard your code with unit tests](http://www.odoo.com/documentation/17.0/developer/tutorials/unit_tests.html)
+        *   [Write importable modules](http://www.odoo.com/documentation/17.0/developer/tutorials/importable_modules.html)
+        *   [Reuse code with mixins](http://www.odoo.com/documentation/17.0/developer/tutorials/mixins.html)
+        *   [Build PDF Reports](http://www.odoo.com/documentation/17.0/developer/tutorials/pdf_reports.html)
+        *   [Build a website theme](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme.html) 
+            *   [Chapter 1 - Theming](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/01_theming.html)
+            *   [Chapter 2 - Build your website](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/02_build_website.html)
+            *   [Chapter 3 - Customisation, Part I](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/03_customisation_part1.html)
+            *   [Chapter 4 - Customisation, Part II](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/04_customisation_part2.html)
+            *   [Chapter 5 - Dynamic templates](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/05_dynamic_templates.html)
+            *   [Chapter 6 - Going live](http://www.odoo.com/documentation/17.0/developer/tutorials/website_theme/06_going_live.html)
+
+    *   [How-to guides](http://www.odoo.com/documentation/17.0/developer/howtos.html) 
+        *   [Write lean easy-to-maintain CSS](http://www.odoo.com/documentation/17.0/developer/howtos/scss_tips.html)
+        *   [Customize a field](http://www.odoo.com/documentation/17.0/developer/howtos/javascript_field.html)
+        *   [Customize a view type](http://www.odoo.com/documentation/17.0/developer/howtos/javascript_view.html)
+        *   [Create a client action](http://www.odoo.com/documentation/17.0/developer/howtos/javascript_client_action.html)
+        *   [Create a standalone Owl application](http://www.odoo.com/documentation/17.0/developer/howtos/standalone_owl_application.html)
+        *   [Use Owl components on the portal and website](http://www.odoo.com/documentation/17.0/developer/howtos/frontend_owl_components.html)
+        *   [Website themes](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes.html) 
+            *   [Setup](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/setup.html)
+            *   [Theming](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/theming.html)
+            *   [Layout](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/layout.html)
+            *   [Navigation](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/navigation.html)
+            *   [Pages](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/pages.html)
+            *   [Media](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/media.html)
+            *   [Building blocks](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/building_blocks.html)
+            *   [Shapes](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/shapes.html)
+            *   [Gradients](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/gradients.html)
+            *   [Animations](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/animations.html)
+            *   [Forms](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/forms.html)
+            *   [Translations](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/translations.html)
+            *   [Going live](http://www.odoo.com/documentation/17.0/developer/howtos/website_themes/going_live.html)
+
+        *   [Web Services](http://www.odoo.com/documentation/17.0/developer/howtos/web_services.html)
+        *   [Multi-company Guidelines](http://www.odoo.com/documentation/17.0/developer/howtos/company.html)
+        *   [Create customized reports](http://www.odoo.com/documentation/17.0/developer/howtos/create_reports.html)
+        *   [Accounting localization](http://www.odoo.com/documentation/17.0/developer/howtos/accounting_localization.html)
+        *   [Translating Modules](http://www.odoo.com/documentation/17.0/developer/howtos/translations.html)
+        *   [Connect with a device](http://www.odoo.com/documentation/17.0/developer/howtos/connect_device.html)
+        *   [Upgrade a customized database](http://www.odoo.com/documentation/17.0/developer/howtos/upgrade_custom_db.html)
+
+    *   [Reference](http://www.odoo.com/documentation/17.0/developer/reference.html) 
+        *   [Server framework](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [ORM API](http://www.odoo.com/documentation/17.0/developer/reference/backend/orm.html) 
+                *   [Changelog](http://www.odoo.com/documentation/17.0/developer/reference/backend/orm/changelog.html)
+
+            *   [Data Files](http://www.odoo.com/documentation/17.0/developer/reference/backend/data.html)
+            *   [Actions](http://www.odoo.com/documentation/17.0/developer/reference/backend/actions.html)
+            *   [QWeb Reports](http://www.odoo.com/documentation/17.0/developer/reference/backend/reports.html)
+            *   [Module Manifests](http://www.odoo.com/documentation/17.0/developer/reference/backend/module.html)
+            *   [Security in Odoo](http://www.odoo.com/documentation/17.0/developer/reference/backend/security.html)
+            *   [Performance](http://www.odoo.com/documentation/17.0/developer/reference/backend/performance.html)
+            *   [Testing Odoo](http://www.odoo.com/documentation/17.0/developer/reference/backend/testing.html)
+            *   [Web Controllers](http://www.odoo.com/documentation/17.0/developer/reference/backend/http.html)
+            *   [Mixins and Useful Classes](http://www.odoo.com/documentation/17.0/developer/reference/backend/mixins.html)
+
+        *   [Web framework](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [Framework Overview](http://www.odoo.com/documentation/17.0/developer/reference/frontend/framework_overview.html)
+            *   [Assets](http://www.odoo.com/documentation/17.0/developer/reference/frontend/assets.html)
+            *   [Javascript Modules](http://www.odoo.com/documentation/17.0/developer/reference/frontend/javascript_modules.html)
+            *   [Owl components](http://www.odoo.com/documentation/17.0/developer/reference/frontend/owl_components.html)
+            *   [Registries](http://www.odoo.com/documentation/17.0/developer/reference/frontend/registries.html)
+            *   [Services](http://www.odoo.com/documentation/17.0/developer/reference/frontend/services.html)
+            *   [Hooks](http://www.odoo.com/documentation/17.0/developer/reference/frontend/hooks.html)
+            *   [Patching code](http://www.odoo.com/documentation/17.0/developer/reference/frontend/patching_code.html)
+            *   [Error handling](http://www.odoo.com/documentation/17.0/developer/reference/frontend/error_handling.html)
+            *   [Javascript Reference](http://www.odoo.com/documentation/17.0/developer/reference/frontend/javascript_reference.html)
+            *   [Mobile JavaScript](http://www.odoo.com/documentation/17.0/developer/reference/frontend/mobile.html)
+            *   [QWeb Templates](http://www.odoo.com/documentation/17.0/developer/reference/frontend/qweb.html)
+            *   [Odoo Editor](http://www.odoo.com/documentation/17.0/developer/reference/frontend/odoo_editor.html)
+
+        *   [User interface](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [View records](http://www.odoo.com/documentation/17.0/developer/reference/user_interface/view_records.html)
+            *   [View architectures](http://www.odoo.com/documentation/17.0/developer/reference/user_interface/view_architectures.html)
+            *   [SCSS inheritance](http://www.odoo.com/documentation/17.0/developer/reference/user_interface/scss_inheritance.html)
+            *   [UI icons](http://www.odoo.com/documentation/17.0/developer/reference/user_interface/icons.html)
+
+        *   [Standard modules](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [Accounting](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Account Tag](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_account_tag.html)
+                *   [Account](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_account.html)
+                *   [Fiscal Position](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_fiscal_position.html)
+                *   [Account Group](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_group.html)
+                *   [Report](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_report.html)
+                *   [Report Line](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_report_line.html)
+                *   [Taxes](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_tax.html)
+                *   [Tax Repartitions](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/account/account_tax_repartition.html)
+
+            *   [Payment](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+                *   [Payment Method](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/payment/payment_method.html)
+                *   [Payment Provider](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/payment/payment_provider.html)
+                *   [Payment Token](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/payment/payment_token.html)
+                *   [Payment Transaction](http://www.odoo.com/documentation/17.0/developer/reference/standard_modules/payment/payment_transaction.html)
+
+        *   [Command-line interface (CLI)](http://www.odoo.com/documentation/17.0/developer/reference/cli.html)
+        *   [Upgrades](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+            *   [Upgrade scripts](http://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_scripts.html)
+            *   [Upgrade utils](http://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_utils.html)
+
+        *   [External API](http://www.odoo.com/documentation/17.0/developer/reference/external_api.html)
+        *   [Extract API](http://www.odoo.com/documentation/17.0/developer/reference/extract_api.html)
+
+*   [Contributing](http://www.odoo.com/documentation/17.0/contributing.html) 
+    *   [Development](http://www.odoo.com/documentation/17.0/contributing/development.html) 
+        *   [Coding guidelines](http://www.odoo.com/documentation/17.0/contributing/development/coding_guidelines.html)
+        *   [Git guidelines](http://www.odoo.com/documentation/17.0/contributing/development/git_guidelines.html)
+
+    *   [Documentation](http://www.odoo.com/documentation/17.0/contributing/documentation.html) 
+        *   [Content guidelines](http://www.odoo.com/documentation/17.0/contributing/documentation/content_guidelines.html)
+        *   [RST guidelines and cheat sheet](http://www.odoo.com/documentation/17.0/contributing/documentation/rst_guidelines.html)
+
+[![Image 75: Odoo](http://www.odoo.com/documentation/17.0/_static/img/logos/odoo_logo.svg)docs](http://www.odoo.com/documentation/17.0/index.html)
+
+[Try Odoo for FREE](https://odoo.com/trial)
+
+ EN 
+*   [DE](https://www.odoo.com/documentation/17.0/de/applications/finance/fiscal_localizations/india.html)
+*   [ES](https://www.odoo.com/documentation/17.0/es/applications/finance/fiscal_localizations/india.html)
+*   [ES (LATAM)](https://www.odoo.com/documentation/17.0/es_419/applications/finance/fiscal_localizations/india.html)
+*   [FR](https://www.odoo.com/documentation/17.0/fr/applications/finance/fiscal_localizations/india.html)
+*   [ID](https://www.odoo.com/documentation/17.0/id/applications/finance/fiscal_localizations/india.html)
+*   [IT](https://www.odoo.com/documentation/17.0/it/applications/finance/fiscal_localizations/india.html)
+*   [JA](https://www.odoo.com/documentation/17.0/ja/applications/finance/fiscal_localizations/india.html)
+*   [KR](https://www.odoo.com/documentation/17.0/ko/applications/finance/fiscal_localizations/india.html)
+*   [NL](https://www.odoo.com/documentation/17.0/nl/applications/finance/fiscal_localizations/india.html)
+*   [PT](https://www.odoo.com/documentation/17.0/pt_BR/applications/finance/fiscal_localizations/india.html)
+*   [RO](https://www.odoo.com/documentation/17.0/ro/applications/finance/fiscal_localizations/india.html)
+*   [SV](https://www.odoo.com/documentation/17.0/sv/applications/finance/fiscal_localizations/india.html)
+*   [TH](https://www.odoo.com/documentation/17.0/th/applications/finance/fiscal_localizations/india.html)
+*   [VI](https://www.odoo.com/documentation/17.0/vi/applications/finance/fiscal_localizations/india.html)
+*   [ZH (CN)](https://www.odoo.com/documentation/17.0/zh_CN/applications/finance/fiscal_localizations/india.html)
+*   [ZH (TW)](https://www.odoo.com/documentation/17.0/zh_TW/applications/finance/fiscal_localizations/india.html)
+
+ Odoo 17 
+*   [Master](https://www.odoo.com/documentation/master/applications/finance/fiscal_localizations/india.html)
+*   [Odoo 19](https://www.odoo.com/documentation/19.0/applications/finance/fiscal_localizations/india.html)
+*   [Odoo 18](https://www.odoo.com/documentation/18.0/applications/finance/fiscal_localizations/india.html)
+
+### Navigation
+
+*   [index](http://www.odoo.com/documentation/17.0/genindex.html "General Index")
+*   [modules](http://www.odoo.com/documentation/17.0/py-modindex.html "Python Module Index") |
+*   [next](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/indonesia.html "Indonesia") |
+*   [previous](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/hong_kong.html "Hong Kong") |
+*   [Odoo 17.0 documentation](http://www.odoo.com/documentation/17.0/index.html) »
+*   [User Docs](http://www.odoo.com/documentation/17.0/applications.html) »
+*   [Finance](http://www.odoo.com/documentation/17.0/applications/finance.html) »
+*   [Fiscal localizations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations.html) »
+*   [India](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html)
+
+India[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india "Permalink to this headline")
+========================================================================================================================================
+
+Installation[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#installation "Permalink to this headline")
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+[Install](http://www.odoo.com/documentation/17.0/applications/general/apps_modules.html#general-install) the following modules to get all the features of the Indian localization:
+
+| Name | Technical name | Description |
+| --- | --- | --- |
+| Indian - Accounting | `l10n_in` | Default [fiscal localization package](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations.html#fiscal-localizations-packages) |
+| Indian E-invoicing | `l10n_in_edi` | [Indian e-invoicing integration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-invoicing) |
+| Indian E-waybill | `l10n_in_edi_ewaybill` | [Indian E-way bill integration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill) |
+| Indian E-waybill Stock | `l10n_in_ewaybill_stock` | [E-waybill creation from the Inventory app](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-stock) |
+| Indian - GSTR India eFiling | `l10n_in_reports_gstr` | [Indian GST Return filing](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr) |
+| Indian - Accounting Reports | `l10n_in_reports` | [Indian tax reports](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-reports) |
+![Image 76: Indian localization modules](http://www.odoo.com/documentation/17.0/_images/india-modules.png)
+
+![Image 77: Indian localization modules](https://www.odoo.com/documentation/17.0/_images/india-modules.png)
+
+e-Invoice system[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-system "Permalink to this headline")
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Odoo is compliant with the **Indian Goods and Services Tax (GST) e-Invoice system** requirements.
+
+### Setup[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#setup "Permalink to this headline")
+
+#### NIC e-Invoice registration[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#nic-e-invoice-registration "Permalink to this headline")
+
+You must register on the NIC e-Invoice portal to get your **API credentials**. You need these credentials to [configure your Odoo Accounting app](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-invoicing-configuration).
+
+1.   Log in to the [NIC e-Invoice portal](https://einvoice1.gst.gov.in/) by clicking Login and entering your Username and Password;
+
+Note
+
+If you are already registered on the NIC portal, you can use the same login credentials. ![Image 78: Register Odoo ERP system on e-invoice web portal](http://www.odoo.com/documentation/17.0/_images/e-invoice-system-login.png) ![Image 79: Register Odoo ERP system on e-invoice web portal](https://www.odoo.com/documentation/17.0/_images/e-invoice-system-login.png)     
+2.   From the dashboard, go to API Registration ‣ User Credentials ‣ Create API User;
+
+3.   After that, you should receive an OTP code on your registered mobile number. Enter the OTP code and click Verify OTP;
+
+4.   Select Through GSP for the API interface, set Tera Software Limited as GSP, and type in a Username and Password for your API. Once it is done, click Submit.
+
+![Image 80: Submit API specific Username and Password](http://www.odoo.com/documentation/17.0/_images/submit-api-registration-details.png) ![Image 81: Submit API specific Username and Password](https://www.odoo.com/documentation/17.0/_images/submit-api-registration-details.png)     
+
+#### Configuration in Odoo[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#configuration-in-odoo "Permalink to this headline")
+
+To enable the e-Invoice service in Odoo, go to Accounting ‣ Configuration ‣ Settings ‣ Indian Electronic Invoicing, and enter the Username and Password previously set for the API.
+
+![Image 82: Setup e-invoice service](http://www.odoo.com/documentation/17.0/_images/e-invoice-setup.png)
+
+![Image 83: Setup e-invoice service](https://www.odoo.com/documentation/17.0/_images/e-invoice-setup.png)
+
+##### Journals[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#journals "Permalink to this headline")
+
+To automatically send e-Invoices to the NIC e-Invoice portal, you must first configure your _sales_ journal by going to Accounting ‣ Configuration ‣ Journals, opening your _sales_ journal, and in the Advanced Settings tab, under Electronic Data Interchange, enable E-Invoice (IN) and save.
+
+### Workflow[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#workflow "Permalink to this headline")
+
+#### Invoice validation[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-validation "Permalink to this headline")
+
+Once an invoice is validated, a confirmation message is displayed at the top. Odoo automatically uploads the JSON-signed file of validated invoices to the NIC e-Invoice portal after some time. If you want to process the invoice immediately, click Process now.
+
+![Image 84: Indian e-invoicing confirmation message](http://www.odoo.com/documentation/17.0/_images/e-invoice-process.png)
+
+Note
+
+*   You can find the JSON-signed file in the attached files in the chatter.
+
+*   You can check the document’s EDI status under the EDI Document tab or the Electronic invoicing field of the invoice.
+
+![Image 85: Indian e-invoicing confirmation message](https://www.odoo.com/documentation/17.0/_images/e-invoice-process.png)
+
+#### Invoice PDF report[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-pdf-report "Permalink to this headline")
+
+Once an invoice is validated and submitted, the invoice PDF report can be printed. The report includes the IRN, Ack. No (acknowledgment number) and Ack. Date (acknowledgment date), and QR code. These certify that the invoice is a valid fiscal document.
+
+![Image 86: IRN and QR code](http://www.odoo.com/documentation/17.0/_images/invoice-report.png)
+
+![Image 87: IRN and QR code](https://www.odoo.com/documentation/17.0/_images/invoice-report.png)
+
+#### e-Invoice cancellation[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-cancellation "Permalink to this headline")
+
+If you want to cancel an e-Invoice, go to the Other info tab of the invoice and fill out the Cancel reason and Cancel remarks fields. Then, click Request EDI cancellation. The status of the Electronic invoicing field changes to To Cancel.
+
+Important
+
+Doing so cancels both the [e-Invoice](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-invoicing) and the [E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill).
+
+![Image 88: cancel reason and remarks](http://www.odoo.com/documentation/17.0/_images/e-invoice-cancellation.png)
+
+Note
+
+*   If you want to abort the cancellation before processing the invoice, then click Call Off EDI Cancellation.
+
+*   Once you request to cancel the e-Invoice, Odoo automatically submits the JSON-signed file to the NIC e-Invoice portal. You can click Process now if you want to process the invoice immediately.
+
+![Image 89: cancel reason and remarks](https://www.odoo.com/documentation/17.0/_images/e-invoice-cancellation.png)
+
+#### GST e-Invoice verification[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gst-e-invoice-verification "Permalink to this headline")
+
+After submitting an e-Invoice, you can verify if the invoice is signed from the GST e-Invoice system website itself.
+
+1.   Download the JSON file from the attached files. It can be found in the chatter of the related invoice;
+
+2.   Open the [NIC e-Invoice portal](https://einvoice1.gst.gov.in/) and go to Search ‣ Verify Signed Invoice;
+
+3.   Select the JSON file and submit it;
+
+![Image 90: select the JSON file for verify invoice](http://www.odoo.com/documentation/17.0/_images/verify-invoice.png)
+If the file is signed, a confirmation message is displayed.
+
+![Image 91: verified e-invoice](http://www.odoo.com/documentation/17.0/_images/signed-invoice.png) ![Image 92: select the JSON file for verify invoice](https://www.odoo.com/documentation/17.0/_images/verify-invoice.png)      ![Image 93: verified e-invoice](https://www.odoo.com/documentation/17.0/_images/signed-invoice.png)     
+
+E-Way bill[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill "Permalink to this headline")
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Setup[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-setup "Permalink to this headline")
+
+Odoo is compliant with the **Indian Goods and Services Tax (GST) E-waybill system** requirements.
+
+#### API registration on NIC E-Way bill[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#api-registration-on-nic-e-way-bill "Permalink to this headline")
+
+You must register on the NIC E-Way bill portal to create your **API credentials**. You need these credentials to [configure your Odoo Accounting app](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-configuration).
+
+1.   Log in to the [NIC E-Way bill portal](https://ewaybillgst.gov.in/) by clicking Login and entering your Username and Password;
+
+2.   From your dashboard, go to Registration ‣ For GSP;
+
+3.   Click Send OTP. Once you have received the code on your registered mobile number, enter it and click Verify OTP;
+
+4.   Check if Tera Software Limited is already on the registered GSP/ERP list. If so, use the username and password used to log in to the NIC portal. Otherwise, follow the next steps;
+
+![Image 94: E-Way bill list of registered GSP/ERP](http://www.odoo.com/documentation/17.0/_images/e-waybill-gsp-list.png) ![Image 95: E-Way bill list of registered GSP/ERP](https://www.odoo.com/documentation/17.0/_images/e-waybill-gsp-list.png)     
+5.   Select Add/New, select Tera Software Limited as your GSP Name, create a Username and a Password for your API, and click Add.
+
+![Image 96: Submit GSP API registration details](http://www.odoo.com/documentation/17.0/_images/e-waybill-registration-details.png) ![Image 97: Submit GSP API registration details](https://www.odoo.com/documentation/17.0/_images/e-waybill-registration-details.png)     
+
+#### Configuration in Odoo[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-configuration "Permalink to this headline")
+
+To set up the E-Way bill service, go to Accounting ‣ Configuration ‣ Settings ‣ Indian Electronic WayBill ‣ Setup E-Way bill, and enter your Username and Password.
+
+![Image 98: E-way bill setup odoo](http://www.odoo.com/documentation/17.0/_images/e-waybill-configuration.png)
+
+![Image 99: E-way bill setup odoo](https://www.odoo.com/documentation/17.0/_images/e-waybill-configuration.png)
+
+### Workflow[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-workflow "Permalink to this headline")
+
+#### Send an E-Way bill[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-an-e-way-bill "Permalink to this headline")
+
+To send an E-Way bill, confirm the customer invoice/vendor bill and click Send E-Way bill.
+
+![Image 100: Send E-waybill button on invoices](http://www.odoo.com/documentation/17.0/_images/e-waybill-send-button.png)
+
+![Image 101: Send E-waybill button on invoices](https://www.odoo.com/documentation/17.0/_images/e-waybill-send-button.png)
+
+#### Invoice validation[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-invoice-validation-e-way "Permalink to this headline")
+
+Once an invoice/bill has been issued and sent via Send E-Way bill, a confirmation message is displayed.
+
+![Image 102: Indian e-Way bill confirmation message](http://www.odoo.com/documentation/17.0/_images/e-waybill-process.png)
+
+Note
+
+*   You can find the JSON-signed file in the attached files in the chatter.
+
+*   Odoo automatically uploads the JSON-signed file to the government portal after some time. Click Process now if you want to process the invoice/bill immediately.
+
+![Image 103: Indian e-Way bill confirmation message](https://www.odoo.com/documentation/17.0/_images/e-waybill-process.png)
+
+#### Invoice PDF report[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#id6 "Permalink to this headline")
+
+You can print the invoice PDF report once you have submitted the E-Way bill. The report includes the **E-Way bill number** and the **E-Way bill validity date**.
+
+![Image 104: E-way bill acknowledgment number and date](http://www.odoo.com/documentation/17.0/_images/e-waybill-invoice-report.png)
+
+![Image 105: E-way bill acknowledgment number and date](https://www.odoo.com/documentation/17.0/_images/e-waybill-invoice-report.png)
+
+#### E-Way bill cancellation[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill-cancellation "Permalink to this headline")
+
+If you want to cancel an E-Way bill, go to the E-Way bill tab of the related invoice/bill and fill out the Cancel reason and Cancel remarks fields. Then, click Request EDI Cancellation.
+
+Important
+
+Doing so cancels both the [e-Invoice](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-invoicing) (if applicable) and the [E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill).
+
+![Image 106: Cancel reason and remarks](http://www.odoo.com/documentation/17.0/_images/e-waybill-cancellation.png)
+
+Note
+
+*   If you want to abort the cancellation before processing the invoice, click Call Off EDI Cancellation.
+
+*   Once you request to cancel the E-Way bill, Odoo automatically submits the JSON-signed file to the government portal. You can click Process Now if you want to process the invoice immediately.
+
+![Image 107: Cancel reason and remarks](https://www.odoo.com/documentation/17.0/_images/e-waybill-cancellation.png)
+
+### E-waybill creation from receipts and delivery orders[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-waybill-creation-from-receipts-and-delivery-orders "Permalink to this headline")
+
+Note
+
+Make sure the **E-Way bill Stock** module is [installed](http://www.odoo.com/documentation/17.0/applications/general/apps_modules.html#general-install) and the [E-Way bill setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-setup) is complete.
+
+To create E-Way bills from [receipts and deliveries](http://www.odoo.com/documentation/17.0/applications/inventory_and_mrp/inventory/shipping_receiving/daily_operations.html) in the Inventory app, follow these steps:
+
+1.   Go to Inventory ‣ Operations ‣ Deliveries or Inventory ‣ Operations ‣ Receipts and select an existing delivery order/receipt or create a new one.
+
+2.   Click Create E-waybill/Challan.
+
+Note
+
+To create an E-way bill:
+
+    *   A delivery order must be in the Done state (i.e., validated)
+
+    *   A receipt must have the Ready or Done state.
+
+3.   Click Generate e-Waybill to validate the E-Way bill and send it to the NIC E-Way bill portal.
+
+Tip
+
+To use the E-Way bill as a challan for goods deliveries without sending it to the NIC E-Waybill portal, click Use as Challan. 
+
+To print the E-waybill or the challan, click the (gear) icon and select Ewaybill / Delivery Challan.
+
+Indian GST Return filing[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-return-filing "Permalink to this headline")
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+### Enable API access[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#enable-api-access "Permalink to this headline")
+
+To file GST Returns in Odoo, you must first enable API access on the GST portal.
+
+1.   Log into the [GST portal](https://services.gst.gov.in/services/login) by entering your Username and Password, and go to My Profile on your **profile menu**;
+
+![Image 108: Click On the My Profile from profile](http://www.odoo.com/documentation/17.0/_images/gst-portal-my-profile.png) ![Image 109: Click On the My Profile from profile](https://www.odoo.com/documentation/17.0/_images/gst-portal-my-profile.png)     
+2.   Select Manage API Access, and click Yes to enable API access;
+
+![Image 110: Click Yes](http://www.odoo.com/documentation/17.0/_images/gst-portal-api-yes.png) ![Image 111: Click Yes](https://www.odoo.com/documentation/17.0/_images/gst-portal-api-yes.png)     
+
+Note
+
+It is recommended to set the Duration to 30 days to avoid the need for frequent token reauthentication.
+
+1.   Doing so enables a Duration drop-down menu. Select the Duration of your preference, and click Confirm.
+
+### Indian GST Service In Odoo[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-service-in-odoo "Permalink to this headline")
+
+Once you have enabled the [API access](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-api) on the GST portal, you can set up the Indian GST Service in Odoo.
+
+Go to Accounting ‣ Configuration ‣ Settings ‣ Indian GST Service and enter the GST Username. Click Send OTP, enter the code, and finally, Validate.
+
+> ![Image 112: Please enter your GST portal Username as Username](http://www.odoo.com/documentation/17.0/_images/gst-setup.png)
+> 
+> ![Image 113: Please enter your GST portal Username as Username](https://www.odoo.com/documentation/17.0/_images/gst-setup.png)
+
+### File-in GST Return[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#file-in-gst-return "Permalink to this headline")
+
+When the Indian GST Service is configured, you can file your GST return. Go to Accounting ‣ Reporting ‣ India ‣ GST Return periods and create a new **GST Return Period** if it does not exist. GST Return file-in is done in **three steps** in Odoo:
+
+Note
+
+**Tax Return Periodicity** can be [configured](http://www.odoo.com/documentation/17.0/applications/finance/accounting/reporting/tax_returns.html) according to the user’s needs.
+
+#### Send GSTR-1[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-gstr-1 "Permalink to this headline")
+
+1.   The user can verify the [GSTR-1](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-1-report) report before uploading it to the **GST portal** by clicking GSTR-1 Report;
+
+2.   The user can also get details to be submitted in **GSTR-1** in **Spreadsheet view** by clicking on Generate;
+
+![Image 114: GSTR-1 generate](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-generate.png)![Image 115: GSTR-1 Spreadsheet View](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-spreadsheet-view.png) ![Image 116: GSTR-1 generate](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-generate.png)      ![Image 117: GSTR-1 Spreadsheet View](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-spreadsheet-view.png)     
+3.   If the **GSTR-1** report is correct, then click Push to GSTN to send it to the **GST portal**. The status of the GSTR-1 report changes to Sending;
+
+![Image 118: GSTR-1 in the Sending Status](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sending.png) ![Image 119: GSTR-1 in the Sending Status](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sending.png)     
+4.   After a few seconds, the status of the **GSTR-1** report changes to Waiting for Status. It means that the **GSTR-1** report has been sent to the GST Portal and is being verified on the GST Portal;
+
+![Image 120: GSTR-1 in the Waiting for Status](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-waiting.png) ![Image 121: GSTR-1 in the Waiting for Status](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-waiting.png)     
+5.   Once more, after a few seconds, the status either changes to Sent or Error in Invoice. The status Error in Invoice indicates that some of the invoices are not correctly filled out to be validated by the **GST portal**;
+
+    *   If the state of the **GSTR-1** is Sent, it means your **GSTR-1** report is ready to be filed on the **GST portal**.
+
+![Image 122: GSTR-1 Sent](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sent.png) ![Image 123: GSTR-1 Sent](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sent.png)     
+    *   If the state of the **GSTR-1** is Error in Invoice, invoices can be checked for errors in the Log Note. Once issues have been resolved, the user can click Push to GSTN to submit the file again on the **GST portal**.
+
+![Image 124: GSTR-1 Error in Invoice](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-error.png) ![Image 125: GSTR-1 Error in Invoice](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-error.png)     
+
+![Image 126: GSTR-1 Error in Invoice Log](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-error-log.png)
+
+![Image 127: GSTR-1 Error in Invoice Log](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-error-log.png)
+
+6.   Click Mark as Filed after filing the **GSTR-1** report on the **GST portal**. The status of the report changes to Filed in **Odoo**.
+
+![Image 128: GSTR-1 in the Filed Status](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-filed.png) ![Image 129: GSTR-1 in the Filed Status](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-filed.png)     
+
+#### Receive GSTR-2B[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#receive-gstr-2b "Permalink to this headline")
+
+Users can retrieve the **GSTR-2B Report** from the **GST portal**. This automatically reconciles the **GSTR-2B** report with your Odoo bills;
+
+1.   Click Fetch GSTR-2B Summary to retrieve the **GSTR-2B** summary. After a few seconds, the status of the report changes to Waiting for Reception. This means Odoo is trying to receive the **GSTR-2B** report from the **GST portal**;
+
+![Image 130: GSTR-2B in Waiting for Reception](http://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-waiting.png) ![Image 131: GSTR-2B in Waiting for Reception](https://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-waiting.png)     
+2.   Once more, after a few seconds, the status of the **GSTR-2B** changes to the Being Processed. It means Odoo is reconciling the **GSTR-2B** report with your Odoo bills;
+
+![Image 132: GSTR-2B in Waiting for Reception](http://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-processed.png) ![Image 133: GSTR-2B in Waiting for Reception](https://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-processed.png)     
+3.   Once it is done, the status of the **GSTR-2B** report changes to either Matched or Partially Matched;
+
+    *   If the status is Matched:
+
+> ![Image 134: GSTR-2B Matched](http://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-matched.png) ![Image 135: GSTR-2B Matched](https://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-matched.png)
+
+    *   If the status is Partially Matched, you can make changes in bills by clicking View Reconciled Bills. Once it is done, click re-match.
+
+> ![Image 136: GSTR-2B Partially Matched](http://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-partially.png)![Image 137: GSTR-2B Reconciled Bills](http://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-reconcile.png) ![Image 138: GSTR-2B Partially Matched](https://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-partially.png)      ![Image 139: GSTR-2B Reconciled Bills](https://www.odoo.com/documentation/17.0/_images/gst-gstr-2b-reconcile.png)
+
+#### GSTR-3 report[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-3-report "Permalink to this headline")
+
+The [GSTR-3](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-3-report) report is a monthly summary of **sales** and **purchases**. This return is auto-generated by extracting information from **GSTR-1** and **GSTR-2**.
+
+1.   Users can compare the **GSTR-3** report with the **GSTR-3** report available on the **GST portal** to verify if they match by clicking GSTR-3 Report;
+
+2.   Once the **GSTR-3** report has been verified by the user and the tax amount on the **GST portal** has been paid. Once paid, the report can be **closed** by clicking Closing Entry;
+
+![Image 140: GSTR-3](http://www.odoo.com/documentation/17.0/_images/gst-gstr-3.png) ![Image 141: GSTR-3](https://www.odoo.com/documentation/17.0/_images/gst-gstr-3.png)     
+3.   In Closing Entry, add the tax amount paid on the **GST portal** using challan, and click POST to post the Closing Entry;
+
+![Image 142: GSTR-3 Post Entry](http://www.odoo.com/documentation/17.0/_images/gst-gstr-3-post.png) ![Image 143: GSTR-3 Post Entry](https://www.odoo.com/documentation/17.0/_images/gst-gstr-3-post.png)     
+4.   Once posted, the **GSTR-3** report status changes to Filed.
+
+![Image 144: GSTR-3 Filed](http://www.odoo.com/documentation/17.0/_images/gst-gstr-3-filed.png) ![Image 145: GSTR-3 Filed](https://www.odoo.com/documentation/17.0/_images/gst-gstr-3-filed.png)     
+
+Tax reports[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#tax-reports "Permalink to this headline")
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+### GSTR-1 report[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-1-report "Permalink to this headline")
+
+The GSTR-1 report is divided into sections. It displays the Base amount, CGST, SGST, IGST, and CESS for each section.
+
+> ![Image 146: GSTR-1 Report](http://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sale-report.png)
+> 
+> ![Image 147: GSTR-1 Report](https://www.odoo.com/documentation/17.0/_images/gst-gstr-1-sale-report.png)
+
+### GSTR-3 report[¶](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-3-report "Permalink to this headline")
+
+The GSTR-3 report contains different sections:
+
+*   Details of inward and outward supply subject to a **reverse charge**;
+
+*   Eligible ITC;
+
+*   Values of **exempt**, **Nil-rated**, and **non-GST** inward supply;
+
+*   Details of inter-state supplies made to **unregistered** persons.
+
+> ![Image 148: GSTR-3 Report](http://www.odoo.com/documentation/17.0/_images/gst-gstr-3-report.png) ![Image 149: GSTR-3 Report](https://www.odoo.com/documentation/17.0/_images/gst-gstr-3-report.png)
+
+[Edit on GitHub](https://github.com/odoo/documentation/edit/17.0/content/applications/finance/fiscal_localizations/india.rst)
+
+##### On this page
+
+*   [India](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#) 
+    *   [Installation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#installation)
+    *   [e-Invoice system](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-system) 
+        *   [Setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#setup) 
+            *   [NIC e-Invoice registration](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#nic-e-invoice-registration)
+            *   [Configuration in Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#configuration-in-odoo) 
+                *   [Journals](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#journals)
+
+        *   [Workflow](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#workflow) 
+            *   [Invoice validation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-validation)
+            *   [Invoice PDF report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#invoice-pdf-report)
+            *   [e-Invoice cancellation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-invoice-cancellation)
+            *   [GST e-Invoice verification](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gst-e-invoice-verification)
+
+    *   [E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill) 
+        *   [Setup](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-setup) 
+            *   [API registration on NIC E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#api-registration-on-nic-e-way-bill)
+            *   [Configuration in Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-configuration)
+
+        *   [Workflow](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-e-waybill-workflow) 
+            *   [Send an E-Way bill](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-an-e-way-bill)
+            *   [Invoice validation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-invoice-validation-e-way)
+            *   [Invoice PDF report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#id6)
+            *   [E-Way bill cancellation](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-way-bill-cancellation)
+
+        *   [E-waybill creation from receipts and delivery orders](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#e-waybill-creation-from-receipts-and-delivery-orders)
+
+    *   [Indian GST Return filing](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-return-filing) 
+        *   [Enable API access](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#enable-api-access)
+        *   [Indian GST Service In Odoo](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#indian-gst-service-in-odoo)
+        *   [File-in GST Return](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#file-in-gst-return) 
+            *   [Send GSTR-1](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#send-gstr-1)
+            *   [Receive GSTR-2B](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#receive-gstr-2b)
+            *   [GSTR-3 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-3-report)
+
+    *   [Tax reports](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#tax-reports) 
+        *   [GSTR-1 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#gstr-1-report)
+        *   [GSTR-3 report](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html#india-gstr-3-report)
+
+#### Get Help
+
+[Contact Support](https://odoo.com/help)[Ask the Odoo Community](https://www.odoo.com/forum/help-1)
+
+[![Image 150: Odoo](http://www.odoo.com/documentation/17.0/_static/img/logos/odoo_logo.svg)](https://www.odoo.com/)
+
+### Navigation
+
+*   [index](http://www.odoo.com/documentation/17.0/genindex.html "General Index")
+*   [modules](http://www.odoo.com/documentation/17.0/py-modindex.html "Python Module Index") |
+*   [next](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/indonesia.html "Indonesia") |
+*   [previous](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/hong_kong.html "Hong Kong") |
+*   [Odoo 17.0 documentation](http://www.odoo.com/documentation/17.0/index.html) »
+*   [User Docs](http://www.odoo.com/documentation/17.0/applications.html) »
+*   [Finance](http://www.odoo.com/documentation/17.0/applications/finance.html) »
+*   [Fiscal localizations](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations.html) »
+*   [India](http://www.odoo.com/documentation/17.0/applications/finance/fiscal_localizations/india.html)

@@ -1,4 +1,4 @@
-import { useState, useMemo, ReactNode } from 'react'
+import { useState, useMemo, ReactNode, useEffect, useRef } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -67,6 +67,10 @@ interface DataTableProps<TData, TValue> {
   hidePaginationControls?: boolean
   /** Show loading state with spinner overlay and disabled controls */
   isLoading?: boolean
+  /** ID of row to highlight (will scroll into view and apply highlight styling) */
+  highlightedRowId?: string
+  /** Key accessor to get row ID from data (defaults to 'id') */
+  rowIdAccessor?: keyof TData | ((row: TData) => string)
 }
 
 export function DataTable<TData, TValue>({
@@ -87,7 +91,31 @@ export function DataTable<TData, TValue>({
   pagination,
   hidePaginationControls = false,
   isLoading = false,
+  highlightedRowId,
+  rowIdAccessor = 'id' as keyof TData,
 }: DataTableProps<TData, TValue>) {
+  // Ref for scrolling to highlighted row
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null)
+
+  // Helper to get row ID (only called when highlighting is needed)
+  const getRowId = (row: TData): string => {
+    if (!row) return ''
+    if (typeof rowIdAccessor === 'function') {
+      return rowIdAccessor(row)
+    }
+    const value = (row as Record<string, unknown>)[rowIdAccessor as string]
+    return value != null ? String(value) : ''
+  }
+
+  // Scroll to highlighted row when data loads
+  useEffect(() => {
+    if (highlightedRowId && highlightedRowRef.current) {
+      setTimeout(() => {
+        highlightedRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [highlightedRowId, data])
+
   // Detect server-side mode
   const isServerMode = !!pagination
   const [sorting, setSorting] = useState<SortingState>([])
@@ -268,10 +296,20 @@ export function DataTable<TData, TValue>({
           </thead>
           <tbody className={cn("bg-white divide-y divide-gray-200", isLoading && "opacity-50")}>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row) => {
+                // Only compute highlight if highlightedRowId is provided
+                const isHighlighted = highlightedRowId
+                  ? getRowId(row.original) === highlightedRowId
+                  : false
+
+                return (
                 <tr
                   key={row.id}
-                  className="hover:bg-gray-50 transition-colors"
+                  ref={isHighlighted ? highlightedRowRef : undefined}
+                  className={cn(
+                    "hover:bg-gray-50 transition-colors",
+                    isHighlighted && "bg-blue-50 ring-2 ring-blue-400 ring-inset"
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined
@@ -290,7 +328,7 @@ export function DataTable<TData, TValue>({
                     )
                   })}
                 </tr>
-              ))
+              )})
             ) : (
               <tr>
                 <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">

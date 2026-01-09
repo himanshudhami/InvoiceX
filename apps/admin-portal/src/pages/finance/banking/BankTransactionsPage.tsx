@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import {
   useBankTransactionsByAccount,
   useBankTransactionSummary,
-  useUnreconcileTransaction
+  useUnreconcileTransaction,
+  useBankTransaction,
 } from '@/hooks/api/useBankTransactions'
 import { useBankAccounts } from '@/hooks/api/useBankAccounts'
 import { useCompanies } from '@/hooks/api/useCompanies'
@@ -25,7 +26,8 @@ import {
   Search,
   AlertTriangle,
   FileText,
-  BarChart3
+  BarChart3,
+  Receipt,
 } from 'lucide-react'
 
 // Simple reversal detection for UI (matches backend ReversalDetector patterns)
@@ -53,9 +55,48 @@ const isLikelyReversal = (transaction: BankTransaction): boolean => {
   return reversalPatterns.some(pattern => pattern.test(desc))
 }
 
+// Helper to get navigation URL for reconciled source
+const getReconciledSourceUrl = (reconciledType?: string, reconciledId?: string): string | null => {
+  if (!reconciledType || !reconciledId) return null
+
+  const typeRoutes: Record<string, string> = {
+    contractor: '/finance/ap/contractor-payments',
+    vendor: '/finance/ap/vendor-payments',
+    payment: '/finance/ar/customer-receipts',
+    expense: '/finance/expenses',
+    payroll: '/hr/payroll/transactions',
+    tax_payment: '/finance/statutory/tds-payments',
+    transfer: '/finance/bank/transfers',
+  }
+
+  const route = typeRoutes[reconciledType.toLowerCase()]
+  if (!route) return null
+
+  return `${route}?highlight=${reconciledId}`
+}
+
+// Display label for reconciled type
+const getReconciledTypeLabel = (reconciledType?: string): string => {
+  const labels: Record<string, string> = {
+    contractor: 'Contractor Payment',
+    vendor: 'Vendor Payment',
+    payment: 'Customer Receipt',
+    expense: 'Expense',
+    payroll: 'Payroll',
+    tax_payment: 'Tax Payment',
+    transfer: 'Bank Transfer',
+  }
+  return labels[reconciledType?.toLowerCase() || ''] || 'Source'
+}
+
 const BankTransactionsPage = () => {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const preselectedAccountId = searchParams.get('accountId')
+  const highlightId = searchParams.get('highlight')
+
+  // Ref for scrolling to highlighted row
+  const highlightedRowRef = useRef<HTMLTableRowElement>(null)
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>(preselectedAccountId || '')
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
@@ -63,12 +104,21 @@ const BankTransactionsPage = () => {
   const [filterType, setFilterType] = useState<'all' | 'credit' | 'debit'>('all')
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Auto-select account from URL parameter
+  // Fetch highlighted transaction to get its bank account (when navigating from other pages)
+  const { data: highlightedTransaction } = useBankTransaction(
+    highlightId || '',
+    !!highlightId && !preselectedAccountId && !selectedAccountId
+  )
+
+  // Auto-select account from URL parameter or highlighted transaction
   useEffect(() => {
     if (preselectedAccountId && !selectedAccountId) {
       setSelectedAccountId(preselectedAccountId)
+    } else if (highlightedTransaction?.bankAccountId && !selectedAccountId) {
+      setSelectedAccountId(highlightedTransaction.bankAccountId)
     }
-  }, [preselectedAccountId, selectedAccountId])
+  }, [preselectedAccountId, selectedAccountId, highlightedTransaction?.bankAccountId])
+
   const [reconcilingTransaction, setReconcilingTransaction] = useState<BankTransaction | null>(null)
   const [reversalTransaction, setReversalTransaction] = useState<BankTransaction | null>(null)
   const [journalReconcilingTransaction, setJournalReconcilingTransaction] = useState<BankTransaction | null>(null)
@@ -134,6 +184,13 @@ const BankTransactionsPage = () => {
       return true
     })
   }, [transactions, filterStatus, filterType, searchTerm])
+
+  // Scroll to highlighted row when transactions load
+  useEffect(() => {
+    if (highlightId && highlightedRowRef.current) {
+      highlightedRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightId, filteredTransactions])
 
   const handleUnreconcile = async (transaction: BankTransaction) => {
     try {
@@ -355,8 +412,20 @@ const BankTransactionsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {filteredTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50">
+                    {filteredTransactions.map((transaction) => {
+                      const isHighlighted = transaction.id === highlightId
+                      const sourceUrl = getReconciledSourceUrl(transaction.reconciledType, transaction.reconciledId)
+
+                      return (
+                      <tr
+                        key={transaction.id}
+                        ref={isHighlighted ? highlightedRowRef : null}
+                        className={`hover:bg-gray-50 ${
+                          isHighlighted
+                            ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset animate-pulse'
+                            : ''
+                        }`}
+                      >
                         <td className="px-4 py-3 whitespace-nowrap">
                           {formatDate(transaction.transactionDate)}
                         </td>
@@ -407,6 +476,15 @@ const BankTransactionsPage = () => {
                                   <FileText className="h-3 w-3" />
                                 </span>
                               )}
+                              {sourceUrl && (
+                                <button
+                                  onClick={() => navigate(sourceUrl)}
+                                  className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
+                                  title={`View ${getReconciledTypeLabel(transaction.reconciledType)}`}
+                                >
+                                  <Receipt className="h-4 w-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleUnreconcile(transaction)}
                                 disabled={unreconcileTransaction.isPending}
@@ -444,7 +522,7 @@ const BankTransactionsPage = () => {
                           )}
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>

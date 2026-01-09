@@ -1,0 +1,169 @@
+Title: Best accounting software | Odoo
+
+URL Source: http://www.odoo.com/page/accounting
+
+Markdown Content:
+[![Image 1](https://odoocdn.com/openerp_website/static/src/img/icons/play.svg)![Image 2: Accounting Dashboard](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-hero-image.webp)](http://www.odoo.com/page/accounting#)
+
+Unlock true performance
+-----------------------
+
+[![Image 3](https://odoocdn.com/openerp_website/static/src/img/icons/play.svg)![Image 4: Vendor Bill](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-vendor-bill.webp)](http://www.odoo.com/page/accounting#)
+
+![Image 5](https://odoocdn.com/openerp_website/static/src/img/icons/red_stopwatch.svg)
+
+5 seconds
+
+from login to vendor bill
+
+**Speed matters**. All operations are processed in less than 90 milliseconds, faster than the blink of an eye. It helps accountants do much more in less time.
+
+A snappy interface is a game changer.
+
+![Image 6](https://odoocdn.com/openerp_website/static/src/img/graphics/arrow_circular_down_right.svg)
+
+![Image 7](https://odoocdn.com/openerp_website/static/src/img/icons/cross.svg)No data entry!
+
+Just automation![Image 8](https://odoocdn.com/openerp_website/static/src/img/icons/tick.svg)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+**Experience zero data entry.** Our advanced AI-powered invoice data capture has a 98% recognition rate. All you have to do is to validate the invoice.
+
+![Image 9](https://odoocdn.com/openerp_website/static/src/img/arrows/arrow_xl_02.svg)![Image 10](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-bill-pdf.webp)
+
+![Image 11](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-bill.webp)
+
+![Image 12](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-mobile-02.webp)
+
+![Image 13](https://odoocdn.com/openerp_website/static/src/img/apps/accounting/accounting-mobile-01.webp)
+
+![Image 14](https://odoocdn.com/openerp_website/static/src/img/graphics/star_down_left.svg)
+
+Enjoy the mobile experience
+---------------------------
+
+**Your mobile companion.** Take pictures of your expenses, and let the Artificial Intelligence do the rest!
+
+![Image 15](https://odoocdn.com/openerp_website/static/src/img/graphics/arrow_zig_zag_down_right.svg)
+
+Smart bank reconciliation
+-------------------------
+
+### 28,000 banks supported
+
+![Image 16](https://odoocdn.com/openerp_website/static/src/img/icons/blue_bank.svg)
+
+##### Bank synchronization
+
+Never import bank statements manually again. Odoo integrates with 28,000 banks from all around the world!
+
+![Image 17](https://odoocdn.com/openerp_website/static/src/img/apps/crm/separator.svg)
+
+##### Smart AI matching
+
+95% of the transactions are matched automatically with the financial records.
+
+![Image 18](https://odoocdn.com/openerp_website/static/src/img/snippets/s_wd_persona/bg_yellow.svg)
+
+_Wait! There is more!_
+
+![Image 19](https://odoocdn.com/openerp_website/static/src/img/snippets/s_wd_persona/bob.png)
+
+![Image 20](https://odoocdn.com/openerp_website/static/src/img/arrows/grey_arrow_loop_02.svg)
+
+All the features
+
+ done right.
+------------------------------
+
+![Image 21](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Worldwide compatibility
+
+Odoo is pre-configured to address your country's requirements: charts of accounts, taxes, country-specific reports, electronic invoicing, audit files, and fiscal positions to automatically apply the right tax rates and accounts.
+
+![Image 22](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Real-time reporting
+
+Real-time financial performance reports, empower you to make informed decisions for your business. Additionally, you can easily annotate, export, and access detailed information for each report.
+
+![Image 23](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Electronic invoicing (EDI)
+
+Various EDI file formats are available depending on your company's country. Send and receive electronic invoices in multiple formats and standards, such as Peppol. [List of supported formats](https://www.odoo.com/documentation/latest/applications/finance/accounting/customer_invoices/electronic_invoicing.html)
+
+![Image 24](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Automated follow-ups
+
+Odoo helps you identify late payments and allows you to schedule and send the appropriate reminders based on the number of days overdue. You can send your follow-ups via different means, such as email, post, or SMS.
+
+![Image 25](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Deferrals
+
+Defer your revenues and expenses, either manually or on each invoice/bill validation. You can also audit the entries from dedicated reports.
+
+![Image 26](https://odoocdn.com/openerp_website/static/src/img/icons/yellow_star.svg)
+
+#### Dynamic taxes and accounts
+
+No matter where your customers and suppliers are established, if they have a Tax ID or not, if the goods are sold cross-border, Odoo computes the right taxes and income or expense accounts.
+
+[See all features![Image 27](https://odoocdn.com/openerp_website/static/src/img/arrows/secondary_arrow_sm_03.svg)](https://www.odoo.com/app/accounting-features)
+
+### One need, one app.
+
+Expand as you grow.
+
+[![Image 28: Odoo Sales icon](https://download.odoocdn.com/icons/sale/static/description/icon.svg)](https://www.odoo.com/app/sales)
+
+##### Sales
+
+Generate invoices
+
+[![Image 29: Odoo Purchase icon](https://download.odoocdn.com/icons/purchase/static/description/icon.svg)](https://www.odoo.com/app/purchase)
+
+##### Purchase
+
+Control bills
+
+[![Image 30: Odoo Expenses icon](https://download.odoocdn.com/icons/hr_expense/static/description/icon.svg)](https://www.odoo.com/app/expenses)
+
+##### Expenses
+
+Track and re-invoice
+
+[![Image 31: Odoo Inventory icon](https://download.odoocdn.com/icons/stock/static/description/icon.svg)](https://www.odoo.com/app/inventory)
+
+##### Inventory
+
+Real-time valuation
+
+[![Image 32: Odoo Documents icon](https://download.odoocdn.com/icons/documents/static/description/icon.svg)](https://www.odoo.com/app/documents)
+
+##### Documents
+
+Management
+
+[See all Apps![Image 33](https://odoocdn.com/openerp_website/static/src/img/arrows/secondary_arrow_sm_03.svg)](https://www.odoo.com/page/all-apps)
+
+###### Join 15 million ![Image 34](https://odoocdn.com/openerp_website/static/src/img/graphics/arrow_circular_down_left.svg)happy  users
+
+who grow their business with Odoo
+
+![Image 35](https://odoocdn.com/openerp_website/static/src/img/arrows/grey_arrow_loop_02.svg)
+
+![Image 36](https://odoocdn.com/openerp_website/static/src/img/snippets/s_wd_testimonials/quote.svg)
+
+> A VAT closing that used to take 4 days is now done in 3 hours with Odoo, with a better service for our clients: real-time accounting.
+
+![Image 37: Wim Van den Brande picture](https://odoocdn.com/openerp_website/static/src/img/snippets/s_wd_testimonials/avatar/wim_van_den_brande.webp)
+
+**Wim Van den Brande**
+
+Head of KPMG Tax, Legal & Accountancy
+
+![Image 38](https://odoocdn.com/openerp_website/static/src/img/snippets/s_wd_testimonials/logo/kpmg_logo.svg)

@@ -15,15 +15,32 @@ namespace Infrastructure.Data.Payroll
             "contract_reference", "gross_amount", "tds_rate", "tds_amount", "other_deductions",
             "net_payable", "gst_applicable", "gst_rate", "gst_amount", "total_invoice_amount",
             "status", "payment_date", "payment_method", "payment_reference", "description",
-            "remarks", "created_at", "updated_at", "created_by", "updated_by"
+            "remarks", "bank_transaction_id", "reconciled_at", "reconciled_by",
+            "created_at", "updated_at", "created_by", "updated_by"
         };
 
-        // Base SELECT with party join for name
+        // Base SELECT with party join for name and reconciliation status from bank_transactions
         private const string SelectWithParty = @"
-            SELECT cp.*,
-                   p.name as PartyName
+            SELECT cp.id, cp.party_id, cp.company_id, cp.payment_month, cp.payment_year,
+                   cp.invoice_number, cp.contract_reference, cp.gross_amount, cp.tds_section,
+                   cp.tds_rate, cp.tds_amount, cp.contractor_pan, cp.pan_verified,
+                   cp.other_deductions, cp.net_payable, cp.gst_applicable, cp.gst_rate,
+                   cp.gst_amount, cp.total_invoice_amount, cp.status, cp.payment_date,
+                   cp.payment_method, cp.payment_reference, cp.bank_account_id,
+                   cp.accrual_journal_entry_id, cp.disbursement_journal_entry_id,
+                   cp.description, cp.remarks, cp.tally_voucher_guid, cp.tally_voucher_number,
+                   cp.tally_migration_batch_id, cp.created_at, cp.updated_at,
+                   cp.created_by, cp.updated_by,
+                   p.name as PartyName,
+                   COALESCE(bt.id, cp.bank_transaction_id) as BankTransactionId,
+                   COALESCE(bt.reconciled_at, cp.reconciled_at) as ReconciledAt,
+                   cp.reconciled_by as ReconciledBy,
+                   (bt.id IS NOT NULL) as IsReconciled
             FROM contractor_payments cp
-            LEFT JOIN parties p ON p.id = cp.party_id";
+            LEFT JOIN parties p ON p.id = cp.party_id
+            LEFT JOIN bank_transactions bt ON bt.reconciled_id = cp.id
+                AND bt.reconciled_type = 'contractor'
+                AND bt.is_reconciled = true";
 
         public ContractorPaymentRepository(string connectionString)
         {
@@ -183,9 +200,12 @@ namespace Infrastructure.Data.Payroll
                 LIMIT @limit OFFSET @offset";
 
             var countSql = $@"
-                SELECT COUNT(*)
+                SELECT COUNT(DISTINCT cp.id)
                 FROM contractor_payments cp
                 LEFT JOIN parties p ON p.id = cp.party_id
+                LEFT JOIN bank_transactions bt ON bt.reconciled_id = cp.id
+                    AND bt.reconciled_type = 'contractor'
+                    AND bt.is_reconciled = true
                 {whereClause}";
 
             using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, parameters);
@@ -248,6 +268,9 @@ namespace Infrastructure.Data.Payroll
                 disbursement_journal_entry_id = @DisbursementJournalEntryId,
                 description = @Description,
                 remarks = @Remarks,
+                bank_transaction_id = @BankTransactionId,
+                reconciled_at = @ReconciledAt,
+                reconciled_by = @ReconciledBy,
                 updated_at = NOW(),
                 updated_by = @UpdatedBy
                 WHERE id = @Id";

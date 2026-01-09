@@ -1,0 +1,223 @@
+Title: Goods & Services Tax (GST)
+
+URL Source: http://www.gst.gov.in/returns
+
+Warning: Target URL returned error 404: Not Found
+
+Markdown Content:
+Goods & Services Tax (GST) | Not Found
+===============
+
+*   [Skip to Main Content](javascript:void(0))
+
+*   A+
+*   A-
+
+[![Image 1: Goods and Services Tax Home](https://static.gst.gov.in/uiassets/images/Emblem_of_India-white.svg)](https://www.gst.gov.in/ "Goods and Services Tax Home")
+[Goods and Services Tax Government of India, States and Union Territories](https://www.gst.gov.in/)
+===================================================================================================
+
+*   [Register](https://reg.gst.gov.in/registration)
+*   [Login](https://services.gst.gov.in/services/login)
+
+Toggle navigation
+
+*   [Dashboard](https://services.gst.gov.in/services/auth/dashboard)[Dashboard](https://reg.gst.gov.in/registration/auth/dashboard)[Home](https://www.gst.gov.in/)
+*   [Services](https://www.gst.gov.in/#)
+    *   [Registration](https://services.gst.gov.in/services/quicklinks/registration)[Registration](https://services.gst.gov.in/services/auth/quicklinks/registration) 
+        *   [New Registration](https://reg.gst.gov.in/registration)
+        *   [Application for Filing Clarifications](https://reg.gst.gov.in/registration/auth/clarifications)[Application for Filing Clarifications](https://reg.gst.gov.in/registration)
+        *   [Amendment of Registration Core Fields](https://reg.gst.gov.in/registration/auth/amend/core/amendbusinessdetail)
+        *   [Geocoding Business Addresses](https://reg.gst.gov.in/registration/auth/geocode)
+        *   [Amendment of Registration Core Fields](https://reg.gst.gov.in/registration/auth/amend/core/amendbusinessdetail)
+        *   [Amendment of Registration Core Fields](https://reg.gst.gov.in/registration/auth/amend/uin/core/businessdetails)
+        *   [Amendment of Registration Non - Core Fields](https://reg.gst.gov.in/registration/auth/amend/noncore/business)
+        *   [Amendment of Registration Non - Core Fields](https://reg.gst.gov.in/registration/auth/amend/noncore/business)
+        *   [Amendment of Registration Non - Core Fields](https://reg.gst.gov.in/registration/auth/amend/uin/noncore/authsign)
+        *   [Amendment of Registration Non - Core Fields](https://reg.gst.gov.in/registration/auth/comnamend/noncore/basicdtls)
+        *   [Amendment of Registration Non - Core Fields](https://reg.gst.gov.in/registration/auth/comnamend/noncore/bank)
+        *   [Amendment of Registration Core Fields](https://reg.gst.gov.in/registration/auth/comnamend/core/basicdetails)
+        *   [Application to Opt for composition Levy](https://reg.gst.gov.in/registration/auth/optcomp)
+        *   [Application for Withdrawal from Composition Levy](https://reg.gst.gov.in/registration/auth/wtdrwcomp)
+        *   [Track Application Status](https://services.gst.gov.in/services/auth/appstatus)[Track Application Status](https://services.gst.gov.in/services/auth/appstatus)[Track Application Status](https://services.gst.gov.in/services/arnstatus)
+        *   [Home State GSK selection for Promoter/Director of specific COBs](https://services.gst.gov.in/services/trnDirect)
+        *   [Stock intimation for opting Composition Levy](https://reg.gst.gov.in/registration/auth/stockintim/stockintimmig)
+        *   [Application for Cancellation of Registration](https://reg.gst.gov.in/registration/auth/common/cancellation)
+        *   [Application for Cancellation of Registration](https://reg.gst.gov.in/registration/auth/common/cancellation)
+        *   [Application for Extension of Registration period by Casual/Non Resident Taxable Person](https://reg.gst.gov.in/registration/auth/extnappln/business)
+        *   [Application for Revocation of Cancelled Registration](https://reg.gst.gov.in/registration/auth/revoke)
+        *   [Declaration for Specified Premises](https://reg.gst.gov.in/registration/auth/specifiedpremises)
+        *   [Declaration for Specified Premises](https://reg.gst.gov.in/registration/auth/specifiedpremises)
+
+    *   [Ledgers](https://services.gst.gov.in/services/auth/quicklinks/ledgers)
+
+        *   [Electronic Cash Ledger](https://payment.gst.gov.in/payment/auth/ledger/cashledger)
+        *   [Electronic Liability Register](https://return.gst.gov.in/returns/auth/ledger/taxledger)
+        *   [Payment towards Demand](https://payment.gst.gov.in/payment/auth/ledger/paymenttowardsdemand)
+        *   [Negative liability statement - Composition Taxpayers](https://www.gst.gov.in/ledgersw/auth/ledgers/negliab)
+        *   [Negative liability statement - Regular Taxpayers](https://www.gst.gov.in/ledgersw/auth/ledgers/negliabreg)
+
+    *   [Ledgers](https://services.gst.gov.in/services/quicklinks/ledgers)
+        *   [Electronic Cash Ledger](https://payment.gst.gov.in/payment/ledger/cashledger)
+
+    *   [Returns](https://services.gst.gov.in/services/auth/quicklinks/returns)
+
+        *   [Returns Dashboard](https://return.gst.gov.in/returns/auth/dashboard)
+        *   [View Filed Returns](https://return.gst.gov.in/returns/auth/efiledReturns)
+        *   [Track Return Status](https://return.gst.gov.in/returns/auth/trackreturnstatus)
+        *   [Transition Forms](https://return.gst.gov.in/returns/auth/transition/trans1)
+        *   [ITC Forms](https://return.gst.gov.in/returns2/auth/itcform/links)
+
+    *   [Payments](https://services.gst.gov.in/services/quicklinks/payments/trn)[Payments](https://services.gst.gov.in/services/quicklinks/payments)[Payments](https://services.gst.gov.in/services/auth/quicklinks/payments)
+
+        *   [Create Challan](https://payment.gst.gov.in/payment/)[Create Challan](https://payment.gst.gov.in/payment/auth/)[Challan History](https://payment.gst.gov.in/payment/challanhistory)
+        *   [Saved Challans](https://payment.gst.gov.in/payment/auth/savedchallan)
+        *   [Challan History](https://payment.gst.gov.in/payment/auth/challanhistory)[Track Payment Status](https://payment.gst.gov.in/payment/trackpayment)
+        *   [Application for Deferred Payment/Payment in Instalments](https://services.gst.gov.in/litserv/auth/deferred/instalmentpayment)
+        *   [Instalment Calendar](https://payment.gst.gov.in/payment/auth/ledger/instalmentcalendar)
+        *   [Grievance against Payment(GST PMT-07)](https://services.gst.gov.in/services/grievance)[Grievance against Payment(GST PMT-07)](https://services.gst.gov.in/services/auth/grievance)
+
+    *   [User Services](https://services.gst.gov.in/services/quicklinks/userservices)[User Services](https://services.gst.gov.in/services/auth/quicklinks/userservices) 
+        *   [My Saved Applications](https://services.gst.gov.in/services/auth/savedapp)
+        *   [DRC-03 Register](https://services.gst.gov.in/litserv/auth/drc03register)
+        *   [Notices / Intimations Issued](https://services.gst.gov.in/services2/auth/getlistofnotices)
+        *   [My Applications](https://services.gst.gov.in/litserv/auth/case/search)
+        *   [View/Download Certificates](https://services.gst.gov.in/services/auth/certs)
+        *   [View Notices and Orders](https://services.gst.gov.in/services/auth/notices)
+        *   [View My Submissions](https://services.gst.gov.in/services/auth/submissions)
+        *   [Register / Update DSC](https://reg.gst.gov.in/registration/auth/register/dsc)
+        *   [Search HSN Code](https://services.gst.gov.in/services/auth/searchhsnsac)
+        *   [Search HSN Code](https://services.gst.gov.in/services/searchhsnsac)
+        *   [Holiday List](https://services.gst.gov.in/services/auth/holiday)
+        *   [Holiday List](https://services.gst.gov.in/services/holiday)
+        *   [Search Taxpayer Opted In / Out of Composition](https://services.gst.gov.in/services/auth/listoftaxpayer)
+        *   [Feedback](https://services.gst.gov.in/services/auth/feedbackpost)
+        *   [Generate User ID for Unregistered Applicant](https://reg.gst.gov.in/registration/generateuid)
+        *   [Furnish Letter of Undertaking (LUT)](https://services.gst.gov.in/services2/auth/getlutform)
+        *   [View My Submitted LUTs](https://services.gst.gov.in/litserv/auth/case/search)
+        *   [Locate GST Practitioner (GSTP)](https://services.gst.gov.in/services/locategstp)
+        *   [Locate GST Practitioner (GSTP)](https://services.gst.gov.in/services/auth/locategstp)
+        *   [Engage / Disengage GST Practitioner (GSTP)](https://services.gst.gov.in/services/auth/engdisenggstp)
+        *   [ITC02-Pending for action](https://return.gst.gov.in/returns2/auth/itc02/pendingactions)
+        *   [View Additional Notices/Orders](https://services.gst.gov.in/litserv/auth/viewadnlntcord)
+        *   [Cause List](https://services.gst.gov.in/litserv/auth/api/case/hrng/get)
+        *   [Cause List](https://services.gst.gov.in/litserv/case/hrng/get)
+        *   [Communication Between Taxpayers](https://www.gst.gov.in/cchannel/auth/viewnotification)
+        *   [Search BoE](https://return.gst.gov.in/returns/auth/boe/search)
+        *   [Search Advance Ruling](https://services.gst.gov.in/litserv/ar/postordersearch)
+        *   [Search Advance Ruling](https://services.gst.gov.in/litserv/ar/ordersearch)
+        *   [View turnover of enrolment IDs](https://services.gst.gov.in/services/auth/eidsturnovertable)
+        *   [Supplies reported by e-commerce operators (ECOs) and Annual Turnover details](https://services.gst.gov.in/services/auth/suppliesbyecodetails)
+        *   [View PMT-03A](https://services.gst.gov.in/litserv/auth/viewpmt03a)
+        *   [GTA (Goods Transport Agencies)](https://services.gst.gov.in/services/auth/gta)
+        *   [Verify RFN](https://services.gst.gov.in/services/auth/verifyRfn)[Verify RFN](https://services.gst.gov.in/services/verifyRfn)
+
+    *   [Refunds](https://services.gst.gov.in/services/auth/quicklinks/refunds)[Refunds](https://www.gst.gov.in/)[Refunds](https://services.gst.gov.in/services/quicklinks/refunds)
+
+        *   [Application for Refund](https://refund.gst.gov.in/refunds/auth/refunddashboard)
+        *   [Refund pre-application form](https://services.gst.gov.in/litserv/auth/clainRfndInfo)
+        *   [My Saved/Filed Applications](https://refund.gst.gov.in/refunds/auth/savedapplication)
+        *   [Track Application Status](https://services.gst.gov.in/services/auth/trackstatus)[Track Application Status](https://services.gst.gov.in/services/trackstatus)
+        *   [Track status of invoice data to be shared with ICEGATE](https://refund.gst.gov.in/refunds/auth/trackInvStatus)
+        *   [Intimation on account of Refund not received](https://refund.gst.gov.in/refunds/auth/intmtRfdNotReceived)
+
+    *   [e-Way Bill System](https://services.gst.gov.in/services/ewaybill/ewaybillsystem)
+    *   [Track Application Status](https://services.gst.gov.in/services/auth/trackstatus)[Track Application Status](https://services.gst.gov.in/services/trackstatus)[Track Application Status](https://services.gst.gov.in/services/auth/trackstatus/trn)
+
+*   [GST Law](https://services.gst.gov.in/services/gstlaw/gstlawlist)
+*   [Downloads](https://www.gst.gov.in/#)
+    *   [Offline Tools](https://www.gst.gov.in/)
+        *   [Returns Offline Tool](https://www.gst.gov.in/download/returns)
+        *   [Matching Offline Tool](https://www.gst.gov.in/download/gstr2b)
+        *   [Tran-1 Offline Tools](https://www.gst.gov.in/download/trans1b)
+        *   [Tran-2 Offline Tools](https://www.gst.gov.in/download/trans2)
+        *   [GSTR3B Offline Utility](https://www.gst.gov.in/download/gstr3b)
+        *   [ITC01 Offline Tool](https://www.gst.gov.in/download/itc01)
+        *   [ITC03 Offline Tool](https://www.gst.gov.in/download/itc03)
+        *   [ITC04 Offline Tool](https://www.gst.gov.in/download/itc04)
+        *   [GST ARA 01 - Application for Advance Ruling](https://tutorial.gst.gov.in/downloads/advancerulingtaxpayer.zip)
+        *   [GSTR-4 Offline Tool (Quarterly filing)](https://www.gst.gov.in/download/gstr4/offline)
+        *   [GSTR 6 Offline Tool With Amendments](https://tutorial.gst.gov.in/offlineutilities/returns/GSTR_6_Offline_Utility.zip)
+        *   [GSTR 11 Offline Tool](https://tutorial.gst.gov.in/offlineutilities/returns/GSTR_11_Offline_Utility.zip)
+        *   [GSTR7 Offline Utility](https://www.gst.gov.in/download/gstr7)
+        *   [GSTR8 Offline Tool](https://www.gst.gov.in/download/gstr8)
+        *   [SRM-I Offline Tool](https://www.gst.gov.in/download/srm1)
+        *   [SRM-II Offline Tool](https://www.gst.gov.in/download/srm2)
+        *   [GSTR10 Offline Tool](https://www.gst.gov.in/download/gstr10)
+        *   [GSTR-9 Offline Tool](https://www.gst.gov.in/download/gstr9)
+        *   [GSTR-9A Offline Tool](https://www.gst.gov.in/download/gstr9a)
+        *   [GSTR-9C Offline Tool](https://www.gst.gov.in/download/gstr9c)
+        *   [GSTR-4 Offline Tool (Annual)](https://www.gst.gov.in/download/gstr4x)
+        *   [GST DRC-22A - Application for Objection to Provisional Attachment Order](https://tutorial.gst.gov.in/downloads/drc22AOffline.zip)
+        *   [TDS & TCS Credit Received Offline Tool](https://www.gst.gov.in/download/gstr2x)
+
+    *   [GST Statistics](https://www.gst.gov.in/download/gststatistics)
+
+*   [Search Taxpayer](https://www.gst.gov.in/#)
+    *   [Search by GSTIN/UIN](https://services.gst.gov.in/services/auth/searchtp)
+    *   [Search by PAN](https://services.gst.gov.in/services/auth/searchtpbypan)
+    *   [Search Temporary ID](https://services.gst.gov.in/services/auth/searchsmregtp)
+    *   [Search Composition Taxpayer](https://services.gst.gov.in/services/auth/listoftaxpayer)
+
+    *   [Search by GSTIN/UIN](https://services.gst.gov.in/services/searchtp)
+    *   [Search by PAN](https://services.gst.gov.in/services/searchtpbypan)
+    *   [Search Temporary ID](https://services.gst.gov.in/services/searchsmregtp)
+    *   [Search Composition Taxpayer](https://services.gst.gov.in/services/listoftaxpayer)
+
+*   [Help and Taxpayer Facilities](https://services.gst.gov.in/services/HelpandTaxpayer/HelpandTaxpayerfacilities)
+*   [e-Invoice](https://einvoice.gst.gov.in/einvoice/dashboard)
+*   [News and Updates](https://services.gst.gov.in/services/advisory/advisoryandreleases)
+*   [Register](https://reg.gst.gov.in/registration)
+*   [Login](https://services.gst.gov.in/services/login)
+*   [MyProfile](https://services.gst.gov.in/services/auth/myprofile)
+*   [Logout](https://services.gst.gov.in/services/logout)
+
+1.   [Home](https://www.gst.gov.in/)
+2.   Not Found
+
+#### Page not found
+
+We are sorry. The page you requested could not be found. Please click Home or choose another page from the menu. If the problem persists, please contact our [Helpdesk](https://www.gst.gov.in/help/helpmodules/)
+
+[About GST](https://www.gst.gov.in/about/gst/history)
+*   [GST Council Structure](https://www.gst.gov.in/about/gst/council)
+*   [GST History](https://www.gst.gov.in/about/gst/history)
+
+[Website Policies](https://www.gst.gov.in/policies/website)
+*   [Website Policy](https://www.gst.gov.in/policies/website)
+*   [Terms and Conditions](https://www.gst.gov.in/policies/termsandconditions)
+*   [Hyperlink Policy](https://www.gst.gov.in/policies/hyperlink)
+*   [Disclaimer](https://www.gst.gov.in/policies/disclaimer)
+
+[Related Sites](https://www.gst.gov.in/help/relatedsites)
+*   [Central Board of Indirect Taxes and Customs](http://www.cbic.gov.in/)
+*   [State Tax Websites](https://www.gst.gov.in/help/statevat)
+*   [National Portal](https://www.india.gov.in/)
+
+[Help and Taxpayer Facilities](https://services.gst.gov.in/services/HelpandTaxpayer/HelpandTaxpayerfacilities)
+*   [System Requirements](https://www.gst.gov.in/system/)
+*   [GST Knowledge Portal](https://www.gst.gov.in/help/helpmodules/)
+*   [GST Media](https://www.youtube.com/c/GoodsandServicesTaxNetwork)
+*   [Site Map](https://services.gst.gov.in/services/sitemap)
+*   [Grievance Nodal Officers](https://services.gst.gov.in/services/grievanceNodalOfficer)
+*   [Free Accounting and Billing Services](https://gstn.org.in/empaneled-companies)
+*   [GST Suvidha Providers](https://gstn.org.in/gsp-ecosystem)
+
+[Contact Us](https://www.gst.gov.in/contact)
+*   Help Desk Number: 
+
+1800-103-4786
+*   Log/Track Your Issue:
+
+[Grievance Redressal Portal for GST](https://selfservice.gstsystem.in/ "Grievance Redressal Portal for GST")
+*   [![Image 2](https://static.gst.gov.in/uiassets/images/Facebook.svg)](https://www.facebook.com/Goods-and-Services-Tax-1674179706229522/?fref=ts "Facebook")[![Image 3](https://static.gst.gov.in/uiassets/images/Youtube.svg)](https://www.youtube.com/channel/UCFYpOk92qurlO5t-Z_y-bOQ "Youtube")[![Image 4](https://static.gst.gov.in/uiassets/images/X.svg)](https://twitter.com/Infosys_GSTN "Twitter")[![Image 5](https://static.gst.gov.in/uiassets/images/Linkedin.svg)](https://www.linkedin.com/company/gstn-official/about/?viewAsMember=true "Linkedin")
+
+©2025-26 Goods and Services Tax Network
+
+Site Last Updated on 01-01-2026
+
+Designed & Developed by GSTN
+
+Site best viewed at 1024 x 768 resolution in Microsoft Edge, Google Chrome 49+, Firefox 45+ and Safari 6+
+
+Top

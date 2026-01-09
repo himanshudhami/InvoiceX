@@ -34,16 +34,32 @@ namespace Infrastructure.Data
         public async Task<BankAccount?> GetByIdAsync(Guid id)
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            return await connection.QueryFirstOrDefaultAsync<BankAccount>(
-                "SELECT * FROM bank_accounts WHERE id = @id",
+            // Compute current_balance from opening_balance + credits - debits
+            return await connection.QueryFirstOrDefaultAsync<BankAccount>(@"
+                SELECT
+                    ba.*,
+                    ba.opening_balance + COALESCE(SUM(CASE WHEN bt.transaction_type = 'credit' THEN bt.amount ELSE 0 END), 0)
+                        - COALESCE(SUM(CASE WHEN bt.transaction_type = 'debit' THEN bt.amount ELSE 0 END), 0) AS current_balance
+                FROM bank_accounts ba
+                LEFT JOIN bank_transactions bt ON bt.bank_account_id = ba.id
+                WHERE ba.id = @id
+                GROUP BY ba.id",
                 new { id });
         }
 
         public async Task<IEnumerable<BankAccount>> GetAllAsync()
         {
             using var connection = new NpgsqlConnection(_connectionString);
-            return await connection.QueryAsync<BankAccount>(
-                "SELECT * FROM bank_accounts ORDER BY bank_name, account_name");
+            // Compute current_balance from opening_balance + credits - debits
+            return await connection.QueryAsync<BankAccount>(@"
+                SELECT
+                    ba.*,
+                    ba.opening_balance + COALESCE(SUM(CASE WHEN bt.transaction_type = 'credit' THEN bt.amount ELSE 0 END), 0)
+                        - COALESCE(SUM(CASE WHEN bt.transaction_type = 'debit' THEN bt.amount ELSE 0 END), 0) AS current_balance
+                FROM bank_accounts ba
+                LEFT JOIN bank_transactions bt ON bt.bank_account_id = ba.id
+                GROUP BY ba.id
+                ORDER BY ba.bank_name, ba.account_name");
         }
 
         public async Task<(IEnumerable<BankAccount> Items, int TotalCount)> GetPagedAsync(

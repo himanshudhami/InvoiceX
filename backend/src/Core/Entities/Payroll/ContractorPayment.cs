@@ -141,6 +141,28 @@ namespace Core.Entities.Payroll
         /// </summary>
         public Guid? TallyMigrationBatchId { get; set; }
 
+        // ==================== Bank Reconciliation ====================
+
+        /// <summary>
+        /// Linked bank transaction ID (from bank statement reconciliation)
+        /// </summary>
+        public Guid? BankTransactionId { get; set; }
+
+        /// <summary>
+        /// When the payment was reconciled with bank statement
+        /// </summary>
+        public DateTime? ReconciledAt { get; set; }
+
+        /// <summary>
+        /// Who performed the reconciliation
+        /// </summary>
+        public string? ReconciledBy { get; set; }
+
+        /// <summary>
+        /// Whether payment is reconciled (populated from bank_transactions join)
+        /// </summary>
+        public bool IsReconciled { get; set; }
+
         // ==================== Metadata ====================
 
         public DateTime? CreatedAt { get; set; }

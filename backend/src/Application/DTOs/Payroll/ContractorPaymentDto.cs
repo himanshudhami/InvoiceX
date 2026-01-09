@@ -29,6 +29,12 @@ public class ContractorPaymentDto
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
+    // Bank reconciliation - populated from bank_transactions join
+    public Guid? BankTransactionId { get; set; }
+    public DateTime? ReconciledAt { get; set; }
+    public string? ReconciledBy { get; set; }
+    public bool IsReconciled { get; set; }
+
     // Navigation - from party join
     public string? PartyName { get; set; }
     public string? CompanyName { get; set; }

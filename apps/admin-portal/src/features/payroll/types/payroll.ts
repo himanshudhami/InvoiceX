@@ -552,6 +552,12 @@ export interface ContractorPayment {
   paymentReference?: string;
   description?: string;
   remarks?: string;
+  // Bank reconciliation
+  bankTransactionId?: string;
+  reconciledAt?: string;
+  reconciledBy?: string;
+  isReconciled?: boolean;
+  // Metadata
   createdAt?: string;
   updatedAt?: string;
   partyName?: string;

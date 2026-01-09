@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ColumnDef } from '@tanstack/react-table'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import {
@@ -25,6 +25,8 @@ import {
   CreditCard,
   Banknote,
   AlertTriangle,
+  Clock,
+  Landmark,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
@@ -45,8 +47,10 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const ContractorPaymentsPage = () => {
+  const navigate = useNavigate()
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<ContractorPayment | null>(null)
+  const [viewingPayment, setViewingPayment] = useState<ContractorPayment | null>(null)
   const [deletingPayment, setDeletingPayment] = useState<ContractorPayment | null>(null)
   const [approvingPayment, setApprovingPayment] = useState<ContractorPayment | null>(null)
   const [paymentDrawerOpen, setPaymentDrawerOpen] = useState(false)
@@ -62,6 +66,7 @@ const ContractorPaymentsPage = () => {
       paymentMonth: parseAsInteger,
       paymentYear: parseAsInteger,
       status: parseAsString,
+      highlight: parseAsString,
     },
     { history: 'push' }
   )
@@ -270,9 +275,62 @@ const ContractorPaymentsPage = () => {
       },
     },
     {
+      accessorKey: 'paymentReference',
+      header: 'Reference',
+      cell: ({ row }) => {
+        const payment = row.original
+        if (!payment.paymentReference) {
+          return <span className="text-gray-400">—</span>
+        }
+        const methodLabel = payment.paymentMethod || 'Ref'
+        return (
+          <span className="text-sm text-gray-700">
+            {methodLabel} ({payment.paymentReference})
+          </span>
+        )
+      },
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       cell: ({ row }) => getStatusDisplay(row.original.status),
+    },
+    {
+      accessorKey: 'isReconciled',
+      header: 'Reconciled',
+      cell: ({ row }) => {
+        const payment = row.original
+        // Only show reconciliation status for paid payments
+        if (payment.status !== 'paid') {
+          return <span className="text-gray-400">—</span>
+        }
+        // Check if reconciled (either isReconciled flag or reconciledAt timestamp)
+        const isReconciled = payment.isReconciled || !!payment.reconciledAt
+        return isReconciled ? (
+          <div className="inline-flex items-center gap-1">
+            <div className="inline-flex items-center text-green-600">
+              <CheckCircle size={14} className="mr-1" />
+              <span className="text-xs">Yes</span>
+            </div>
+            {payment.bankTransactionId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                onClick={() => navigate(`/bank/transactions?highlight=${payment.bankTransactionId}`)}
+                title="View Bank Transaction"
+              >
+                <Landmark size={14} />
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="inline-flex items-center text-yellow-600">
+            <Clock size={14} className="mr-1" />
+            <span className="text-xs">Pending</span>
+          </div>
+        )
+      },
     },
     {
       id: 'actions',
@@ -285,35 +343,22 @@ const ContractorPaymentsPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => handleEdit(payment)}
-              title="View / Edit"
+              onClick={() => setViewingPayment(payment)}
+              title="View Details"
             >
               <Eye className="w-4 h-4" />
             </Button>
             {status === 'pending' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleApprove(payment)}
-                title="Approve"
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              >
-                <CheckCircle className="w-4 h-4" />
-              </Button>
-            )}
-            {status === 'approved' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleOpenPaymentDrawer(payment)}
-                title="Mark as Paid"
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              >
-                <DollarSign className="w-4 h-4" />
-              </Button>
-            )}
-            {status !== 'paid' && (
               <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleApprove(payment)}
+                  title="Approve"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -331,6 +376,28 @@ const ContractorPaymentsPage = () => {
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+            {status === 'approved' && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleOpenPaymentDrawer(payment)}
+                  title="Mark as Paid"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                >
+                  <DollarSign className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEdit(payment)}
+                  title="Edit"
+                  className="hover:text-blue-700 hover:bg-blue-50"
+                >
+                  <Edit className="w-4 h-4" />
                 </Button>
               </>
             )}
@@ -497,6 +564,7 @@ const ContractorPaymentsPage = () => {
             searchPlaceholder="Search by contractor name, invoice number..."
             searchValue={urlState.searchTerm || ''}
             onSearchChange={(value: string) => setUrlState({ searchTerm: value || null, page: 1 })}
+            highlightedRowId={urlState.highlight || undefined}
             onAdd={() => setIsCreateDrawerOpen(true)}
             addButtonText="Add Payment"
             pagination={{
@@ -580,6 +648,156 @@ const ContractorPaymentsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* View Details Drawer */}
+      <Drawer
+        isOpen={!!viewingPayment}
+        onClose={() => setViewingPayment(null)}
+        title="Contractor Payment Details"
+      >
+        {viewingPayment && (
+          <div className="space-y-6">
+            {/* Contractor Info */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Contractor</h3>
+              <p className="text-lg font-semibold text-gray-900">{viewingPayment.partyName}</p>
+              {viewingPayment.contractorPan && (
+                <p className="text-sm text-gray-600">PAN: {viewingPayment.contractorPan}</p>
+              )}
+            </div>
+
+            {/* Payment Period */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Period</h3>
+                <p className="text-gray-900">{getMonthYear(viewingPayment.paymentMonth, viewingPayment.paymentYear)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                {getStatusDisplay(viewingPayment.status)}
+              </div>
+            </div>
+
+            {/* Invoice & Contract Reference */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Invoice Number</h3>
+                <p className="text-gray-900">{viewingPayment.invoiceNumber || '—'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Contract Reference</h3>
+                <p className="text-gray-900">{viewingPayment.contractReference || '—'}</p>
+              </div>
+            </div>
+
+            {/* Financial Details */}
+            <div className="border rounded-lg divide-y">
+              <div className="flex justify-between p-3">
+                <span className="text-gray-600">Gross Amount</span>
+                <span className="font-medium">{formatINR(viewingPayment.grossAmount)}</span>
+              </div>
+              {viewingPayment.gstApplicable && (
+                <div className="flex justify-between p-3">
+                  <span className="text-gray-600">GST ({viewingPayment.gstRate}%)</span>
+                  <span className="font-medium">{formatINR(viewingPayment.gstAmount)}</span>
+                </div>
+              )}
+              {viewingPayment.totalInvoiceAmount && (
+                <div className="flex justify-between p-3 bg-gray-50">
+                  <span className="text-gray-600">Total Invoice Amount</span>
+                  <span className="font-medium">{formatINR(viewingPayment.totalInvoiceAmount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between p-3">
+                <span className="text-gray-600">TDS ({viewingPayment.tdsSection} @ {viewingPayment.tdsRate}%)</span>
+                <span className="font-medium text-red-600">- {formatINR(viewingPayment.tdsAmount)}</span>
+              </div>
+              {viewingPayment.otherDeductions > 0 && (
+                <div className="flex justify-between p-3">
+                  <span className="text-gray-600">Other Deductions</span>
+                  <span className="font-medium text-red-600">- {formatINR(viewingPayment.otherDeductions)}</span>
+                </div>
+              )}
+              <div className="flex justify-between p-3 bg-green-50">
+                <span className="font-medium text-gray-900">Net Payable</span>
+                <span className="font-bold text-green-600">{formatINR(viewingPayment.netPayable)}</span>
+              </div>
+            </div>
+
+            {/* Payment Info (if paid) */}
+            {viewingPayment.status === 'paid' && (
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h3 className="text-sm font-medium text-blue-800 mb-3">Payment Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Payment Date</span>
+                    <p className="text-gray-900">
+                      {viewingPayment.paymentDate ? format(new Date(viewingPayment.paymentDate), 'dd MMM yyyy') : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Payment Method</span>
+                    <p className="text-gray-900">{viewingPayment.paymentMethod || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Reference</span>
+                    <p className="text-gray-900">{viewingPayment.paymentReference || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Reconciled</span>
+                    <p className="text-gray-900">
+                      {viewingPayment.isReconciled ? (
+                        <span className="text-green-600 flex items-center gap-1">
+                          <CheckCircle size={14} /> Yes
+                        </span>
+                      ) : (
+                        <span className="text-yellow-600 flex items-center gap-1">
+                          <Clock size={14} /> Pending
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Description & Remarks */}
+            {(viewingPayment.description || viewingPayment.remarks) && (
+              <div className="space-y-3">
+                {viewingPayment.description && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                    <p className="text-gray-900">{viewingPayment.description}</p>
+                  </div>
+                )}
+                {viewingPayment.remarks && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Remarks</h3>
+                    <p className="text-gray-900">{viewingPayment.remarks}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setViewingPayment(null)}>
+                Close
+              </Button>
+              {viewingPayment.status !== 'paid' && viewingPayment.status !== 'cancelled' && (
+                <Button
+                  onClick={() => {
+                    setViewingPayment(null)
+                    handleEdit(viewingPayment)
+                  }}
+                >
+                  Edit Payment
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       {/* Mark as Paid Drawer */}
       <MarkAsPaidDrawer
