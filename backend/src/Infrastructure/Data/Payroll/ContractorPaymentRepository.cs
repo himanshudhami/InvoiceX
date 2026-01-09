@@ -19,7 +19,7 @@ namespace Infrastructure.Data.Payroll
             "created_at", "updated_at", "created_by", "updated_by"
         };
 
-        // Base SELECT with party join for name and reconciliation status from bank_transactions
+        // Base SELECT with party join for name and reconciliation status from contractor_payments
         private const string SelectWithParty = @"
             SELECT cp.id, cp.party_id, cp.company_id, cp.payment_month, cp.payment_year,
                    cp.invoice_number, cp.contract_reference, cp.gross_amount, cp.tds_section,
@@ -32,15 +32,12 @@ namespace Infrastructure.Data.Payroll
                    cp.tally_migration_batch_id, cp.created_at, cp.updated_at,
                    cp.created_by, cp.updated_by,
                    p.name as PartyName,
-                   COALESCE(bt.id, cp.bank_transaction_id) as BankTransactionId,
-                   COALESCE(bt.reconciled_at, cp.reconciled_at) as ReconciledAt,
+                   cp.bank_transaction_id as BankTransactionId,
+                   cp.reconciled_at as ReconciledAt,
                    cp.reconciled_by as ReconciledBy,
-                   (bt.id IS NOT NULL) as IsReconciled
+                   (cp.bank_transaction_id IS NOT NULL) as IsReconciled
             FROM contractor_payments cp
-            LEFT JOIN parties p ON p.id = cp.party_id
-            LEFT JOIN bank_transactions bt ON bt.reconciled_id = cp.id
-                AND bt.reconciled_type = 'contractor'
-                AND bt.is_reconciled = true";
+            LEFT JOIN parties p ON p.id = cp.party_id";
 
         public ContractorPaymentRepository(string connectionString)
         {
@@ -203,9 +200,6 @@ namespace Infrastructure.Data.Payroll
                 SELECT COUNT(DISTINCT cp.id)
                 FROM contractor_payments cp
                 LEFT JOIN parties p ON p.id = cp.party_id
-                LEFT JOIN bank_transactions bt ON bt.reconciled_id = cp.id
-                    AND bt.reconciled_type = 'contractor'
-                    AND bt.is_reconciled = true
                 {whereClause}";
 
             using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, parameters);
@@ -330,6 +324,32 @@ namespace Infrastructure.Data.Payroll
                 updated_at = NOW()
                 WHERE id = @id";
             await connection.ExecuteAsync(sql, new { id, status });
+        }
+
+        public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE contractor_payments SET
+                    bank_transaction_id = @bankTransactionId,
+                    reconciled_at = NOW(),
+                    reconciled_by = @reconciledBy,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id, bankTransactionId, reconciledBy });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE contractor_payments SET
+                    bank_transaction_id = NULL,
+                    reconciled_at = NULL,
+                    reconciled_by = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id });
         }
 
         public async Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(int paymentMonth, int paymentYear, Guid? companyId = null)

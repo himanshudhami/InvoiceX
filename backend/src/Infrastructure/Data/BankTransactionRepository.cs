@@ -581,6 +581,32 @@ namespace Infrastructure.Data
 
                     UNION ALL
 
+                    -- Vendor payments
+                    SELECT
+                        vp.id,
+                        'vendor_payment' as type,
+                        vp.payment_date,
+                        vp.amount,
+                        p.name as payee_name,
+                        COALESCE(vp.description, vp.notes) as description,
+                        vp.reference_number as reference_number,
+                        vp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        vp.bank_transaction_id,
+                        vp.reconciled_at,
+                        vp.tds_amount,
+                        vp.tds_section,
+                        'Vendor' as category,
+                        vp.status
+                    FROM vendor_payments vp
+                    LEFT JOIN parties p ON p.id = vp.party_id
+                    WHERE vp.company_id = @companyId
+                      AND vp.status = 'processed'
+                      AND vp.payment_date >= @fromDate
+                      AND vp.payment_date <= @toDate
+                      AND ABS(vp.amount - @amount) <= @amountTolerance
+
+                    UNION ALL
+
                     -- Expense claims
                     SELECT
                         ec.id,
@@ -773,6 +799,30 @@ namespace Infrastructure.Data
                       AND cp.status = 'paid'");
             }
 
+            if (includeAll || typeSet.Contains("vendor_payment"))
+            {
+                unionClauses.Add(@"
+                    SELECT
+                        vp.id,
+                        'vendor_payment' as type,
+                        vp.payment_date as payment_date,
+                        vp.amount,
+                        p.name as payee_name,
+                        COALESCE(vp.description, vp.notes) as description,
+                        vp.reference_number as reference_number,
+                        vp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        vp.bank_transaction_id,
+                        vp.reconciled_at,
+                        vp.tds_amount,
+                        vp.tds_section,
+                        'Vendor' as category,
+                        vp.status
+                    FROM vendor_payments vp
+                    LEFT JOIN parties p ON p.id = vp.party_id
+                    WHERE vp.company_id = @companyId
+                      AND vp.status = 'processed'");
+            }
+
             if (includeAll || typeSet.Contains("expense_claim"))
             {
                 unionClauses.Add(@"
@@ -947,6 +997,17 @@ namespace Infrastructure.Data
                     FROM employee_salary_transactions est
                     JOIN employees e ON e.id = est.employee_id
                     WHERE e.company_id = @companyId AND est.status = 'paid'
+
+                    UNION ALL
+
+                    -- Vendor payments
+                    SELECT
+                        'vendor_payment' as type,
+                        vp.amount,
+                        vp.bank_transaction_id IS NOT NULL as is_reconciled,
+                        vp.payment_date
+                    FROM vendor_payments vp
+                    WHERE vp.company_id = @companyId AND vp.status = 'processed'
 
                     UNION ALL
 

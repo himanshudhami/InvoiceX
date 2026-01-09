@@ -25,6 +25,8 @@ namespace Core.Interfaces.Payroll
         Task<bool> ExistsForEmployeeAndMonthAsync(Guid employeeId, int payrollMonth, int payrollYear, Guid? excludeId = null);
         Task UpdateStatusAsync(Guid id, string status);
         Task UpdateTdsOverrideAsync(Guid id, decimal tdsOverride, string reason);
+        Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+        Task ClearReconciliationAsync(Guid id);
 
         // Summary methods
         Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(Guid payrollRunId);

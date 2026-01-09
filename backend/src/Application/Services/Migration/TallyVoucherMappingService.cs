@@ -657,7 +657,7 @@ namespace Application.Services.Migration
                 UpdatedAt = DateTime.UtcNow
             };
 
-            await _vendorPaymentRepository.AddAsync(vendorPayment);
+            vendorPayment = await _vendorPaymentRepository.AddAsync(vendorPayment);
             voucher.TargetId = vendorPayment.Id;
             voucher.TargetEntity = "vendor_payments";
 

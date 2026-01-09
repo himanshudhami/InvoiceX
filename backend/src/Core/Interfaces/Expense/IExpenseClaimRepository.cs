@@ -71,6 +71,16 @@ namespace Core.Interfaces.Expense
         Task DeleteAsync(Guid id);
 
         /// <summary>
+        /// Mark an expense claim as reconciled with a bank transaction.
+        /// </summary>
+        Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+
+        /// <summary>
+        /// Clear reconciliation fields for an expense claim.
+        /// </summary>
+        Task ClearReconciliationAsync(Guid id);
+
+        /// <summary>
         /// Generate a new claim number for a company.
         /// </summary>
         Task<string> GenerateClaimNumberAsync(Guid companyId);

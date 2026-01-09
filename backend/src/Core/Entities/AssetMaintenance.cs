@@ -16,10 +16,12 @@ public class AssetMaintenance
     public string? Currency { get; set; }
     public DateTime? DueDate { get; set; }
     public string? Notes { get; set; }
+    public Guid? BankTransactionId { get; set; }
+    public DateTime? ReconciledAt { get; set; }
+    public string? ReconciledBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
-
 
 
 

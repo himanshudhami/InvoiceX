@@ -35,6 +35,11 @@ namespace Core.Entities.Expense
         public string? ReimbursementReference { get; set; }
         public string? ReimbursementNotes { get; set; }
 
+        // Bank reconciliation
+        public Guid? BankTransactionId { get; set; }
+        public DateTime? ReconciledAt { get; set; }
+        public string? ReconciledBy { get; set; }
+
         // GST/ITC Information (for Indian tax compliance)
         public string? VendorName { get; set; }
         public string? VendorGstin { get; set; }

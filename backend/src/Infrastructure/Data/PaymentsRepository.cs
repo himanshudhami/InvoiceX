@@ -20,7 +20,8 @@ namespace Infrastructure.Data
             "payment_method", "reference_number", "notes", "description",
             "payment_type", "income_category",
             "tds_applicable", "tds_section", "tds_rate", "tds_amount", "gross_amount",
-            "financial_year",
+            "financial_year", "bank_transaction_id", "is_reconciled",
+            "reconciled_at", "reconciled_by",
             "created_at", "updated_at"
         };
 
@@ -184,6 +185,34 @@ namespace Infrastructure.Data
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.ExecuteAsync(
                 "DELETE FROM payments WHERE id = @id",
+                new { id });
+        }
+
+        public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE payments SET
+                    bank_transaction_id = @bankTransactionId,
+                    is_reconciled = TRUE,
+                    reconciled_at = NOW(),
+                    reconciled_by = @reconciledBy,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id, bankTransactionId, reconciledBy });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE payments SET
+                    bank_transaction_id = NULL,
+                    is_reconciled = FALSE,
+                    reconciled_at = NULL,
+                    reconciled_by = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
                 new { id });
         }
 

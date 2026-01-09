@@ -59,6 +59,16 @@ namespace Core.Interfaces.Payroll
         Task DeleteAsync(Guid id);
 
         /// <summary>
+        /// Mark a statutory payment as reconciled with a bank transaction.
+        /// </summary>
+        Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+
+        /// <summary>
+        /// Clear reconciliation fields for a statutory payment.
+        /// </summary>
+        Task ClearReconciliationAsync(Guid id);
+
+        /// <summary>
         /// Gets pending statutory payments view for dashboard
         /// </summary>
         Task<IEnumerable<PendingStatutoryPaymentView>> GetPendingPaymentsViewAsync(

@@ -26,10 +26,11 @@ public interface ILoansRepository
 
     Task<IEnumerable<LoanTransaction>> GetTransactionsAsync(Guid loanId);
     Task<LoanTransaction> AddTransactionAsync(LoanTransaction transaction);
+    Task MarkTransactionAsReconciledAsync(Guid transactionId, Guid bankTransactionId, string? reconciledBy);
+    Task ClearTransactionReconciliationAsync(Guid transactionId);
     Task<IEnumerable<LoanTransaction>> GetInterestPaymentsAsync(Guid? loanId, DateTime? fromDate, DateTime? toDate);
     Task<decimal> GetTotalInterestPaidAsync(Guid loanId, DateTime? fromDate, DateTime? toDate);
 }
-
 
 
 

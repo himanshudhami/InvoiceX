@@ -178,6 +178,34 @@ namespace Infrastructure.Data.Payroll
                 new { id, updatedAt = DateTime.UtcNow });
         }
 
+        public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE statutory_payments SET
+                    bank_transaction_id = @bankTransactionId,
+                    is_reconciled = TRUE,
+                    reconciled_at = NOW(),
+                    reconciled_by = @reconciledBy,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id, bankTransactionId, reconciledBy });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE statutory_payments SET
+                    bank_transaction_id = NULL,
+                    is_reconciled = FALSE,
+                    reconciled_at = NULL,
+                    reconciled_by = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id });
+        }
+
         public async Task<IEnumerable<PendingStatutoryPaymentView>> GetPendingPaymentsViewAsync(
             Guid companyId)
         {

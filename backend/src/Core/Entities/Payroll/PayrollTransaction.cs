@@ -112,6 +112,9 @@ namespace Core.Entities.Payroll
         public string? PaymentMethod { get; set; }
         public string? PaymentReference { get; set; }
         public string? BankAccount { get; set; }
+        public Guid? BankTransactionId { get; set; }
+        public DateTime? ReconciledAt { get; set; }
+        public string? ReconciledBy { get; set; }
 
         // ==================== Notes ====================
 

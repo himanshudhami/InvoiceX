@@ -264,6 +264,32 @@ JOIN assets a ON m.asset_id = a.id
         await connection.ExecuteAsync(sql, maintenance);
     }
 
+    public async Task MarkMaintenanceAsReconciledAsync(Guid maintenanceId, Guid bankTransactionId, string? reconciledBy)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE asset_maintenance SET
+                bank_transaction_id = @bankTransactionId,
+                reconciled_at = NOW(),
+                reconciled_by = @reconciledBy,
+                updated_at = NOW()
+            WHERE id = @maintenanceId",
+            new { maintenanceId, bankTransactionId, reconciledBy });
+    }
+
+    public async Task ClearMaintenanceReconciliationAsync(Guid maintenanceId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE asset_maintenance SET
+                bank_transaction_id = NULL,
+                reconciled_at = NULL,
+                reconciled_by = NULL,
+                updated_at = NOW()
+            WHERE id = @maintenanceId",
+            new { maintenanceId });
+    }
+
     public async Task<AssetDisposals?> GetDisposalByAssetAsync(Guid assetId)
     {
         using var connection = new NpgsqlConnection(_connectionString);
@@ -318,7 +344,6 @@ JOIN assets a ON m.asset_id = a.id
         return await connection.QueryAsync<Assets>(sql.ToString(), parameters);
     }
 }
-
 
 
 

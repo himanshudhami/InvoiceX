@@ -183,6 +183,32 @@ public class LoansRepository : ILoansRepository
         return await connection.QuerySingleAsync<LoanTransaction>(sql, transaction);
     }
 
+    public async Task MarkTransactionAsReconciledAsync(Guid transactionId, Guid bankTransactionId, string? reconciledBy)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE loan_transactions SET
+                bank_transaction_id = @bankTransactionId,
+                reconciled_at = NOW(),
+                reconciled_by = @reconciledBy,
+                updated_at = NOW()
+            WHERE id = @transactionId",
+            new { transactionId, bankTransactionId, reconciledBy });
+    }
+
+    public async Task ClearTransactionReconciliationAsync(Guid transactionId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE loan_transactions SET
+                bank_transaction_id = NULL,
+                reconciled_at = NULL,
+                reconciled_by = NULL,
+                updated_at = NOW()
+            WHERE id = @transactionId",
+            new { transactionId });
+    }
+
     public async Task<IEnumerable<LoanTransaction>> GetInterestPaymentsAsync(Guid? loanId, DateTime? fromDate, DateTime? toDate)
     {
         using var connection = new NpgsqlConnection(_connectionString);
@@ -234,7 +260,6 @@ public class LoansRepository : ILoansRepository
         return await connection.QuerySingleAsync<decimal>(sql, parameters);
     }
 }
-
 
 
 

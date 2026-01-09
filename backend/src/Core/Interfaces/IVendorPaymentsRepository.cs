@@ -41,6 +41,7 @@ namespace Core.Interfaces
         Task UpdateStatusAsync(Guid id, string status);
         Task MarkAsPostedAsync(Guid id, Guid journalId);
         Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId);
+        Task ClearReconciliationAsync(Guid id);
         Task MarkTdsDepositedAsync(Guid id, string challanNumber, DateOnly depositDate);
 
         // Allocations

@@ -34,6 +34,28 @@ namespace Core.Entities.Payroll
         public Guid? BankAccountId { get; set; }
         public string? BankReference { get; set; } // UTR number, cheque number
 
+        // ==================== Bank Reconciliation ====================
+
+        /// <summary>
+        /// Linked bank transaction after reconciliation
+        /// </summary>
+        public Guid? BankTransactionId { get; set; }
+
+        /// <summary>
+        /// Whether reconciled with bank statement
+        /// </summary>
+        public bool IsReconciled { get; set; }
+
+        /// <summary>
+        /// When reconciled
+        /// </summary>
+        public DateTime? ReconciledAt { get; set; }
+
+        /// <summary>
+        /// Who performed the reconciliation
+        /// </summary>
+        public string? ReconciledBy { get; set; }
+
         // TDS specific fields
         public string? BsrCode { get; set; } // Bank branch code for TDS
         public string? ReceiptNumber { get; set; } // CIN (Challan Identification Number)

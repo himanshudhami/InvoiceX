@@ -36,6 +36,8 @@ public interface IAssetsRepository
     Task<AssetMaintenance?> GetMaintenanceByIdAsync(Guid id);
     Task<AssetMaintenance> AddMaintenanceAsync(AssetMaintenance maintenance);
     Task UpdateMaintenanceAsync(AssetMaintenance maintenance);
+    Task MarkMaintenanceAsReconciledAsync(Guid maintenanceId, Guid bankTransactionId, string? reconciledBy);
+    Task ClearMaintenanceReconciliationAsync(Guid maintenanceId);
 
     // Disposals
     Task<AssetDisposals?> GetDisposalByAssetAsync(Guid assetId);
@@ -50,7 +52,6 @@ public interface IAssetsRepository
     // Available assets (unassigned)
     Task<IEnumerable<Assets>> GetAvailableAssetsAsync(Guid companyId, string? searchTerm = null);
 }
-
 
 
 

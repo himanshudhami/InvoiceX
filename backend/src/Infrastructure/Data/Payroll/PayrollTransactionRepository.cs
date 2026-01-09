@@ -21,7 +21,8 @@ namespace Infrastructure.Data.Payroll
             "pf_employer", "pf_admin_charges", "pf_edli", "esi_employer", "gratuity_provision",
             "total_employer_cost", "tds_calculation", "tds_hr_override", "tds_override_reason",
             "status", "payment_date", "payment_method", "payment_reference", "bank_account",
-            "remarks", "created_at", "updated_at"
+            "remarks", "bank_transaction_id", "reconciled_at", "reconciled_by",
+            "created_at", "updated_at"
         };
 
         public PayrollTransactionRepository(string connectionString)
@@ -333,6 +334,32 @@ namespace Infrastructure.Data.Payroll
                 updated_at = NOW()
                 WHERE id = @id";
             await connection.ExecuteAsync(sql, new { id, tdsOverride, reason });
+        }
+
+        public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE payroll_transactions SET
+                    bank_transaction_id = @bankTransactionId,
+                    reconciled_at = NOW(),
+                    reconciled_by = @reconciledBy,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id, bankTransactionId, reconciledBy });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE payroll_transactions SET
+                    bank_transaction_id = NULL,
+                    reconciled_at = NULL,
+                    reconciled_by = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id });
         }
 
         public async Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(Guid payrollRunId)

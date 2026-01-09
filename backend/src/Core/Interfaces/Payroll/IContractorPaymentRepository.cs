@@ -25,6 +25,8 @@ namespace Core.Interfaces.Payroll
         Task<IEnumerable<ContractorPayment>> BulkAddAsync(IEnumerable<ContractorPayment> entities);
         Task<bool> ExistsForPartyAndMonthAsync(Guid partyId, int paymentMonth, int paymentYear, Guid? excludeId = null);
         Task UpdateStatusAsync(Guid id, string status);
+        Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+        Task ClearReconciliationAsync(Guid id);
 
         // Summary methods
         Task<Dictionary<string, decimal>> GetMonthlySummaryAsync(int paymentMonth, int paymentYear, Guid? companyId = null);

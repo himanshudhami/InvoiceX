@@ -124,6 +124,32 @@ public class SubscriptionsRepository : ISubscriptionsRepository
         await connection.ExecuteAsync("DELETE FROM subscriptions WHERE id=@id", new { id });
     }
 
+    public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE subscriptions SET
+                bank_transaction_id = @bankTransactionId,
+                reconciled_at = NOW(),
+                reconciled_by = @reconciledBy,
+                updated_at = NOW()
+            WHERE id = @id",
+            new { id, bankTransactionId, reconciledBy });
+    }
+
+    public async Task ClearReconciliationAsync(Guid id)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE subscriptions SET
+                bank_transaction_id = NULL,
+                reconciled_at = NULL,
+                reconciled_by = NULL,
+                updated_at = NOW()
+            WHERE id = @id",
+            new { id });
+    }
+
     public async Task<IEnumerable<SubscriptionAssignments>> GetAssignmentsAsync(Guid subscriptionId)
     {
         using var connection = new NpgsqlConnection(_connectionString);
@@ -176,7 +202,6 @@ public class SubscriptionsRepository : ISubscriptionsRepository
         await connection.ExecuteAsync(sql, new { subscriptionId, cancelledOn = cancelledOn ?? DateTime.UtcNow.Date });
     }
 }
-
 
 
 

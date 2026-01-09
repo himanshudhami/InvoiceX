@@ -101,6 +101,7 @@ namespace Application.Services
         {
             "salary" => "Salary",
             "contractor" => "Contractor Payment",
+            "vendor_payment" => "Vendor Payment",
             "expense_claim" => "Expense Claim",
             "subscription" => "Subscription",
             "loan_payment" => "Loan Payment",

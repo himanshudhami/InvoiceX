@@ -35,6 +35,9 @@ namespace Core.Interfaces
         // TDS summary for compliance reporting
         Task<IEnumerable<dynamic>> GetTdsSummaryAsync(Guid? companyId, string financialYear);
 
+        Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+        Task ClearReconciliationAsync(Guid id);
+
         // ==================== Tally Migration ====================
 
         /// <summary>

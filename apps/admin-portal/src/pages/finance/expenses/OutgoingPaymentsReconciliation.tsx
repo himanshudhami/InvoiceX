@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Calendar,
   DollarSign,
+  Building,
   Users,
   CreditCard,
   FileText,
@@ -73,6 +74,7 @@ const OutgoingPaymentsReconciliation = () => {
     switch (type) {
       case 'salary': return <Users className="w-4 h-4" />
       case 'contractor': return <Briefcase className="w-4 h-4" />
+      case 'vendor_payment': return <Building className="w-4 h-4" />
       case 'expense_claim': return <FileText className="w-4 h-4" />
       case 'subscription': return <CreditCard className="w-4 h-4" />
       case 'loan_payment': return <DollarSign className="w-4 h-4" />
@@ -85,6 +87,7 @@ const OutgoingPaymentsReconciliation = () => {
     switch (type) {
       case 'salary': return 'bg-blue-100 text-blue-700'
       case 'contractor': return 'bg-purple-100 text-purple-700'
+      case 'vendor_payment': return 'bg-emerald-100 text-emerald-700'
       case 'expense_claim': return 'bg-orange-100 text-orange-700'
       case 'subscription': return 'bg-cyan-100 text-cyan-700'
       case 'loan_payment': return 'bg-red-100 text-red-700'
@@ -97,6 +100,7 @@ const OutgoingPaymentsReconciliation = () => {
     { value: 'all', label: 'All Types' },
     { value: 'salary', label: 'Salary' },
     { value: 'contractor', label: 'Contractor' },
+    { value: 'vendor_payment', label: 'Vendor Payments' },
     { value: 'expense_claim', label: 'Expense Claims' },
     { value: 'subscription', label: 'Subscriptions' },
     { value: 'loan_payment', label: 'Loan Payments' },

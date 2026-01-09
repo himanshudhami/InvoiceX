@@ -41,7 +41,7 @@ public class ReconciliationSearchRequest
     public DateOnly? DateTo { get; set; }
 
     /// <summary>
-    /// Filter by specific record types: salary, contractor, expense_claim, subscription, loan_payment, asset_maintenance
+    /// Filter by specific record types: salary, contractor, vendor_payment, expense_claim, subscription, loan_payment, asset_maintenance
     /// </summary>
     public List<string>? RecordTypes { get; set; }
 

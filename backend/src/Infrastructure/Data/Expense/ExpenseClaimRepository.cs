@@ -18,7 +18,8 @@ namespace Infrastructure.Data.Expense
                    ec.status, ec.approval_request_id, ec.submitted_at,
                    ec.approved_at, ec.approved_by, ec.rejected_at, ec.rejected_by,
                    ec.rejection_reason, ec.reimbursed_at, ec.reimbursement_reference,
-                   ec.reimbursement_notes, ec.created_at, ec.updated_at,
+                   ec.reimbursement_notes, ec.bank_transaction_id, ec.reconciled_at,
+                   ec.reconciled_by, ec.created_at, ec.updated_at,
                    e.employee_name,
                    cat.name as category_name,
                    approver.employee_name as approved_by_name,
@@ -259,6 +260,32 @@ namespace Infrastructure.Data.Expense
             using var connection = new NpgsqlConnection(_connectionString);
             await connection.ExecuteAsync(
                 "DELETE FROM expense_claims WHERE id = @id AND status = 'draft'",
+                new { id });
+        }
+
+        public async Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE expense_claims SET
+                    bank_transaction_id = @bankTransactionId,
+                    reconciled_at = NOW(),
+                    reconciled_by = @reconciledBy,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id, bankTransactionId, reconciledBy });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE expense_claims SET
+                    bank_transaction_id = NULL,
+                    reconciled_at = NULL,
+                    reconciled_by = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
                 new { id });
         }
 

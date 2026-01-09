@@ -28,10 +28,12 @@ public class Subscriptions
     public DateTime? PausedOn { get; set; }
     public DateTime? ResumedOn { get; set; }
     public DateTime? CancelledOn { get; set; }
+    public Guid? BankTransactionId { get; set; }
+    public DateTime? ReconciledAt { get; set; }
+    public string? ReconciledBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
-
 
 
 

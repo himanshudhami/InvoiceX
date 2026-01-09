@@ -33,6 +33,9 @@ namespace Core.Entities
         public string PaymentMethod { get; set; } = "bank_transfer";
         public string? PaymentReference { get; set; }
         public string Status { get; set; } = "pending";
+        public Guid? BankTransactionId { get; set; }
+        public DateTime? ReconciledAt { get; set; }
+        public string? ReconciledBy { get; set; }
         
         // Additional fields
         public string? Remarks { get; set; }

@@ -17,6 +17,7 @@ interface OutgoingPaymentTypeaheadProps {
 const typeIcons: Record<string, React.ReactNode> = {
   salary: <User className="size-4 text-blue-500" />,
   contractor: <User className="size-4 text-purple-500" />,
+  vendor_payment: <Banknote className="size-4 text-emerald-500" />,
   expense_claim: <Receipt className="size-4 text-orange-500" />,
   subscription: <CreditCard className="size-4 text-green-500" />,
   loan_payment: <Building className="size-4 text-red-500" />,
@@ -27,6 +28,7 @@ const typeIcons: Record<string, React.ReactNode> = {
 const typeDisplayNames: Record<string, string> = {
   salary: 'Salary',
   contractor: 'Contractor',
+  vendor_payment: 'Vendor Payment',
   expense_claim: 'Expense',
   subscription: 'Subscription',
   loan_payment: 'Loan',

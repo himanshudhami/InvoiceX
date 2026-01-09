@@ -100,6 +100,28 @@ namespace Core.Entities
         /// </summary>
         public string? FinancialYear { get; set; }
 
+        // ==================== Bank Reconciliation ====================
+
+        /// <summary>
+        /// Linked bank transaction after reconciliation
+        /// </summary>
+        public Guid? BankTransactionId { get; set; }
+
+        /// <summary>
+        /// Whether reconciled with bank statement
+        /// </summary>
+        public bool IsReconciled { get; set; }
+
+        /// <summary>
+        /// When reconciled
+        /// </summary>
+        public DateTime? ReconciledAt { get; set; }
+
+        /// <summary>
+        /// Who performed the reconciliation
+        /// </summary>
+        public string? ReconciledBy { get; set; }
+
         // ==================== Timestamps ====================
 
         public DateTime? CreatedAt { get; set; }

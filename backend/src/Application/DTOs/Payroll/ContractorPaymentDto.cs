@@ -29,7 +29,7 @@ public class ContractorPaymentDto
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
-    // Bank reconciliation - populated from bank_transactions join
+    // Bank reconciliation - populated from contractor_payments fields
     public Guid? BankTransactionId { get; set; }
     public DateTime? ReconciledAt { get; set; }
     public string? ReconciledBy { get; set; }

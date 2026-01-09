@@ -331,7 +331,7 @@ export interface BankTransactionSummary {
 // Debit (outgoing payment) reconciliation suggestion
 export interface DebitReconciliationSuggestion {
   recordId: string;
-  recordType: string; // salary, contractor, expense_claim, subscription, loan_payment, asset_maintenance
+  recordType: string; // salary, contractor, vendor_payment, expense_claim, subscription, loan_payment, asset_maintenance
   recordTypeDisplay: string;
   paymentDate: string;
   amount: number;

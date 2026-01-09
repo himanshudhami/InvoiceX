@@ -159,7 +159,7 @@ namespace Core.Entities.Payroll
         public string? ReconciledBy { get; set; }
 
         /// <summary>
-        /// Whether payment is reconciled (populated from bank_transactions join)
+        /// Whether payment is reconciled (derived from bank_transaction_id)
         /// </summary>
         public bool IsReconciled { get; set; }
 

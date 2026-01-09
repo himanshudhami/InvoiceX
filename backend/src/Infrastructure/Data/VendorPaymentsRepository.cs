@@ -269,11 +269,24 @@ namespace Infrastructure.Data
             await connection.ExecuteAsync(
                 @"UPDATE vendor_payments SET
                     is_reconciled = TRUE,
-                    reconciled_bank_transaction_id = @bankTransactionId,
+                    bank_transaction_id = @bankTransactionId,
                     reconciled_at = NOW(),
                     updated_at = NOW()
                 WHERE id = @id",
                 new { id, bankTransactionId });
+        }
+
+        public async Task ClearReconciliationAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            await connection.ExecuteAsync(
+                @"UPDATE vendor_payments SET
+                    is_reconciled = FALSE,
+                    bank_transaction_id = NULL,
+                    reconciled_at = NULL,
+                    updated_at = NOW()
+                WHERE id = @id",
+                new { id });
         }
 
         public async Task MarkTdsDepositedAsync(Guid id, string challanNumber, DateOnly depositDate)

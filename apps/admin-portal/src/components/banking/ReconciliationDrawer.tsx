@@ -775,6 +775,7 @@ const ManualTab = ({
           <option value="payment">Payment</option>
           <option value="salary">Salary</option>
           <option value="contractor">Contractor Payment</option>
+          <option value="vendor_payment">Vendor Payment</option>
           <option value="expense_claim">Expense Claim</option>
           <option value="subscription">Subscription</option>
           <option value="loan_payment">Loan Payment</option>

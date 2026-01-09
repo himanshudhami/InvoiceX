@@ -4,7 +4,9 @@ using Application.DTOs.BankTransactions;
 using Core.Entities;
 using Core.Entities.Ledger;
 using Core.Interfaces;
+using Core.Interfaces.Expense;
 using Core.Interfaces.Ledger;
+using Core.Interfaces.Payroll;
 using Core.Common;
 
 namespace Application.Services
@@ -19,6 +21,15 @@ namespace Application.Services
         private readonly IJournalEntryRepository _journalEntryRepository;
         private readonly IChartOfAccountRepository _chartOfAccountRepository;
         private readonly IJournalEntryLinkingService _journalEntryLinkingService;
+        private readonly IPaymentsRepository _paymentsRepository;
+        private readonly IStatutoryPaymentRepository _statutoryPaymentRepository;
+        private readonly IVendorPaymentsRepository _vendorPaymentsRepository;
+        private readonly IContractorPaymentRepository _contractorPaymentRepository;
+        private readonly IPayrollTransactionRepository _payrollTransactionRepository;
+        private readonly IExpenseClaimRepository _expenseClaimRepository;
+        private readonly ISubscriptionsRepository _subscriptionsRepository;
+        private readonly ILoansRepository _loansRepository;
+        private readonly IAssetsRepository _assetsRepository;
 
         // Account codes for adjustment entries (matching your Chart of Accounts)
         private static class AccountCodes
@@ -41,13 +52,31 @@ namespace Application.Services
             IBankAccountRepository bankAccountRepository,
             IJournalEntryRepository journalEntryRepository,
             IChartOfAccountRepository chartOfAccountRepository,
-            IJournalEntryLinkingService journalEntryLinkingService)
+            IJournalEntryLinkingService journalEntryLinkingService,
+            IPaymentsRepository paymentsRepository,
+            IStatutoryPaymentRepository statutoryPaymentRepository,
+            IVendorPaymentsRepository vendorPaymentsRepository,
+            IContractorPaymentRepository contractorPaymentRepository,
+            IPayrollTransactionRepository payrollTransactionRepository,
+            IExpenseClaimRepository expenseClaimRepository,
+            ISubscriptionsRepository subscriptionsRepository,
+            ILoansRepository loansRepository,
+            IAssetsRepository assetsRepository)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _bankAccountRepository = bankAccountRepository ?? throw new ArgumentNullException(nameof(bankAccountRepository));
             _journalEntryRepository = journalEntryRepository ?? throw new ArgumentNullException(nameof(journalEntryRepository));
             _chartOfAccountRepository = chartOfAccountRepository ?? throw new ArgumentNullException(nameof(chartOfAccountRepository));
             _journalEntryLinkingService = journalEntryLinkingService ?? throw new ArgumentNullException(nameof(journalEntryLinkingService));
+            _paymentsRepository = paymentsRepository ?? throw new ArgumentNullException(nameof(paymentsRepository));
+            _statutoryPaymentRepository = statutoryPaymentRepository ?? throw new ArgumentNullException(nameof(statutoryPaymentRepository));
+            _vendorPaymentsRepository = vendorPaymentsRepository ?? throw new ArgumentNullException(nameof(vendorPaymentsRepository));
+            _contractorPaymentRepository = contractorPaymentRepository ?? throw new ArgumentNullException(nameof(contractorPaymentRepository));
+            _payrollTransactionRepository = payrollTransactionRepository ?? throw new ArgumentNullException(nameof(payrollTransactionRepository));
+            _expenseClaimRepository = expenseClaimRepository ?? throw new ArgumentNullException(nameof(expenseClaimRepository));
+            _subscriptionsRepository = subscriptionsRepository ?? throw new ArgumentNullException(nameof(subscriptionsRepository));
+            _loansRepository = loansRepository ?? throw new ArgumentNullException(nameof(loansRepository));
+            _assetsRepository = assetsRepository ?? throw new ArgumentNullException(nameof(assetsRepository));
         }
 
         /// <inheritdoc />
@@ -75,8 +104,9 @@ namespace Application.Services
             var companyId = bankAccount.CompanyId.Value;
 
             // Validate reconciled type
-            var validTypes = new[] { "payment", "expense", "payroll", "tax_payment", "transfer", "contractor", "salary", "expense_claim", "subscription", "loan_payment", "asset_maintenance" };
-            if (!validTypes.Contains(dto.ReconciledType.ToLower()))
+            var validTypes = new[] { "payment", "expense", "payroll", "tax_payment", "transfer", "contractor", "vendor_payment", "salary", "expense_claim", "subscription", "loan_payment", "asset_maintenance" };
+            var normalizedType = NormalizeReconciledType(dto.ReconciledType);
+            if (!validTypes.Contains(normalizedType))
                 return Error.Validation($"Invalid reconciled type. Must be one of: {string.Join(", ", validTypes)}");
 
             // Validate difference type if provided
@@ -116,6 +146,12 @@ namespace Application.Services
                 dto.TdsSection,
                 adjustmentJournalId
             );
+
+            await WriteBackReconciliationAsync(
+                dto.ReconciledType,
+                dto.ReconciledId,
+                transactionId,
+                dto.ReconciledBy);
 
             // Auto-link to journal entry (hybrid reconciliation)
             // This enables BRS generation from ledger perspective
@@ -305,6 +341,97 @@ namespace Application.Services
             return date.Month >= 4 ? date.Month - 3 : date.Month + 9;
         }
 
+        private static string NormalizeReconciledType(string reconciledType)
+        {
+            return reconciledType.Trim().ToLowerInvariant();
+        }
+
+        private async Task WriteBackReconciliationAsync(
+            string reconciledType,
+            Guid reconciledId,
+            Guid bankTransactionId,
+            string? reconciledBy)
+        {
+            switch (NormalizeReconciledType(reconciledType))
+            {
+                case "payment":
+                    await _paymentsRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "tax_payment":
+                case "tax":
+                    await _statutoryPaymentRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "vendor_payment":
+                    await _vendorPaymentsRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId);
+                    break;
+                case "contractor":
+                case "contractor_payment":
+                    await _contractorPaymentRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "salary":
+                case "payroll":
+                    await _payrollTransactionRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "expense_claim":
+                case "expense":
+                    await _expenseClaimRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "subscription":
+                    await _subscriptionsRepository.MarkAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "loan_payment":
+                    await _loansRepository.MarkTransactionAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "asset_maintenance":
+                    await _assetsRepository.MarkMaintenanceAsReconciledAsync(reconciledId, bankTransactionId, reconciledBy);
+                    break;
+                case "transfer":
+                default:
+                    break;
+            }
+        }
+
+        private async Task ClearReconciliationAsync(string reconciledType, Guid reconciledId)
+        {
+            switch (NormalizeReconciledType(reconciledType))
+            {
+                case "payment":
+                    await _paymentsRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "tax_payment":
+                case "tax":
+                    await _statutoryPaymentRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "vendor_payment":
+                    await _vendorPaymentsRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "contractor":
+                case "contractor_payment":
+                    await _contractorPaymentRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "salary":
+                case "payroll":
+                    await _payrollTransactionRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "expense_claim":
+                case "expense":
+                    await _expenseClaimRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "subscription":
+                    await _subscriptionsRepository.ClearReconciliationAsync(reconciledId);
+                    break;
+                case "loan_payment":
+                    await _loansRepository.ClearTransactionReconciliationAsync(reconciledId);
+                    break;
+                case "asset_maintenance":
+                    await _assetsRepository.ClearMaintenanceReconciliationAsync(reconciledId);
+                    break;
+                case "transfer":
+                default:
+                    break;
+            }
+        }
+
         /// <inheritdoc />
         public async Task<Result> UnreconcileTransactionAsync(Guid transactionId)
         {
@@ -322,6 +449,11 @@ namespace Application.Services
             // If there's an adjustment journal entry, we should reverse it
             // For now, we'll just unreconcile - journal reversal can be added later
             // TODO: Reverse adjustment journal entry if exists
+
+            if (!string.IsNullOrWhiteSpace(transaction.ReconciledType) && transaction.ReconciledId.HasValue)
+            {
+                await ClearReconciliationAsync(transaction.ReconciledType, transaction.ReconciledId.Value);
+            }
 
             await _repository.UnreconcileTransactionAsync(transactionId);
             return Result.Success();
@@ -540,6 +672,7 @@ namespace Application.Services
                 if (bestMatch != null)
                 {
                     await _repository.ReconcileTransactionAsync(txn.Id, "payment", bestMatch.Id, "auto-reconcile");
+                    await WriteBackReconciliationAsync("payment", bestMatch.Id, txn.Id, "auto-reconcile");
 
                     result.TransactionsReconciled++;
                     result.TotalAmountReconciled += txn.Amount;
@@ -650,6 +783,7 @@ namespace Application.Services
         {
             "salary" => "Salary",
             "contractor" => "Contractor Payment",
+            "vendor_payment" => "Vendor Payment",
             "expense_claim" => "Expense Claim",
             "subscription" => "Subscription",
             "loan_payment" => "Loan Payment",

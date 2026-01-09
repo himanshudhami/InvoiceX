@@ -17,6 +17,8 @@ public interface ISubscriptionsRepository
     Task<Subscriptions> AddAsync(Subscriptions entity);
     Task UpdateAsync(Subscriptions entity);
     Task DeleteAsync(Guid id);
+    Task MarkAsReconciledAsync(Guid id, Guid bankTransactionId, string? reconciledBy);
+    Task ClearReconciliationAsync(Guid id);
 
     Task<IEnumerable<SubscriptionAssignments>> GetAssignmentsAsync(Guid subscriptionId);
     Task<IEnumerable<SubscriptionAssignments>> GetAssignmentsByEmployeeAsync(Guid employeeId);
@@ -26,7 +28,6 @@ public interface ISubscriptionsRepository
     Task ResumeSubscriptionAsync(Guid subscriptionId, DateTime? resumedOn);
     Task CancelSubscriptionAsync(Guid subscriptionId, DateTime? cancelledOn);
 }
-
 
 
 
