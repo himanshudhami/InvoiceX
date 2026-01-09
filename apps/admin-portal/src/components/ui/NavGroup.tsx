@@ -1,6 +1,7 @@
 import { FC } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { getIconStyle } from '@/lib/iconPalette'
 import { ChevronDown, LucideIcon } from 'lucide-react'
 
 interface NavItem {
@@ -34,6 +35,7 @@ export const NavGroup: FC<NavGroupProps> = ({
     }
     return location.pathname.startsWith(item.href)
   })
+  const groupIconStyle = getIconStyle(name)
 
   if (isCollapsed) {
     return (
@@ -48,7 +50,9 @@ export const NavGroup: FC<NavGroupProps> = ({
           )}
           title={name}
         >
-          <Icon className="h-5 w-5" />
+          <span className={cn('inline-flex h-9 w-9 items-center justify-center rounded-lg', groupIconStyle.bg)}>
+            <Icon className={cn('h-5 w-5', groupIconStyle.text)} />
+          </span>
         </button>
       </div>
     )
@@ -66,7 +70,9 @@ export const NavGroup: FC<NavGroupProps> = ({
         )}
       >
         <div className="flex items-center">
-          <Icon className="mr-3 h-5 w-5" />
+          <span className={cn('mr-3 inline-flex h-9 w-9 items-center justify-center rounded-lg', groupIconStyle.bg)}>
+            <Icon className={cn('h-5 w-5', groupIconStyle.text)} />
+          </span>
           {name}
         </div>
         <ChevronDown
@@ -101,7 +107,21 @@ export const NavGroup: FC<NavGroupProps> = ({
                       : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   )}
                 >
-                  {item.icon && <item.icon className="mr-3 h-4 w-4" />}
+                  {item.icon && (
+                    <span
+                      className={cn(
+                        'mr-3 inline-flex h-7 w-7 items-center justify-center rounded-md',
+                        getIconStyle(`${name}-${item.name}`).bg
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          'h-4 w-4',
+                          getIconStyle(`${name}-${item.name}`).text
+                        )}
+                      />
+                    </span>
+                  )}
                   {item.name}
                 </Link>
               </li>
@@ -126,6 +146,7 @@ export const SingleNavItem: FC<SingleNavItemProps> = ({ name, href, icon: Icon, 
     href === '/dashboard'
       ? location.pathname === href
       : location.pathname.startsWith(href)
+  const iconStyle = getIconStyle(name)
 
   if (isCollapsed) {
     return (
@@ -139,7 +160,9 @@ export const SingleNavItem: FC<SingleNavItemProps> = ({ name, href, icon: Icon, 
         )}
         title={name}
       >
-        <Icon className="h-5 w-5" />
+        <span className={cn('inline-flex h-9 w-9 items-center justify-center rounded-lg', iconStyle.bg)}>
+          <Icon className={cn('h-5 w-5', iconStyle.text)} />
+        </span>
       </Link>
     )
   }
@@ -154,8 +177,10 @@ export const SingleNavItem: FC<SingleNavItemProps> = ({ name, href, icon: Icon, 
           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
       )}
     >
-      <Icon className="mr-3 h-5 w-5" />
-      {name}
-    </Link>
+    <span className={cn('mr-3 inline-flex h-9 w-9 items-center justify-center rounded-lg', iconStyle.bg)}>
+      <Icon className={cn('h-5 w-5', iconStyle.text)} />
+    </span>
+    {name}
+  </Link>
   )
 }
