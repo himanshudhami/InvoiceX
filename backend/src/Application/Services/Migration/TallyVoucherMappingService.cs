@@ -444,6 +444,10 @@ namespace Application.Services.Migration
                     var journalId = await CreateJournalEntryFromVoucher(batchId, companyId, voucher, payment.Id, "payments");
                     voucher.JournalEntryId = journalId;
 
+                    // Create bank transaction (Receipt = credit to bank)
+                    await _bankTransactionMapper.CreateBankTransactionAsync(
+                        batchId, companyId, voucher, "payments", payment.Id, cancellationToken);
+
                     counts.Imported++;
                     await LogVoucherMigration(batchId, voucher, "success", null, payment.Id, processingOrder, "payments");
                 }
@@ -705,6 +709,11 @@ namespace Application.Services.Migration
 
                     // Handle cost center allocations
                     await CreateTransactionTags(companyId, voucher, "journal_entries", journalId!.Value);
+
+                    // Create bank transactions for bank-affecting entries
+                    // Contra vouchers create TWO transactions (debit + credit)
+                    await CreateBankTransactionsForJournalAsync(
+                        batchId, companyId, voucher, journalId.Value, cancellationToken);
 
                     counts.Imported++;
                     await LogVoucherMigration(batchId, voucher, "success", null, journalId, processingOrder, "journal_entries");
@@ -1096,6 +1105,94 @@ namespace Application.Services.Migration
                 "memorandum" => "memorandum",
                 _ => normalized.Replace(" ", "_")
             };
+        }
+
+        /// <summary>
+        /// Creates bank transactions for Journal/Contra vouchers that affect bank accounts.
+        /// For Contra vouchers: creates TWO transactions (debit from source bank, credit to destination bank).
+        /// For Journal vouchers: creates transaction for any bank-affecting entry.
+        /// </summary>
+        private async Task CreateBankTransactionsForJournalAsync(
+            Guid batchId,
+            Guid companyId,
+            TallyVoucherDto voucher,
+            Guid journalId,
+            CancellationToken cancellationToken)
+        {
+            // Find all bank-affecting ledger entries
+            var bankEntries = voucher.LedgerEntries
+                .Where(e => IsBankLedger(e.LedgerName))
+                .ToList();
+
+            if (!bankEntries.Any())
+            {
+                _logger.LogDebug("No bank entries in {VoucherType} voucher {Number}",
+                    voucher.VoucherType, voucher.VoucherNumber);
+                return;
+            }
+
+            var isContra = voucher.VoucherType?.ToLower() == "contra";
+
+            if (isContra && bankEntries.Count >= 2)
+            {
+                // Contra voucher: create TWO bank transactions
+                // Debit entry (positive amount) = source bank (money going OUT)
+                var debitEntry = bankEntries.FirstOrDefault(e => e.Amount > 0);
+                if (debitEntry != null)
+                {
+                    await _bankTransactionMapper.CreateBankTransactionFromLedgerEntryAsync(
+                        batchId, companyId, voucher, debitEntry,
+                        "journal_entries", journalId, "debit", cancellationToken);
+                }
+
+                // Credit entry (negative amount) = destination bank (money coming IN)
+                var creditEntry = bankEntries.FirstOrDefault(e => e.Amount < 0);
+                if (creditEntry != null)
+                {
+                    await _bankTransactionMapper.CreateBankTransactionFromLedgerEntryAsync(
+                        batchId, companyId, voucher, creditEntry,
+                        "journal_entries", journalId, "credit", cancellationToken);
+                }
+
+                _logger.LogDebug("Created contra bank transactions for voucher {Number}: debit {DebitBank}, credit {CreditBank}",
+                    voucher.VoucherNumber, debitEntry?.LedgerName, creditEntry?.LedgerName);
+            }
+            else
+            {
+                // Regular journal: create bank transaction for each bank entry
+                foreach (var entry in bankEntries)
+                {
+                    // Positive amount = debit (money out), Negative = credit (money in)
+                    var transactionType = entry.Amount > 0 ? "debit" : "credit";
+
+                    await _bankTransactionMapper.CreateBankTransactionFromLedgerEntryAsync(
+                        batchId, companyId, voucher, entry,
+                        "journal_entries", journalId, transactionType, cancellationToken);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines if a ledger name is likely a bank account.
+        /// </summary>
+        private static bool IsBankLedger(string? ledgerName)
+        {
+            if (string.IsNullOrEmpty(ledgerName)) return false;
+
+            var name = ledgerName.ToLower();
+            return name.Contains("bank") ||
+                   name.Contains("axis") ||
+                   name.Contains("hdfc") ||
+                   name.Contains("icici") ||
+                   name.Contains("sbi") ||
+                   name.Contains("kotak") ||
+                   name.Contains("yes bank") ||
+                   name.Contains("idfc") ||
+                   name.Contains("canara") ||
+                   name.Contains("union") ||
+                   name.Contains("pnb") ||
+                   name.Contains("bob") ||
+                   name.Contains("indusind");
         }
 
         private static string DeterminePaymentMethod(TallyVoucherDto voucher)

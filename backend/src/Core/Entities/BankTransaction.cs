@@ -184,6 +184,12 @@ namespace Core.Entities
         // ==================== Tally Import Matching ====================
 
         /// <summary>
+        /// Tally voucher type that created this transaction: payment, receipt, contra, journal, sales, purchase
+        /// Enables tracking the origin of each bank book entry
+        /// </summary>
+        public string? SourceVoucherType { get; set; }
+
+        /// <summary>
         /// Source entity type from Tally import: vendor_payments, contractor_payments, statutory_payments, journal_entries
         /// Distinct from ReconciledType which is for bank statement reconciliation
         /// </summary>

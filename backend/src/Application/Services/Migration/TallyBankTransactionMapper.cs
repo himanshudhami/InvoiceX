@@ -9,9 +9,9 @@ using Microsoft.Extensions.Logging;
 namespace Application.Services.Migration
 {
     /// <summary>
-    /// Creates bank transaction records from Tally Payment vouchers.
+    /// Creates bank transaction records from Tally vouchers (Payment, Receipt, Contra, Journal).
     /// Single Responsibility: Map Tally voucher to BankTransaction entity.
-    /// This enables bank reconciliation by creating expected bank entries.
+    /// This enables bank reconciliation by creating expected bank entries (Bank Book).
     /// </summary>
     public class TallyBankTransactionMapper : ITallyBankTransactionMapper
     {
@@ -45,8 +45,12 @@ namespace Application.Services.Migration
                 return Result<BankTransaction>.Success(existing);
             }
 
-            // Resolve bank account from debit entry (source of funds)
-            var bankAccountId = await ResolveBankAccountAsync(companyId, voucher);
+            // Determine transaction type based on voucher type
+            var transactionType = DetermineTransactionType(voucher);
+            var sourceVoucherType = voucher.VoucherType?.ToLower() ?? "payment";
+
+            // Resolve bank account (considers transaction type for debit/credit entries)
+            var bankAccountId = await ResolveBankAccountAsync(companyId, voucher, transactionType);
             if (!bankAccountId.HasValue)
             {
                 _logger.LogWarning(
@@ -67,12 +71,13 @@ namespace Application.Services.Migration
                 Description = BuildDescription(voucher),
                 ReferenceNumber = txnDetails.ReferenceNumber ?? voucher.VoucherNumber,
                 ChequeNumber = txnDetails.ChequeNumber,
-                TransactionType = "debit",  // All payments are debits (money going out)
+                TransactionType = transactionType,
                 Amount = Math.Abs(voucher.Amount),
                 Category = DetermineCategory(matchedEntityType),
                 IsReconciled = false,  // Will be reconciled against bank statement later
                 ImportSource = "tally_import",
                 ImportBatchId = batchId,
+                SourceVoucherType = sourceVoucherType,
                 MatchedEntityType = matchedEntityType,
                 MatchedEntityId = matchedEntityId,
                 TallyVoucherGuid = voucher.Guid,
@@ -92,12 +97,30 @@ namespace Application.Services.Migration
         }
 
         /// <summary>
-        /// Resolves bank account from voucher.
-        /// In Tally Payment vouchers: PartyLedgerName is typically the bank account (debit side).
+        /// Determines transaction type based on Tally voucher type.
+        /// Payment = debit (money out), Receipt = credit (money in)
         /// </summary>
-        private async Task<Guid?> ResolveBankAccountAsync(Guid companyId, TallyVoucherDto voucher)
+        private static string DetermineTransactionType(TallyVoucherDto voucher)
         {
-            // First try PartyLedgerName (usually the bank account in Payment vouchers)
+            var voucherType = voucher.VoucherType?.ToLower() ?? "";
+            return voucherType switch
+            {
+                "receipt" => "credit",   // Money coming IN
+                "payment" => "debit",    // Money going OUT
+                "contra" => "debit",     // Default, but Contra needs special handling (both legs)
+                "journal" => "debit",    // Default, actual depends on entry
+                _ => "debit"
+            };
+        }
+
+        /// <summary>
+        /// Resolves bank account from voucher.
+        /// For Payment: look for debit entries (positive amounts)
+        /// For Receipt: look for credit entries (negative amounts in Tally convention)
+        /// </summary>
+        private async Task<Guid?> ResolveBankAccountAsync(Guid companyId, TallyVoucherDto voucher, string transactionType)
+        {
+            // First try PartyLedgerName (usually the bank account in Payment/Receipt vouchers)
             if (!string.IsNullOrEmpty(voucher.PartyLedgerName))
             {
                 var bankAccount = await _bankAccountRepository.GetByNameAsync(companyId, voucher.PartyLedgerName);
@@ -113,8 +136,13 @@ namespace Application.Services.Migration
                 }
             }
 
-            // Then try debit entries (positive amounts = bank account being debited)
-            foreach (var entry in voucher.LedgerEntries.Where(e => e.Amount > 0))
+            // For credits (Receipt), look for negative amount entries (credit to bank)
+            // For debits (Payment), look for positive amount entries (debit from bank)
+            Func<decimal, bool> amountFilter = transactionType == "credit"
+                ? a => a < 0  // Credit entries (negative in Tally)
+                : a => a > 0; // Debit entries (positive in Tally)
+
+            foreach (var entry in voucher.LedgerEntries.Where(e => amountFilter(e.Amount)))
             {
                 if (IsBankLedger(entry.LedgerName))
                 {
@@ -293,6 +321,144 @@ namespace Application.Services.Migration
             public string? ReferenceNumber { get; set; }
             public string? ChequeNumber { get; set; }
             public string? TransferMode { get; set; }
+        }
+
+        /// <summary>
+        /// Creates a bank transaction from a specific ledger entry.
+        /// Used for Contra vouchers (creates TWO transactions) and Journal entries affecting bank.
+        /// </summary>
+        public async Task<Result<BankTransaction>> CreateBankTransactionFromLedgerEntryAsync(
+            Guid batchId,
+            Guid companyId,
+            TallyVoucherDto voucher,
+            TallyLedgerEntryDto ledgerEntry,
+            string matchedEntityType,
+            Guid? matchedEntityId,
+            string transactionType,
+            CancellationToken cancellationToken = default)
+        {
+            // For Contra/Journal, we may have multiple bank entries per voucher
+            // Use a composite key: voucher GUID + ledger entry position
+            var entryIndex = voucher.LedgerEntries.ToList().IndexOf(ledgerEntry);
+            var compositeGuid = $"{voucher.Guid}_{entryIndex}";
+
+            // Check for duplicate
+            var existing = await _bankTransactionRepository.GetByTallyGuidAsync(compositeGuid);
+            if (existing != null)
+            {
+                _logger.LogDebug("Bank transaction already exists for voucher {VoucherNumber} entry {Index}",
+                    voucher.VoucherNumber, entryIndex);
+                return Result<BankTransaction>.Success(existing);
+            }
+
+            // Resolve bank account from the specific ledger entry
+            var bankAccountId = await ResolveBankAccountFromEntryAsync(companyId, ledgerEntry);
+            if (!bankAccountId.HasValue)
+            {
+                _logger.LogWarning(
+                    "Could not resolve bank account for ledger entry {LedgerName} in voucher {VoucherNumber}",
+                    ledgerEntry.LedgerName, voucher.VoucherNumber);
+                return Error.Validation($"Could not resolve bank account for {ledgerEntry.LedgerName}");
+            }
+
+            var txnDetails = ParseTransactionDetails(voucher.Narration ?? "");
+            var sourceVoucherType = voucher.VoucherType?.ToLower() ?? "journal";
+
+            var bankTransaction = new BankTransaction
+            {
+                Id = Guid.NewGuid(),
+                BankAccountId = bankAccountId.Value,
+                TransactionDate = voucher.Date,
+                ValueDate = voucher.Date,
+                Description = BuildDescriptionForEntry(voucher, ledgerEntry, transactionType),
+                ReferenceNumber = txnDetails.ReferenceNumber ?? voucher.VoucherNumber,
+                ChequeNumber = txnDetails.ChequeNumber,
+                TransactionType = transactionType,
+                Amount = Math.Abs(ledgerEntry.Amount),
+                Category = DetermineCategory(matchedEntityType),
+                IsReconciled = false,
+                ImportSource = "tally_import",
+                ImportBatchId = batchId,
+                SourceVoucherType = sourceVoucherType,
+                MatchedEntityType = matchedEntityType,
+                MatchedEntityId = matchedEntityId,
+                TallyVoucherGuid = compositeGuid,  // Composite for uniqueness
+                TallyVoucherNumber = voucher.VoucherNumber,
+                TallyMigrationBatchId = batchId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var created = await _bankTransactionRepository.AddAsync(bankTransaction);
+
+            _logger.LogDebug(
+                "Created bank transaction {TxnId} ({Type}) for {VoucherType} voucher {VoucherNumber}, bank: {BankName}",
+                created.Id, transactionType, sourceVoucherType, voucher.VoucherNumber, ledgerEntry.LedgerName);
+
+            return Result<BankTransaction>.Success(created);
+        }
+
+        /// <summary>
+        /// Resolves bank account from a specific ledger entry.
+        /// </summary>
+        private async Task<Guid?> ResolveBankAccountFromEntryAsync(Guid companyId, TallyLedgerEntryDto entry)
+        {
+            if (string.IsNullOrEmpty(entry.LedgerName)) return null;
+
+            // Try exact name match
+            var bankAccount = await _bankAccountRepository.GetByNameAsync(companyId, entry.LedgerName);
+            if (bankAccount != null)
+                return bankAccount.Id;
+
+            // Try by Tally GUID
+            if (!string.IsNullOrEmpty(entry.LedgerGuid))
+            {
+                bankAccount = await _bankAccountRepository.GetByTallyGuidAsync(companyId, entry.LedgerGuid);
+                if (bankAccount != null)
+                    return bankAccount.Id;
+            }
+
+            // Partial match fallback
+            var allBankAccounts = await _bankAccountRepository.GetByCompanyIdAsync(companyId);
+            var match = allBankAccounts.FirstOrDefault(ba =>
+                entry.LedgerName.Contains(ba.AccountName, StringComparison.OrdinalIgnoreCase) ||
+                ba.AccountName.Contains(entry.LedgerName, StringComparison.OrdinalIgnoreCase));
+
+            return match?.Id;
+        }
+
+        /// <summary>
+        /// Builds description for ledger entry-based transactions.
+        /// </summary>
+        private static string BuildDescriptionForEntry(TallyVoucherDto voucher, TallyLedgerEntryDto entry, string transactionType)
+        {
+            var parts = new List<string>();
+            parts.Add($"[{voucher.VoucherType}]");
+
+            // For contra, show transfer direction
+            if (voucher.VoucherType?.ToLower() == "contra")
+            {
+                var direction = transactionType == "credit" ? "From" : "To";
+                var otherBank = voucher.LedgerEntries
+                    .Where(e => e != entry && IsBankLedger(e.LedgerName))
+                    .Select(e => e.LedgerName)
+                    .FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(otherBank))
+                {
+                    parts.Add($"{direction}: {otherBank}");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(voucher.Narration))
+            {
+                var narration = voucher.Narration.Replace("\r", " ").Replace("\n", " ").Trim();
+                if (narration.Length > 100)
+                    narration = narration[..100] + "...";
+                parts.Add(narration);
+            }
+
+            return string.Join(" | ", parts);
         }
     }
 }

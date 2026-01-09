@@ -87,7 +87,7 @@ namespace Infrastructure.Data
                     is_reconciled, reconciled_type, reconciled_id,
                     reconciled_at, reconciled_by,
                     import_source, import_batch_id, raw_data, transaction_hash,
-                    matched_entity_type, matched_entity_id,
+                    source_voucher_type, matched_entity_type, matched_entity_id,
                     tally_voucher_guid, tally_voucher_number, tally_migration_batch_id,
                     created_at, updated_at
                 )
@@ -98,7 +98,7 @@ namespace Infrastructure.Data
                     @IsReconciled, @ReconciledType, @ReconciledId,
                     @ReconciledAt, @ReconciledBy,
                     @ImportSource, @ImportBatchId, @RawData::jsonb, @TransactionHash,
-                    @MatchedEntityType, @MatchedEntityId,
+                    @SourceVoucherType, @MatchedEntityType, @MatchedEntityId,
                     @TallyVoucherGuid, @TallyVoucherNumber, @TallyMigrationBatchId,
                     NOW(), NOW()
                 )
@@ -131,6 +131,7 @@ namespace Infrastructure.Data
                     import_batch_id = @ImportBatchId,
                     raw_data = @RawData::jsonb,
                     transaction_hash = @TransactionHash,
+                    source_voucher_type = @SourceVoucherType,
                     matched_entity_type = @MatchedEntityType,
                     matched_entity_id = @MatchedEntityId,
                     tally_voucher_guid = @TallyVoucherGuid,
