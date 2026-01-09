@@ -1,9 +1,9 @@
 using Core.Entities;
 using Core.Interfaces;
 using Dapper;
-using Infrastructure.Data.Common;
 using Npgsql;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Data
@@ -15,15 +15,38 @@ namespace Infrastructure.Data
         // Whitelist of allowed columns for sorting and filtering
         private static readonly string[] AllowedColumns = new[]
         {
-            "id", "company_id", "customer_id", "quote_number", "quote_date",
-            "expiry_date", "status", "total_amount", "created_at", "notes", "project_name"
+            "id", "company_id", "party_id", "quote_number", "quote_date",
+            "valid_until", "status", "subtotal", "tax_amount", "discount_amount",
+            "total_amount", "currency", "notes", "terms",
+            "converted_to_invoice_id", "converted_at",
+            "created_at", "updated_at"
         };
 
         // Columns searchable via ILIKE
         private static readonly string[] SearchableColumns = new[]
         {
-            "quote_number", "status", "notes", "project_name"
+            "quote_number", "status", "notes", "terms"
         };
+
+        private const string SelectColumns = @"
+            id,
+            company_id,
+            party_id,
+            quote_number,
+            quote_date,
+            valid_until,
+            status,
+            subtotal,
+            tax_amount,
+            discount_amount,
+            total_amount,
+            currency,
+            notes,
+            terms,
+            converted_to_invoice_id,
+            converted_at,
+            created_at,
+            updated_at";
 
         public QuotesRepository(string connectionString)
         {
@@ -34,7 +57,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<Quotes>(
-                "SELECT * FROM quotes WHERE id = @id",
+                $"SELECT {SelectColumns} FROM quotes WHERE id = @id",
                 new { id });
         }
 
@@ -42,7 +65,7 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
             return await connection.QueryAsync<Quotes>(
-                "SELECT * FROM quotes ORDER BY created_at DESC");
+                $"SELECT {SelectColumns} FROM quotes ORDER BY created_at DESC");
         }
 
         public async Task<(IEnumerable<Quotes> Items, int TotalCount)> GetPagedAsync(
@@ -55,44 +78,86 @@ namespace Infrastructure.Data
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
-            // Use SqlQueryBuilder for secure parameterized queries
-            var builder = SqlQueryBuilder.From("quotes", AllowedColumns);
+            var conditions = new List<string>();
+            var parameters = new DynamicParameters();
 
-            // Apply search across multiple columns
-            builder.SearchAcross(SearchableColumns, searchTerm);
-
-            // Apply filters using safe parameterized queries
-            if (filters != null)
+            if (!string.IsNullOrWhiteSpace(searchTerm))
             {
-                // Map filter keys to database column names
-                var dbFilters = new Dictionary<string, object?>();
-                if (filters.TryGetValue("companyId", out var companyId) && companyId != null)
-                    dbFilters["company_id"] = companyId;
-                if (filters.TryGetValue("customerId", out var customerId) && customerId != null)
-                    dbFilters["customer_id"] = customerId;
-                if (filters.TryGetValue("status", out var status) && !string.IsNullOrEmpty(status?.ToString()))
-                    dbFilters["status"] = status;
-
-                builder.ApplyFilters(dbFilters);
+                conditions.Add($"({string.Join(" OR ", SearchableColumns.Select(c => $"{c} ILIKE @searchTerm"))})");
+                parameters.Add("searchTerm", $"%{searchTerm}%");
             }
 
-            // Apply sorting with column whitelist validation
-            var sortColumn = !string.IsNullOrEmpty(sortBy) && AllowedColumns.Contains(sortBy.ToLower())
+            if (filters != null)
+            {
+                if (filters.TryGetValue("companyId", out var companyId) && companyId != null)
+                {
+                    conditions.Add("company_id = @companyId");
+                    parameters.Add("companyId", companyId);
+                }
+
+                if (filters.TryGetValue("partyId", out var partyId) && partyId != null)
+                {
+                    conditions.Add("party_id = @partyId");
+                    parameters.Add("partyId", partyId);
+                }
+
+                if (filters.TryGetValue("status", out var status) && !string.IsNullOrWhiteSpace(status?.ToString()))
+                {
+                    conditions.Add("status = @status");
+                    parameters.Add("status", status);
+                }
+
+                if (filters.TryGetValue("valid_until_from", out var validFrom) && validFrom != null)
+                {
+                    conditions.Add("valid_until >= @validUntilFrom");
+                    parameters.Add("validUntilFrom", validFrom);
+                }
+
+                if (filters.TryGetValue("valid_until_to", out var validTo) && validTo != null)
+                {
+                    conditions.Add("valid_until <= @validUntilTo");
+                    parameters.Add("validUntilTo", validTo);
+                }
+
+                if (filters.TryGetValue("total_amount_from", out var totalFrom) && totalFrom != null)
+                {
+                    conditions.Add("total_amount >= @totalAmountFrom");
+                    parameters.Add("totalAmountFrom", totalFrom);
+                }
+
+                if (filters.TryGetValue("total_amount_to", out var totalTo) && totalTo != null)
+                {
+                    conditions.Add("total_amount <= @totalAmountTo");
+                    parameters.Add("totalAmountTo", totalTo);
+                }
+            }
+
+            var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+            var sortColumn = !string.IsNullOrWhiteSpace(sortBy) && AllowedColumns.Contains(sortBy.ToLower())
                 ? sortBy.ToLower()
                 : "created_at";
-            builder.OrderBy(sortColumn, sortDescending || (sortColumn == "created_at" && string.IsNullOrEmpty(sortBy)));
+            var sortDirection = sortDescending ? "DESC" : "ASC";
 
-            // Apply pagination
-            builder.Paginate(pageNumber, pageSize);
+            var offset = (pageNumber - 1) * pageSize;
+            parameters.Add("limit", pageSize);
+            parameters.Add("offset", offset);
 
-            // Get total count using the builder
-            var (countSql, countParams) = builder.BuildCount();
-            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, countParams);
+            var dataSql = $@"
+                SELECT {SelectColumns}
+                FROM quotes
+                {whereClause}
+                ORDER BY {sortColumn} {sortDirection}
+                LIMIT @limit OFFSET @offset";
 
-            // Get items using the builder
-            var (itemsSql, itemsParams) = builder.BuildSelect();
-            var items = await connection.QueryAsync<Quotes>(itemsSql, itemsParams);
+            var countSql = $@"
+                SELECT COUNT(*)
+                FROM quotes
+                {whereClause}";
 
+            using var multi = await connection.QueryMultipleAsync(dataSql + ";" + countSql, parameters);
+            var items = await multi.ReadAsync<Quotes>();
+            var totalCount = await multi.ReadSingleAsync<int>();
             return (items, totalCount);
         }
 
@@ -101,17 +166,15 @@ namespace Infrastructure.Data
             using var connection = new NpgsqlConnection(_connectionString);
             var query = @"
                 INSERT INTO quotes (
-                    id, company_id, customer_id, quote_number, quote_date, expiry_date,
-                    status, subtotal, discount_type, discount_value, discount_amount,
-                    tax_amount, total_amount, currency, notes, terms, payment_instructions,
-                    po_number, project_name, sent_at, viewed_at, accepted_at, rejected_at,
-                    rejected_reason, created_at, updated_at
+                    id, company_id, party_id, quote_number, quote_date, valid_until,
+                    status, subtotal, tax_amount, discount_amount,
+                    total_amount, currency, notes, terms,
+                    created_at, updated_at
                 ) VALUES (
-                    @Id, @CompanyId, @CustomerId, @QuoteNumber, @QuoteDate, @ExpiryDate,
-                    @Status, @Subtotal, @DiscountType, @DiscountValue, @DiscountAmount,
-                    @TaxAmount, @TotalAmount, @Currency, @Notes, @Terms, @PaymentInstructions,
-                    @PoNumber, @ProjectName, @SentAt, @ViewedAt, @AcceptedAt, @RejectedAt,
-                    @RejectedReason, @CreatedAt, @UpdatedAt
+                    @Id, @CompanyId, @PartyId, @QuoteNumber, @QuoteDate, @ValidUntil,
+                    @Status, @Subtotal, @TaxAmount, @DiscountAmount,
+                    @TotalAmount, @Currency, @Notes, @Terms,
+                    @CreatedAt, @UpdatedAt
                 )";
 
             await connection.ExecuteAsync(query, entity);
@@ -124,28 +187,20 @@ namespace Infrastructure.Data
             var query = @"
                 UPDATE quotes SET
                     company_id = @CompanyId,
-                    customer_id = @CustomerId,
+                    party_id = @PartyId,
                     quote_number = @QuoteNumber,
                     quote_date = @QuoteDate,
-                    expiry_date = @ExpiryDate,
+                    valid_until = @ValidUntil,
                     status = @Status,
                     subtotal = @Subtotal,
-                    discount_type = @DiscountType,
-                    discount_value = @DiscountValue,
                     discount_amount = @DiscountAmount,
                     tax_amount = @TaxAmount,
                     total_amount = @TotalAmount,
                     currency = @Currency,
                     notes = @Notes,
                     terms = @Terms,
-                    payment_instructions = @PaymentInstructions,
-                    po_number = @PoNumber,
-                    project_name = @ProjectName,
-                    sent_at = @SentAt,
-                    viewed_at = @ViewedAt,
-                    accepted_at = @AcceptedAt,
-                    rejected_at = @RejectedAt,
-                    rejected_reason = @RejectedReason,
+                    converted_to_invoice_id = @ConvertedToInvoiceId,
+                    converted_at = @ConvertedAt,
                     updated_at = @UpdatedAt
                 WHERE id = @Id";
 

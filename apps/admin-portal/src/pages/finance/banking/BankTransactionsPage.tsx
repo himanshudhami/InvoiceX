@@ -185,6 +185,21 @@ const BankTransactionsPage = () => {
     })
   }, [transactions, filterStatus, filterType, searchTerm])
 
+  const { reconciledAmount, unreconciledAmount } = useMemo(() => {
+    return transactions.reduce(
+      (totals, transaction) => {
+        const amount = Number(transaction.amount || 0)
+        if (transaction.isReconciled) {
+          totals.reconciledAmount += amount
+        } else {
+          totals.unreconciledAmount += amount
+        }
+        return totals
+      },
+      { reconciledAmount: 0, unreconciledAmount: 0 }
+    )
+  }, [transactions])
+
   // Scroll to highlighted row when transactions load
   useEffect(() => {
     if (highlightId && highlightedRowRef.current) {
@@ -303,7 +318,7 @@ const BankTransactionsPage = () => {
         <>
           {/* Summary Cards */}
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
               <div className="bg-white rounded-lg shadow p-4">
                 <p className="text-sm text-gray-500">Total Transactions</p>
                 <p className="text-2xl font-bold text-gray-900">{summary.totalCount}</p>
@@ -324,6 +339,29 @@ const BankTransactionsPage = () => {
                   <p className="text-sm text-gray-500">Total Debits</p>
                 </div>
                 <p className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalDebits)}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4">
+                <p className="text-sm text-gray-500">Reconciliation Amounts</p>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 text-gray-500">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                      Reconciled
+                    </span>
+                    <span className="font-semibold text-emerald-600">
+                      {formatCurrency(reconciledAmount)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1 text-gray-500">
+                      <XCircle className="h-3.5 w-3.5 text-amber-500" />
+                      Unreconciled
+                    </span>
+                    <span className="font-semibold text-amber-600">
+                      {formatCurrency(unreconciledAmount)}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="bg-white rounded-lg shadow p-4">
                 <p className="text-sm text-gray-500">Reconciliation</p>

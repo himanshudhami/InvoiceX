@@ -32,6 +32,12 @@ export interface Payment {
   // Timestamps
   createdAt?: string;
   updatedAt?: string;
+
+  // Bank reconciliation
+  bankTransactionId?: string;
+  isReconciled?: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
 }
 
 // Income summary for financial reports

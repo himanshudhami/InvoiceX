@@ -180,20 +180,15 @@ namespace Application.Services
                     PartyId = originalQuote.PartyId,
                     QuoteNumber = await GenerateNextQuoteNumberAsync(originalQuote.CompanyId),
                     QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                    ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
+                    ValidUntil = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
                     Status = "draft",
                     Subtotal = originalQuote.Subtotal,
-                    DiscountType = originalQuote.DiscountType,
-                    DiscountValue = originalQuote.DiscountValue,
                     DiscountAmount = originalQuote.DiscountAmount,
                     TaxAmount = originalQuote.TaxAmount,
                     TotalAmount = originalQuote.TotalAmount,
                     Currency = originalQuote.Currency,
                     Notes = originalQuote.Notes,
                     Terms = originalQuote.Terms,
-                    PaymentInstructions = originalQuote.PaymentInstructions,
-                    PoNumber = originalQuote.PoNumber,
-                    ProjectName = originalQuote.ProjectName,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -246,7 +241,6 @@ namespace Application.Services
                     return Error.Validation("Only draft quotes can be sent");
 
                 entity.Status = "sent";
-                entity.SentAt = DateTime.UtcNow;
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(entity);
@@ -274,7 +268,6 @@ namespace Application.Services
                     return Error.Validation("Only sent or viewed quotes can be accepted");
 
                 entity.Status = "accepted";
-                entity.AcceptedAt = DateTime.UtcNow;
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(entity);
@@ -287,7 +280,7 @@ namespace Application.Services
         }
 
         /// <inheritdoc />
-        public async Task<Result> RejectAsync(Guid id, string? reason = null)
+        public async Task<Result> RejectAsync(Guid id)
         {
             if (id == default(Guid))
                 return Error.Validation("ID cannot be default value");
@@ -302,8 +295,6 @@ namespace Application.Services
                     return Error.Validation("Only sent or viewed quotes can be rejected");
 
                 entity.Status = "rejected";
-                entity.RejectedAt = DateTime.UtcNow;
-                entity.RejectedReason = reason;
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(entity);
@@ -347,9 +338,6 @@ namespace Application.Services
                     Currency = quote.Currency,
                     Notes = quote.Notes,
                     Terms = quote.Terms,
-                    PaymentInstructions = quote.PaymentInstructions,
-                    PoNumber = quote.PoNumber,
-                    ProjectName = quote.ProjectName,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -377,6 +365,11 @@ namespace Application.Services
                     };
                     await _invoiceItemsRepository.AddAsync(invoiceItem);
                 }
+
+                quote.ConvertedToInvoiceId = createdInvoice.Id;
+                quote.ConvertedAt = DateTime.UtcNow;
+                quote.UpdatedAt = DateTime.UtcNow;
+                await _repository.UpdateAsync(quote);
 
                 return Result<Invoices>.Success(createdInvoice);
             }

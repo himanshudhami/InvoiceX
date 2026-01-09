@@ -78,13 +78,13 @@ namespace Infrastructure.Data
                 SELECT
                     i.id as Id,
                     i.invoice_number as InvoiceNumber,
-                    COALESCE(c.name, 'Unknown Customer') as CustomerName,
+                    COALESCE(p.display_name, p.name, 'Unknown Customer') as CustomerName,
                     i.total_amount as TotalAmount,
                     i.status as Status,
                     i.invoice_date as InvoiceDate,
                     i.due_date as DueDate
                 FROM invoices i
-                LEFT JOIN customers c ON i.customer_id = c.id
+                LEFT JOIN parties p ON i.party_id = p.id
                 WHERE i.status != 'cancelled'
                 AND i.company_id = @companyId
                 ORDER BY i.created_at DESC

@@ -298,22 +298,10 @@ export const QuotePDFDocument: React.FC<QuotePDFProps> = ({
             <Text style={styles.detailsLabel}>Quote Date</Text>
             <Text style={styles.detailsValue}>{format(new Date(quote.quoteDate), 'MMMM dd, yyyy')}</Text>
 
-            <Text style={styles.detailsLabel}>Expiry Date</Text>
-            <Text style={styles.detailsValue}>{format(new Date(quote.expiryDate), 'MMMM dd, yyyy')}</Text>
-
-            {quote.projectName && (
-              <>
-                <Text style={styles.detailsLabel}>Project</Text>
-                <Text style={styles.detailsValue}>{quote.projectName}</Text>
-              </>
-            )}
-
-            {quote.poNumber && (
-              <>
-                <Text style={styles.detailsLabel}>PO Number</Text>
-                <Text style={styles.detailsValue}>{quote.poNumber}</Text>
-              </>
-            )}
+            <Text style={styles.detailsLabel}>Valid Until</Text>
+            <Text style={styles.detailsValue}>
+              {quote.validUntil ? format(new Date(quote.validUntil), 'MMMM dd, yyyy') : '—'}
+            </Text>
           </View>
 
           <View style={styles.detailsSection}>

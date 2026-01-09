@@ -12,7 +12,21 @@ import { Modal } from '@/components/ui/Modal';
 import { PageSizeSelect } from '@/components/ui/PageSizeSelect';
 import { formatINR } from '@/lib/financialUtils';
 import { formatCurrency } from '@/lib/currency';
-import { Eye, Trash2, Plus, FileText, Banknote, ChevronDown, X, Search, Split } from 'lucide-react';
+import {
+  Eye,
+  Trash2,
+  Plus,
+  FileText,
+  Banknote,
+  ChevronDown,
+  X,
+  Search,
+  Split,
+  CheckCircle,
+  Clock,
+  Link2,
+  Unlink,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RecordPaymentModal } from '@/components/modals/RecordPaymentModal';
 import { DirectPaymentForm } from '@/components/forms/DirectPaymentForm';
@@ -23,6 +37,8 @@ import { cn } from '@/lib/utils';
 import { CustomerSelect } from '@/components/ui/CustomerSelect';
 import { PaymentAllocationDialog } from '@/components/payments/PaymentAllocationDialog';
 import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell';
+import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog';
+import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions';
 
 const PaymentsManagement = () => {
   const [deletingPayment, setDeletingPayment] = useState<Payment | null>(null);
@@ -30,6 +46,7 @@ const PaymentsManagement = () => {
   const [showDirectPaymentForm, setShowDirectPaymentForm] = useState(false);
   const [showPaymentMenu, setShowPaymentMenu] = useState(false);
   const [allocatingPayment, setAllocatingPayment] = useState<Payment | null>(null);
+  const [reconcilingPayment, setReconcilingPayment] = useState<Payment | null>(null);
   const navigate = useNavigate();
 
   // Get selected company from context (for multi-company users)
@@ -75,6 +92,7 @@ const PaymentsManagement = () => {
   const { data: companies = [] } = useCompanies();
   const { data: customers = [] } = useCustomers(effectiveCompanyId || undefined);
   const deletePayment = useDeletePayment();
+  const unreconcileTransaction = useUnreconcileTransaction();
 
   // Extract items and pagination info from response
   const payments = paymentsData?.items ?? [];
@@ -100,6 +118,16 @@ const PaymentsManagement = () => {
       } catch (error) {
         console.error('Failed to delete payment:', error);
       }
+    }
+  };
+
+  const handleUnreconcile = async (payment: Payment) => {
+    if (!payment.bankTransactionId) return;
+    try {
+      await unreconcileTransaction.mutateAsync(payment.bankTransactionId);
+      refetch();
+    } catch (error) {
+      console.error('Failed to unreconcile payment:', error);
     }
   };
 
@@ -318,40 +346,84 @@ const PaymentsManagement = () => {
       },
     },
     {
+      accessorKey: 'isReconciled',
+      header: 'Reconciled',
+      cell: ({ row }) => {
+        const payment = row.original;
+        const isReconciled = !!payment.isReconciled || !!payment.bankTransactionId;
+        return isReconciled ? (
+          <div className="inline-flex items-center text-green-600">
+            <CheckCircle className="w-4 h-4 mr-1" />
+            <span className="text-xs">Yes</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center text-yellow-600">
+            <Clock className="w-4 h-4 mr-1" />
+            <span className="text-xs">Pending</span>
+          </div>
+        );
+      },
+    },
+    {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          {row.original.invoiceId && (
+      cell: ({ row }) => {
+        const payment = row.original;
+        const isReconciled = !!payment.isReconciled || !!payment.bankTransactionId;
+        const canReconcile = !isReconciled;
+
+        return (
+          <div className="flex items-center space-x-2">
+            {payment.invoiceId && (
+              <button
+                onClick={() => handleViewInvoice(payment.invoiceId)}
+                className="text-blue-600 hover:text-blue-800"
+                title="View Invoice"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+            {/* Allocate button - for payments that can be allocated to invoices */}
+            {payment.companyId && (
+              <button
+                onClick={() => setAllocatingPayment(payment)}
+                className="text-green-600 hover:text-green-800"
+                title="Allocate to Invoices"
+              >
+                <Split className="w-4 h-4" />
+              </button>
+            )}
+            {canReconcile && (
+              <button
+                onClick={() => setReconcilingPayment(payment)}
+                className="text-blue-600 hover:text-blue-800"
+                title="Reconcile"
+              >
+                <Link2 className="w-4 h-4" />
+              </button>
+            )}
+            {isReconciled && payment.bankTransactionId && (
+              <button
+                onClick={() => handleUnreconcile(payment)}
+                disabled={unreconcileTransaction.isPending}
+                className="text-orange-600 hover:text-orange-800 disabled:opacity-50"
+                title="Unreconcile"
+              >
+                <Unlink className="w-4 h-4" />
+              </button>
+            )}
             <button
-              onClick={() => handleViewInvoice(row.original.invoiceId)}
-              className="text-blue-600 hover:text-blue-800"
-              title="View Invoice"
+              onClick={() => handleDelete(payment)}
+              className="text-red-600 hover:text-red-800"
+              title="Delete Payment"
             >
-              <Eye className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" />
             </button>
-          )}
-          {/* Allocate button - for payments that can be allocated to invoices */}
-          {row.original.companyId && (
-            <button
-              onClick={() => setAllocatingPayment(row.original)}
-              className="text-green-600 hover:text-green-800"
-              title="Allocate to Invoices"
-            >
-              <Split className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={() => handleDelete(row.original)}
-            className="text-red-600 hover:text-red-800"
-            title="Delete Payment"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      ),
+          </div>
+        );
+      },
     },
-  ], [invoices, companies, customers]);
+  ], [invoices, companies, customers, unreconcileTransaction.isPending]);
 
   if (error) {
     return (
@@ -576,6 +648,7 @@ const PaymentsManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
+                      <td className="px-6 py-4 text-sm text-gray-900"></td>
                     </tr>
                   </tfoot>
                 )}
@@ -731,6 +804,32 @@ const PaymentsManagement = () => {
           }}
         />
       )}
+
+      <ReconcilePaymentDialog
+        isOpen={!!reconcilingPayment}
+        reconciledType="payment"
+        transactionType="credit"
+        payment={
+          reconcilingPayment
+            ? (() => {
+                const customerName = getCustomerName(reconcilingPayment);
+                return {
+                  id: reconcilingPayment.id,
+                  amount: reconcilingPayment.amount,
+                  paymentDate: reconcilingPayment.paymentDate,
+                  payeeName: customerName !== '—' ? customerName : undefined,
+                  description: reconcilingPayment.description || reconcilingPayment.notes,
+                  referenceNumber: reconcilingPayment.referenceNumber,
+                };
+              })()
+            : null
+        }
+        onClose={() => setReconcilingPayment(null)}
+        onReconciled={() => {
+          setReconcilingPayment(null);
+          refetch();
+        }}
+      />
     </div>
   );
 };

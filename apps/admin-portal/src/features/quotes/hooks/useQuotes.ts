@@ -169,8 +169,7 @@ export const useRejectQuote = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      quoteService.reject(id, reason),
+    mutationFn: ({ id }: { id: string }) => quoteService.reject(id),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: quoteKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: quoteKeys.lists() })

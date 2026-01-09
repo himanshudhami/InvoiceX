@@ -240,7 +240,7 @@ namespace Infrastructure.Data
                         p.payment_date,
                         p.reference_number,
                         p.payment_method,
-                        c.name as customer_name,
+                        COALESCE(pr.display_name, pr.name) as customer_name,
                         i.invoice_number,
                         p.amount - COALESCE(SUM(btm.matched_amount), 0) as unmatched_amount,
                         CASE
@@ -251,10 +251,10 @@ namespace Infrastructure.Data
                         END as confidence_score
                     FROM payments p
                     LEFT JOIN bank_transaction_matches btm ON btm.matched_type = 'payment' AND btm.matched_id = p.id
-                    LEFT JOIN customers c ON p.customer_id = c.id
+                    LEFT JOIN parties pr ON p.party_id = pr.id
                     LEFT JOIN invoices i ON p.invoice_id = i.id
-                    WHERE p.bank_account_id IS NULL OR p.is_reconciled = false
-                    GROUP BY p.id, c.name, i.invoice_number
+                    WHERE p.bank_transaction_id IS NULL OR p.is_reconciled = false
+                    GROUP BY p.id, pr.name, pr.display_name, i.invoice_number
                     HAVING p.amount - COALESCE(SUM(btm.matched_amount), 0) > 0
                     ORDER BY confidence_score DESC
                     LIMIT 10";

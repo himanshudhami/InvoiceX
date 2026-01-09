@@ -18,23 +18,18 @@ interface QuoteFormProps {
 export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
   const [formData, setFormData] = useState<CreateQuoteDto>({
     companyId: '',
-    customerId: '',
+    partyId: '',
     quoteNumber: '',
     quoteDate: new Date().toISOString().split('T')[0],
-    expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     status: 'draft',
     subtotal: 0,
-    discountType: 'percentage',
-    discountValue: 0,
     discountAmount: 0,
     taxAmount: 0,
     totalAmount: 0,
     currency: 'USD',
     notes: '',
     terms: '',
-    paymentInstructions: '',
-    poNumber: '',
-    projectName: '',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -101,13 +96,6 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
     { value: 'AUD', label: 'AUD ($)' },
   ]
 
-  const discountTypes = [
-    { value: 'percentage', label: 'Percentage (%)' },
-    { value: 'fixed', label: 'Fixed Amount' },
-  ]
-
-
-
   // Generate next quote number if creating new quote
   useEffect(() => {
     if (!quote) {
@@ -126,23 +114,18 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
     if (quote) {
       setFormData({
         companyId: quote.companyId || '',
-        customerId: quote.customerId || '',
+        partyId: quote.partyId || '',
         quoteNumber: quote.quoteNumber || '',
         quoteDate: quote.quoteDate?.split('T')[0] || '',
-        expiryDate: quote.expiryDate?.split('T')[0] || '',
+        validUntil: quote.validUntil?.split('T')[0] || '',
         status: quote.status || 'draft',
         subtotal: quote.subtotal || 0,
-        discountType: quote.discountType || 'percentage',
-        discountValue: quote.discountValue || 0,
         discountAmount: quote.discountAmount || 0,
         taxAmount: quote.taxAmount || 0,
         totalAmount: quote.totalAmount || 0,
         currency: quote.currency || 'USD',
         notes: quote.notes || '',
         terms: quote.terms || '',
-        paymentInstructions: quote.paymentInstructions || '',
-        poNumber: quote.poNumber || '',
-        projectName: quote.projectName || '',
       })
     }
   }, [quote])
@@ -166,31 +149,21 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
   // Recalculate total when quote items, discount, or tax changes
   useEffect(() => {
     const subtotal = quoteItems.reduce((sum, item) => sum + item.lineTotal, 0)
-    const { discountType, discountValue, taxAmount } = formData
-    let discountAmount = 0
-    let total = subtotal
-
-    if (discountType === 'percentage') {
-      discountAmount = (subtotal * (discountValue || 0)) / 100
-    } else {
-      discountAmount = discountValue || 0
-    }
-
-    total = subtotal - discountAmount + (taxAmount || 0)
+    const { discountAmount, taxAmount } = formData
+    const total = subtotal - (discountAmount || 0) + (taxAmount || 0)
 
     setFormData(prev => ({
       ...prev,
       subtotal,
-      discountAmount,
       totalAmount: Math.max(0, total) // Ensure total is not negative
     }))
-  }, [quoteItems, formData.discountType, formData.discountValue, formData.taxAmount])
+  }, [quoteItems, formData.discountAmount, formData.taxAmount])
 
   const handleInputChange = (field: keyof CreateQuoteDto, value: any) => {
     if (field === 'companyId') {
-      setFormData(prev => ({ ...prev, companyId: value, customerId: '' }))
-      if (errors.customerId) {
-        setErrors(prev => ({ ...prev, customerId: '' }))
+      setFormData(prev => ({ ...prev, companyId: value, partyId: '' }))
+      if (errors.partyId) {
+        setErrors(prev => ({ ...prev, partyId: '' }))
       }
     } else {
       setFormData(prev => ({ ...prev, [field]: value }))
@@ -258,14 +231,14 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
     if (!formData.quoteNumber.trim()) {
       newErrors.quoteNumber = 'Quote number is required'
     }
-    if (!formData.customerId) {
-      newErrors.customerId = 'Customer is required'
+    if (!formData.partyId) {
+      newErrors.partyId = 'Customer is required'
     }
     if (!formData.quoteDate) {
       newErrors.quoteDate = 'Quote date is required'
     }
-    if (!formData.expiryDate) {
-      newErrors.expiryDate = 'Expiry date is required'
+    if (!formData.validUntil) {
+      newErrors.validUntil = 'Valid until date is required'
     }
     if (quoteItems.length === 0) {
       newErrors.quoteItems = 'At least one quote item is required'
@@ -279,8 +252,8 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
     if (quoteItems.some(item => item.unitPrice < 0)) {
       newErrors.quoteItems = 'Quote item prices cannot be negative'
     }
-    if ((formData.discountValue || 0) < 0) {
-      newErrors.discountValue = 'Discount cannot be negative'
+    if ((formData.discountAmount || 0) < 0) {
+      newErrors.discountAmount = 'Discount cannot be negative'
     }
 
     setErrors(newErrors)
@@ -375,27 +348,14 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
           </label>
           <CustomerSelect
             customers={customers}
-            value={formData.customerId}
-            onChange={(value) => handleInputChange('customerId', value)}
+            value={formData.partyId}
+            onChange={(value) => handleInputChange('partyId', value)}
             placeholder="Select a customer"
-            error={errors.customerId}
+            error={errors.partyId}
           />
-          {errors.customerId && (
-            <p className="mt-1 text-sm text-red-600">{errors.customerId}</p>
+          {errors.partyId && (
+            <p className="mt-1 text-sm text-red-600">{errors.partyId}</p>
           )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Project Name
-          </label>
-          <input
-            type="text"
-            value={formData.projectName}
-            onChange={(e) => handleInputChange('projectName', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Project name (optional)"
-          />
         </div>
 
         <div>
@@ -418,19 +378,19 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Expiry Date *
+            Valid Until *
           </label>
           <input
             type="date"
-            value={formData.expiryDate}
-            onChange={(e) => handleInputChange('expiryDate', e.target.value)}
+            value={formData.validUntil}
+            onChange={(e) => handleInputChange('validUntil', e.target.value)}
             className={cn(
               "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-              errors.expiryDate && "border-red-500"
+              errors.validUntil && "border-red-500"
             )}
           />
-          {errors.expiryDate && (
-            <p className="mt-1 text-sm text-red-600">{errors.expiryDate}</p>
+          {errors.validUntil && (
+            <p className="mt-1 text-sm text-red-600">{errors.validUntil}</p>
           )}
         </div>
 
@@ -625,38 +585,21 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Discount Type
-            </label>
-            <select
-              value={formData.discountType}
-              onChange={(e) => handleInputChange('discountType', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {discountTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Discount Value
+              Discount Amount
             </label>
             <input
               type="number"
               step="0.01"
-              value={formData.discountValue}
-              onChange={(e) => handleInputChange('discountValue', parseFloat(e.target.value) || 0)}
+              value={formData.discountAmount}
+              onChange={(e) => handleInputChange('discountAmount', parseFloat(e.target.value) || 0)}
               className={cn(
                 "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                errors.discountValue && "border-red-500"
+                errors.discountAmount && "border-red-500"
               )}
-              placeholder={formData.discountType === 'percentage' ? "10.00" : "100.00"}
+              placeholder="0.00"
             />
-            {errors.discountValue && (
-              <p className="mt-1 text-sm text-red-600">{errors.discountValue}</p>
+            {errors.discountAmount && (
+              <p className="mt-1 text-sm text-red-600">{errors.discountAmount}</p>
             )}
           </div>
 
@@ -705,22 +648,7 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
       <div className="border-t pt-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              PO Number
-            </label>
-            <input
-              type="text"
-              value={formData.poNumber}
-              onChange={(e) => handleInputChange('poNumber', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Purchase order number"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes
           </label>
@@ -746,18 +674,6 @@ export const QuoteForm = ({ quote, onSuccess, onCancel }: QuoteFormProps) => {
           />
         </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Payment Instructions
-          </label>
-          <textarea
-            value={formData.paymentInstructions}
-            onChange={(e) => handleInputChange('paymentInstructions', e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Payment instructions for the customer"
-          />
-        </div>
       </div>
 
       {/* Form Actions */}

@@ -155,10 +155,10 @@ export const invoiceValidationSchema: FieldValidation = {
 };
 
 export const quoteValidationSchema: FieldValidation = {
-  customerId: commonValidationRules.required,
+  partyId: commonValidationRules.required,
   quoteNumber: commonValidationRules.required,
   quoteDate: commonValidationRules.required,
-  expiryDate: commonValidationRules.required,
+  validUntil: commonValidationRules.required,
   subtotal: commonValidationRules.positiveNumber,
   totalAmount: commonValidationRules.positiveNumber
 };

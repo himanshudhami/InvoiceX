@@ -19,28 +19,20 @@ export interface QuoteItem {
 export interface Quote {
   id: string;
   companyId?: string;
-  customerId?: string;
+  partyId?: string;
   quoteNumber: string;
   quoteDate: string;
-  expiryDate: string;
+  validUntil?: string;
   status?: string;
   subtotal: number;
-  discountType?: string;
-  discountValue?: number;
   discountAmount?: number;
   taxAmount?: number;
   totalAmount: number;
   currency?: string;
   notes?: string;
   terms?: string;
-  paymentInstructions?: string;
-  poNumber?: string;
-  projectName?: string;
-  sentAt?: string;
-  viewedAt?: string;
-  acceptedAt?: string;
-  rejectedAt?: string;
-  rejectedReason?: string;
+  convertedToInvoiceId?: string;
+  convertedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   items?: QuoteItem[]; // Client-side: Quote items embedded for TanStack DB
@@ -48,23 +40,18 @@ export interface Quote {
 
 export interface CreateQuoteDto {
   companyId?: string;
-  customerId?: string;
+  partyId?: string;
   quoteNumber: string;
   quoteDate: string;
-  expiryDate: string;
+  validUntil?: string;
   status?: string;
   subtotal: number;
-  discountType?: string;
-  discountValue?: number;
   discountAmount?: number;
   taxAmount?: number;
   totalAmount: number;
   currency?: string;
   notes?: string;
   terms?: string;
-  paymentInstructions?: string;
-  poNumber?: string;
-  projectName?: string;
 }
 
 export interface UpdateQuoteDto extends CreateQuoteDto {
@@ -73,8 +60,11 @@ export interface UpdateQuoteDto extends CreateQuoteDto {
 
 export interface QuotesFilterParams extends PaginationParams {
   status?: string;
-  quoteNumber?: string;
-  projectName?: string;
   currency?: string;
   companyId?: string;
+  partyId?: string;
+  validUntilFrom?: string;
+  validUntilTo?: string;
+  totalAmountFrom?: number;
+  totalAmountTo?: number;
 }

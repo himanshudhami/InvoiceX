@@ -524,7 +524,7 @@ namespace WebApi.Controllers.Tax
             if (!string.IsNullOrWhiteSpace(Quarter))
                 filters["quarter"] = Quarter;
             if (CustomerId.HasValue)
-                filters["customer_id"] = CustomerId.Value;
+                filters["party_id"] = CustomerId.Value;
             if (IsCollected.HasValue)
                 filters["is_collected"] = IsCollected.Value;
             return filters;

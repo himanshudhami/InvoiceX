@@ -28,7 +28,7 @@ const QuoteList = () => {
       search: parseAsString.withDefault(''),
       status: parseAsString.withDefault(''),
       company: parseAsString.withDefault(''),
-      customer: parseAsString.withDefault(''),
+      party: parseAsString.withDefault(''),
     },
     { history: 'replace' }
   )
@@ -53,7 +53,7 @@ const QuoteList = () => {
     searchTerm: debouncedSearchTerm || undefined,
     status: urlState.status || undefined,
     companyId: effectiveCompanyId || undefined,
-    customerId: urlState.customer || undefined,
+    partyId: urlState.party || undefined,
   })
 
   const deleteQuote = useDeleteQuote()
@@ -126,9 +126,9 @@ const QuoteList = () => {
     }
   }
 
-  const getCustomerName = (customerId?: string) => {
-    if (!customerId) return '—'
-    const customer = customers.find(c => c.id === customerId)
+  const getCustomerName = (partyId?: string) => {
+    if (!partyId) return '—'
+    const customer = customers.find(c => c.id === partyId)
     return customer ? `${customer.name}${customer.companyName ? ` (${customer.companyName})` : ''}` : '—'
   }
 
@@ -161,11 +161,11 @@ const QuoteList = () => {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const getExpiryStatus = (expiryDate: string, status?: string) => {
+  const getExpiryStatus = (validUntil: string, status?: string) => {
     if (status === 'accepted' || status === 'rejected' || status === 'cancelled') {
       return null
     }
-    const expiry = new Date(expiryDate)
+    const expiry = new Date(validUntil)
     const now = new Date()
     const daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -201,18 +201,15 @@ const QuoteList = () => {
             <div className="text-sm text-gray-500">
               {formatDate(quote.quoteDate)}
             </div>
-            {quote.projectName && (
-              <div className="text-sm text-blue-600">{quote.projectName}</div>
-            )}
           </div>
         )
       },
     },
     {
-      accessorKey: 'customerId',
+      accessorKey: 'partyId',
       header: 'Customer',
       cell: ({ row }) => {
-        const customerName = getCustomerName(row.original.customerId)
+        const customerName = getCustomerName(row.original.partyId)
         return <div className="text-sm text-gray-900">{customerName}</div>
       },
     },
@@ -222,7 +219,7 @@ const QuoteList = () => {
       cell: ({ row }) => {
         const quote = row.original
         const status = quote.status || 'draft'
-        const expiryStatus = getExpiryStatus(quote.expiryDate, status)
+        const expiryStatus = quote.validUntil ? getExpiryStatus(quote.validUntil, status) : null
 
         return (
           <div>
@@ -237,17 +234,17 @@ const QuoteList = () => {
       },
     },
     {
-      accessorKey: 'expiryDate',
-      header: 'Expiry Date',
+      accessorKey: 'validUntil',
+      header: 'Valid Until',
       cell: ({ row }) => {
         const quote = row.original
-        const expiryDate = new Date(quote.expiryDate)
-        const isExpired = expiryDate < new Date() && quote.status !== 'accepted' && quote.status !== 'rejected'
+        const validUntil = quote.validUntil ? new Date(quote.validUntil) : null
+        const isExpired = validUntil && validUntil < new Date() && quote.status !== 'accepted' && quote.status !== 'rejected'
 
         return (
           <div>
             <div className={`text-sm ${isExpired ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-              {formatDate(quote.expiryDate)}
+              {quote.validUntil ? formatDate(quote.validUntil) : '—'}
             </div>
             {isExpired && (
               <div className="text-xs text-red-500">Expired</div>
@@ -444,8 +441,8 @@ const QuoteList = () => {
                 <label className="text-sm font-medium text-gray-700">Customer</label>
                 <CustomerSelect
                   customers={customers}
-                  value={urlState.customer}
-                  onChange={(val) => setUrlState({ customer: val, page: 1 })}
+                  value={urlState.party}
+                  onChange={(val) => setUrlState({ party: val, page: 1 })}
                   placeholder="All customers"
                   className="min-w-[220px]"
                   disabled={!effectiveCompanyId}
@@ -470,9 +467,9 @@ const QuoteList = () => {
                 </select>
               </div>
 
-              {(urlState.status || urlState.company) && (
+              {(urlState.status || urlState.company || urlState.party) && (
                 <button
-                  onClick={() => setUrlState({ status: '', company: '', page: 1 })}
+                  onClick={() => setUrlState({ status: '', company: '', party: '', page: 1 })}
                   className="text-sm px-3 py-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Clear filters

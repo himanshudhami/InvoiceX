@@ -486,7 +486,6 @@ namespace WebApi.Controllers
         /// Reject quote
         /// </summary>
         /// <param name="id">The Quote ID</param>
-        /// <param name="request">Optional rejection reason</param>
         /// <returns>No content</returns>
         /// <response code="204">Quote rejected successfully</response>
         /// <response code="400">Invalid operation</response>
@@ -497,7 +496,7 @@ namespace WebApi.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Reject(Guid id, [FromBody] RejectQuoteRequest? request = null)
+        public async Task<IActionResult> Reject(Guid id)
         {
             // Non-Admin/HR users require company ID in token
             if (RequiresCompanyIsolation && CurrentCompanyId == null)
@@ -518,8 +517,7 @@ namespace WebApi.Controllers
             if (!HasCompanyAccess(quoteResult.Value!.CompanyId))
                 return AccessDeniedDifferentCompanyResponse("Quote");
 
-            var reason = request?.Reason;
-            var result = await _service.RejectAsync(id, reason);
+            var result = await _service.RejectAsync(id);
 
             if (result.IsFailure)
             {
@@ -587,14 +585,4 @@ namespace WebApi.Controllers
         }
     }
 
-    /// <summary>
-    /// Request model for rejecting a quote
-    /// </summary>
-    public class RejectQuoteRequest
-    {
-        /// <summary>
-        /// Reason for rejection
-        /// </summary>
-        public string? Reason { get; set; }
-    }
 }

@@ -390,11 +390,11 @@ namespace Infrastructure.Data
                     p.reference_number,
                     p.payment_method,
                     p.notes,
-                    c.name as customer_name,
-                    c.company_name as customer_company,
+                    pr.name as customer_name,
+                    pr.display_name as customer_company,
                     i.invoice_number
                 FROM payments p
-                LEFT JOIN customers c ON c.id = p.customer_id
+                LEFT JOIN parties pr ON pr.id = p.party_id
                 LEFT JOIN invoices i ON i.id = p.invoice_id
                 WHERE ABS(COALESCE(p.amount_in_inr, p.amount) - @amount) <= @tolerance
                   AND p.payment_date >= @fromDate
@@ -440,8 +440,8 @@ namespace Infrastructure.Data
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 conditions.Add(@"(
-                    c.name ILIKE @searchPattern OR
-                    c.company_name ILIKE @searchPattern OR
+                    pr.name ILIKE @searchPattern OR
+                    pr.display_name ILIKE @searchPattern OR
                     i.invoice_number ILIKE @searchPattern OR
                     p.reference_number ILIKE @searchPattern OR
                     p.notes ILIKE @searchPattern
@@ -463,11 +463,11 @@ namespace Infrastructure.Data
                     p.reference_number,
                     p.payment_method,
                     p.notes,
-                    c.name as customer_name,
-                    c.company_name as customer_company,
+                    pr.name as customer_name,
+                    pr.display_name as customer_company,
                     i.invoice_number
                 FROM payments p
-                LEFT JOIN customers c ON c.id = p.customer_id
+                LEFT JOIN parties pr ON pr.id = p.party_id
                 LEFT JOIN invoices i ON i.id = p.invoice_id
                 WHERE {string.Join(" AND ", conditions)}
                 ORDER BY p.payment_date DESC

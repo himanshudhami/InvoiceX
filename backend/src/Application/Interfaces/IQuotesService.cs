@@ -69,7 +69,7 @@ namespace Application.Interfaces
         /// <summary>
         /// Reject quote
         /// </summary>
-        Task<Result> RejectAsync(Guid id, string? reason = null);
+        Task<Result> RejectAsync(Guid id);
 
         /// <summary>
         /// Convert quote to invoice

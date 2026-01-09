@@ -57,8 +57,8 @@ export class QuoteService {
     return apiClient.post<void>(`${this.endpoint}/${id}/accept`, {});
   }
 
-  async reject(id: string, reason?: string): Promise<void> {
-    return apiClient.post<void>(`${this.endpoint}/${id}/reject`, { reason });
+  async reject(id: string): Promise<void> {
+    return apiClient.post<void>(`${this.endpoint}/${id}/reject`, {});
   }
 
   async convertToInvoice(id: string): Promise<any> {

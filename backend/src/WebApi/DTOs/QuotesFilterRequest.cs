@@ -20,9 +20,9 @@ namespace WebApi.DTOs
         public Guid? CompanyId { get; set; }
 
         /// <summary>
-        /// Filter by customer ID
+        /// Filter by party ID
         /// </summary>
-        public Guid? CustomerId { get; set; }
+        public Guid? PartyId { get; set; }
 
         /// <summary>
         /// Filter by status
@@ -30,14 +30,14 @@ namespace WebApi.DTOs
         public string? Status { get; set; }
 
         /// <summary>
-        /// Filter by expiry date from
+        /// Filter by valid until date from
         /// </summary>
-        public DateOnly? ExpiryDateFrom { get; set; }
+        public DateOnly? ValidUntilFrom { get; set; }
 
         /// <summary>
-        /// Filter by expiry date to
+        /// Filter by valid until date to
         /// </summary>
-        public DateOnly? ExpiryDateTo { get; set; }
+        public DateOnly? ValidUntilTo { get; set; }
 
         /// <summary>
         /// Filter by total amount from
@@ -56,17 +56,17 @@ namespace WebApi.DTOs
             if (CompanyId != null)
                 filters.Add("companyId", CompanyId);
 
-            if (CustomerId != null)
-                filters.Add("customerId", CustomerId);
+            if (PartyId != null)
+                filters.Add("partyId", PartyId);
 
             if (Status != null && !string.IsNullOrWhiteSpace(Status))
                 filters.Add("status", Status);
 
-            if (ExpiryDateFrom != null)
-                filters.Add("expiry_date_from", ExpiryDateFrom);
+            if (ValidUntilFrom != null)
+                filters.Add("valid_until_from", ValidUntilFrom);
 
-            if (ExpiryDateTo != null)
-                filters.Add("expiry_date_to", ExpiryDateTo);
+            if (ValidUntilTo != null)
+                filters.Add("valid_until_to", ValidUntilTo);
 
             if (TotalAmountFrom != null)
                 filters.Add("total_amount_from", TotalAmountFrom);

@@ -47,7 +47,7 @@ const QuoteView = () => {
 
   const [templateModal, setTemplateModal] = useState(false)
 
-  const customer = customers.find(c => c.id === quote?.customerId)
+  const customer = customers.find(c => c.id === quote?.partyId)
   const company = companies.find(c => c.id === quote?.companyId)
 
   const handleEdit = () => {
@@ -72,7 +72,7 @@ const QuoteView = () => {
 
   const handleReject = async () => {
     if (quote) {
-      await rejectQuote.mutateAsync({ id: quote.id, reason: 'Rejected by customer' })
+      await rejectQuote.mutateAsync({ id: quote.id })
     }
   }
 
@@ -328,23 +328,11 @@ const QuoteView = () => {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-500">Expiry Date</label>
+                <label className="text-sm font-medium text-gray-500">Valid Until</label>
                 <p className="text-sm text-gray-900">
-                  {format(new Date(quote.expiryDate), 'PPP')}
+                  {quote.validUntil ? format(new Date(quote.validUntil), 'PPP') : '—'}
                 </p>
               </div>
-              {quote.projectName && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Project</label>
-                  <p className="text-sm text-gray-900">{quote.projectName}</p>
-                </div>
-              )}
-              {quote.poNumber && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">PO Number</label>
-                  <p className="text-sm text-gray-900">{quote.poNumber}</p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -468,45 +456,6 @@ const QuoteView = () => {
             </div>
           </div>
 
-          {/* Status Timeline */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Status Timeline</h2>
-            <div className="space-y-3">
-              {quote.sentAt && (
-                <div className="flex items-center text-sm">
-                  <Send className="h-4 w-4 text-blue-500 mr-2" />
-                  <span className="text-gray-600">Sent:</span>
-                  <span className="ml-2 text-gray-900">{format(new Date(quote.sentAt), 'PPp')}</span>
-                </div>
-              )}
-              {quote.viewedAt && (
-                <div className="flex items-center text-sm">
-                  <Clock className="h-4 w-4 text-purple-500 mr-2" />
-                  <span className="text-gray-600">Viewed:</span>
-                  <span className="ml-2 text-gray-900">{format(new Date(quote.viewedAt), 'PPp')}</span>
-                </div>
-              )}
-              {quote.acceptedAt && (
-                <div className="flex items-center text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  <span className="text-gray-600">Accepted:</span>
-                  <span className="ml-2 text-gray-900">{format(new Date(quote.acceptedAt), 'PPp')}</span>
-                </div>
-              )}
-              {quote.rejectedAt && (
-                <div className="flex items-center text-sm">
-                  <XCircle className="h-4 w-4 text-red-500 mr-2" />
-                  <span className="text-gray-600">Rejected:</span>
-                  <span className="ml-2 text-gray-900">{format(new Date(quote.rejectedAt), 'PPp')}</span>
-                </div>
-              )}
-              {quote.rejectedReason && (
-                <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700">
-                  <strong>Rejection Reason:</strong> {quote.rejectedReason}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

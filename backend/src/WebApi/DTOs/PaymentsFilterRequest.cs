@@ -46,7 +46,7 @@ namespace WebApi.DTOs
                 filters.Add("company_id", CompanyId.Value);
 
             if (CustomerId.HasValue)
-                filters.Add("customer_id", CustomerId.Value);
+                filters.Add("party_id", CustomerId.Value);
 
             // Payment details filters
             if (Amount != null)
