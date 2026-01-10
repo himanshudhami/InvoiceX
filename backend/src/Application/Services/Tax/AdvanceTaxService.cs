@@ -54,22 +54,41 @@ namespace Application.Services.Tax
             if (existing != null)
                 return Error.Conflict($"Assessment already exists for FY {request.FinancialYear}");
 
-            // Auto-fetch YTD from ledger if values not provided
-            var projectedRevenue = request.ProjectedRevenue ?? 0m;
-            var projectedExpenses = request.ProjectedExpenses ?? 0m;
+            // Fetch YTD actuals from ledger
+            var fyDates = GetFYDateRange(request.FinancialYear);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var ytdThroughDate = today > fyDates.EndDate ? fyDates.EndDate : today;
 
-            if (request.ProjectedRevenue == null || request.ProjectedExpenses == null)
-            {
-                var fyDates = GetFYDateRange(request.FinancialYear);
-                var ytd = await _repository.GetYtdFinancialsFromLedgerAsync(
-                    request.CompanyId,
-                    fyDates.StartDate,
-                    DateOnly.FromDateTime(DateTime.Today));
+            var ytd = await _repository.GetYtdFinancialsFromLedgerAsync(
+                request.CompanyId,
+                fyDates.StartDate,
+                ytdThroughDate);
 
-                if (request.ProjectedRevenue == null) projectedRevenue = ytd.YtdIncome;
-                if (request.ProjectedExpenses == null) projectedExpenses = ytd.YtdExpenses;
-            }
+            var ytdRevenue = ytd.YtdIncome;
+            var ytdExpenses = ytd.YtdExpenses;
 
+            // Calculate trend-based projections for remaining months
+            var monthsCovered = GetMonthsBetween(fyDates.StartDate, ytdThroughDate);
+            var remainingMonths = 12 - monthsCovered;
+
+            var avgMonthlyRevenue = monthsCovered > 0 ? ytdRevenue / monthsCovered : 0;
+            var avgMonthlyExpenses = monthsCovered > 0 ? ytdExpenses / monthsCovered : 0;
+
+            // Use provided values or calculate from trend
+            var projectedAdditionalRevenue = request.ProjectedRevenue.HasValue
+                ? request.ProjectedRevenue.Value - ytdRevenue
+                : avgMonthlyRevenue * remainingMonths;
+            var projectedAdditionalExpenses = request.ProjectedExpenses.HasValue
+                ? request.ProjectedExpenses.Value - ytdExpenses
+                : avgMonthlyExpenses * remainingMonths;
+
+            // Ensure non-negative projections
+            projectedAdditionalRevenue = Math.Max(0, projectedAdditionalRevenue);
+            projectedAdditionalExpenses = Math.Max(0, projectedAdditionalExpenses);
+
+            // Full year = YTD + Projected Additional
+            var projectedRevenue = ytdRevenue + projectedAdditionalRevenue;
+            var projectedExpenses = ytdExpenses + projectedAdditionalExpenses;
             var projectedDepreciation = request.ProjectedDepreciation ?? 0m;
             var projectedOtherIncome = request.ProjectedOtherIncome ?? 0m;
 
@@ -100,6 +119,16 @@ namespace Application.Services.Tax
                 AssessmentYear = GetAssessmentYear(request.FinancialYear),
                 Status = "draft",
 
+                // YTD actuals (locked)
+                YtdRevenue = ytdRevenue,
+                YtdExpenses = ytdExpenses,
+                YtdThroughDate = ytdThroughDate,
+
+                // Projected additional (editable)
+                ProjectedAdditionalRevenue = projectedAdditionalRevenue,
+                ProjectedAdditionalExpenses = projectedAdditionalExpenses,
+
+                // Full year projections (computed)
                 ProjectedRevenue = projectedRevenue,
                 ProjectedExpenses = projectedExpenses,
                 ProjectedDepreciation = projectedDepreciation,
@@ -185,9 +214,16 @@ namespace Application.Services.Tax
             if (assessment.Status == "finalized")
                 return Error.Validation("Cannot update a finalized assessment");
 
-            // Recompute
-            var profitBeforeTax = request.ProjectedRevenue + request.ProjectedOtherIncome
-                                - request.ProjectedExpenses - request.ProjectedDepreciation;
+            // Update projected additional values (YTD remains locked)
+            assessment.ProjectedAdditionalRevenue = request.ProjectedAdditionalRevenue;
+            assessment.ProjectedAdditionalExpenses = request.ProjectedAdditionalExpenses;
+
+            // Recompute full year projections
+            var projectedRevenue = assessment.YtdRevenue + request.ProjectedAdditionalRevenue;
+            var projectedExpenses = assessment.YtdExpenses + request.ProjectedAdditionalExpenses;
+
+            var profitBeforeTax = projectedRevenue + request.ProjectedOtherIncome
+                                - projectedExpenses - request.ProjectedDepreciation;
             var taxableIncome = Math.Max(0, profitBeforeTax);
 
             var (taxRate, surchargeRate) = TaxRegimes.GetValueOrDefault(request.TaxRegime, TaxRegimes["normal"]);
@@ -200,8 +236,8 @@ namespace Application.Services.Tax
             var netTaxPayable = Math.Max(0, totalTaxLiability - request.TdsReceivable - request.TcsCredit - request.MatCredit);
 
             // Update assessment
-            assessment.ProjectedRevenue = request.ProjectedRevenue;
-            assessment.ProjectedExpenses = request.ProjectedExpenses;
+            assessment.ProjectedRevenue = projectedRevenue;
+            assessment.ProjectedExpenses = projectedExpenses;
             assessment.ProjectedDepreciation = request.ProjectedDepreciation;
             assessment.ProjectedOtherIncome = request.ProjectedOtherIncome;
             assessment.ProjectedProfitBeforeTax = profitBeforeTax;
@@ -277,6 +313,114 @@ namespace Application.Services.Tax
 
             await _repository.DeleteAssessmentAsync(id);
             return true;
+        }
+
+        public async Task<Result<AdvanceTaxAssessmentDto>> RefreshYtdAsync(RefreshYtdRequest request, Guid userId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(request.AssessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {request.AssessmentId} not found");
+
+            if (assessment.Status == "finalized")
+                return Error.Validation("Cannot refresh YTD for a finalized assessment");
+
+            // Fetch fresh YTD from ledger
+            var fyDates = GetFYDateRange(assessment.FinancialYear);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var ytdThroughDate = today > fyDates.EndDate ? fyDates.EndDate : today;
+
+            var ytd = await _repository.GetYtdFinancialsFromLedgerAsync(
+                assessment.CompanyId,
+                fyDates.StartDate,
+                ytdThroughDate);
+
+            // Update YTD values
+            assessment.YtdRevenue = ytd.YtdIncome;
+            assessment.YtdExpenses = ytd.YtdExpenses;
+            assessment.YtdThroughDate = ytdThroughDate;
+
+            // Optionally auto-project from trend
+            if (request.AutoProjectFromTrend)
+            {
+                var monthsCovered = GetMonthsBetween(fyDates.StartDate, ytdThroughDate);
+                var remainingMonths = 12 - monthsCovered;
+
+                if (monthsCovered > 0 && remainingMonths > 0)
+                {
+                    var avgMonthlyRevenue = ytd.YtdIncome / monthsCovered;
+                    var avgMonthlyExpenses = ytd.YtdExpenses / monthsCovered;
+
+                    assessment.ProjectedAdditionalRevenue = avgMonthlyRevenue * remainingMonths;
+                    assessment.ProjectedAdditionalExpenses = avgMonthlyExpenses * remainingMonths;
+                }
+            }
+
+            // Recompute full year projections
+            assessment.ProjectedRevenue = assessment.YtdRevenue + assessment.ProjectedAdditionalRevenue;
+            assessment.ProjectedExpenses = assessment.YtdExpenses + assessment.ProjectedAdditionalExpenses;
+
+            var profitBeforeTax = assessment.ProjectedRevenue + assessment.ProjectedOtherIncome
+                                - assessment.ProjectedExpenses - assessment.ProjectedDepreciation;
+            assessment.ProjectedProfitBeforeTax = profitBeforeTax;
+            assessment.TaxableIncome = Math.Max(0, profitBeforeTax);
+
+            // Recompute tax
+            var (taxRate, surchargeRate) = TaxRegimes.GetValueOrDefault(assessment.TaxRegime, TaxRegimes["normal"]);
+            assessment.TaxRate = taxRate;
+            assessment.SurchargeRate = surchargeRate;
+
+            var baseTax = assessment.TaxableIncome * taxRate / 100m;
+            var surcharge = baseTax * surchargeRate / 100m;
+            var cess = (baseTax + surcharge) * CessRate / 100m;
+
+            assessment.BaseTax = baseTax;
+            assessment.Surcharge = surcharge;
+            assessment.Cess = cess;
+            assessment.TotalTaxLiability = baseTax + surcharge + cess;
+            assessment.NetTaxPayable = Math.Max(0, assessment.TotalTaxLiability
+                - assessment.TdsReceivable - assessment.TcsCredit - assessment.MatCredit);
+
+            await _repository.UpdateAssessmentAsync(assessment);
+
+            // Recalculate schedules
+            await RecalculateSchedulesInternalAsync(assessment);
+
+            return await GetAssessmentByIdAsync(request.AssessmentId);
+        }
+
+        public async Task<Result<YtdFinancialsDto>> GetYtdFinancialsPreviewAsync(Guid companyId, string financialYear)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company == null)
+                return Error.NotFound($"Company {companyId} not found");
+
+            var fyDates = GetFYDateRange(financialYear);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var ytdThroughDate = today > fyDates.EndDate ? fyDates.EndDate : today;
+
+            var ytd = await _repository.GetYtdFinancialsFromLedgerAsync(
+                companyId,
+                fyDates.StartDate,
+                ytdThroughDate);
+
+            var monthsCovered = GetMonthsBetween(fyDates.StartDate, ytdThroughDate);
+            var remainingMonths = 12 - monthsCovered;
+
+            var avgMonthlyRevenue = monthsCovered > 0 ? ytd.YtdIncome / monthsCovered : 0;
+            var avgMonthlyExpenses = monthsCovered > 0 ? ytd.YtdExpenses / monthsCovered : 0;
+
+            return new YtdFinancialsDto
+            {
+                YtdRevenue = ytd.YtdIncome,
+                YtdExpenses = ytd.YtdExpenses,
+                ThroughDate = ytdThroughDate,
+                MonthsCovered = monthsCovered,
+                AvgMonthlyRevenue = avgMonthlyRevenue,
+                AvgMonthlyExpenses = avgMonthlyExpenses,
+                RemainingMonths = remainingMonths,
+                SuggestedAdditionalRevenue = avgMonthlyRevenue * remainingMonths,
+                SuggestedAdditionalExpenses = avgMonthlyExpenses * remainingMonths
+            };
         }
 
         // ==================== Schedule Operations ====================
@@ -746,6 +890,13 @@ namespace Application.Services.Tax
             };
         }
 
+        private static int GetMonthsBetween(DateOnly startDate, DateOnly endDate)
+        {
+            // Calculate months covered (inclusive of partial months)
+            var months = (endDate.Year - startDate.Year) * 12 + (endDate.Month - startDate.Month) + 1;
+            return Math.Max(0, Math.Min(12, months));
+        }
+
         private static string GetAssessmentYear(string financialYear)
         {
             var parts = financialYear.Split('-');
@@ -792,6 +943,16 @@ namespace Application.Services.Tax
                 AssessmentYear = entity.AssessmentYear,
                 Status = entity.Status,
 
+                // YTD actuals
+                YtdRevenue = entity.YtdRevenue,
+                YtdExpenses = entity.YtdExpenses,
+                YtdThroughDate = entity.YtdThroughDate,
+
+                // Projected additional
+                ProjectedAdditionalRevenue = entity.ProjectedAdditionalRevenue,
+                ProjectedAdditionalExpenses = entity.ProjectedAdditionalExpenses,
+
+                // Full year projections
                 ProjectedRevenue = entity.ProjectedRevenue,
                 ProjectedExpenses = entity.ProjectedExpenses,
                 ProjectedDepreciation = entity.ProjectedDepreciation,

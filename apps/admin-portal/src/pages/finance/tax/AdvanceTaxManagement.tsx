@@ -15,6 +15,7 @@ import {
   useRecalculateSchedules,
   useRunAdvanceTaxScenario,
   useDeleteAdvanceTaxScenario,
+  useRefreshYtd,
 } from '@/features/advance-tax/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import type {
@@ -45,6 +46,9 @@ import {
   Building2,
   Play,
   Target,
+  RefreshCcw,
+  Lock,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -166,6 +170,7 @@ const AdvanceTaxManagement = () => {
   const recalculateSchedules = useRecalculateSchedules();
   const runScenario = useRunAdvanceTaxScenario();
   const deleteScenario = useDeleteAdvanceTaxScenario();
+  const refreshYtd = useRefreshYtd();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -716,23 +721,69 @@ const AdvanceTaxManagement = () => {
 
           {/* Tax Computation Summary */}
           <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900">Tax Computation</h2>
+              {assessment.status !== 'finalized' && (
+                <button
+                  onClick={() => assessment && refreshYtd.mutateAsync({ assessmentId: assessment.id, autoProjectFromTrend: false })}
+                  disabled={refreshYtd.isPending}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  <RefreshCcw size={14} className={refreshYtd.isPending ? 'animate-spin' : ''} />
+                  {refreshYtd.isPending ? 'Refreshing...' : 'Refresh YTD'}
+                </button>
+              )}
             </div>
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Projected Income */}
+                {/* Income Section with YTD Split */}
                 <div className="space-y-4">
-                  <h3 className="font-medium text-gray-700">Projected Income</h3>
+                  <h3 className="font-medium text-gray-700">Income</h3>
                   <div className="space-y-2">
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Projected Revenue</span>
-                      <span className="font-medium">{formatCurrency(assessment.projectedRevenue)}</span>
+                    {/* Revenue */}
+                    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Lock size={12} />
+                          YTD Actual {assessment.ytdThroughDate && `(Apr-${new Date(assessment.ytdThroughDate).toLocaleDateString('en-IN', { month: 'short' })})`}
+                        </span>
+                        <span className="font-medium text-gray-700">{formatCurrency(assessment.ytdRevenue)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Pencil size={12} />
+                          Projected Additional
+                        </span>
+                        <span className="font-medium text-blue-600">{formatCurrency(assessment.projectedAdditionalRevenue)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                        <span className="text-gray-700 font-medium">Full Year Revenue</span>
+                        <span className="font-semibold">{formatCurrency(assessment.projectedRevenue)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-gray-100">
-                      <span className="text-gray-600">Less: Expenses</span>
-                      <span className="font-medium text-red-600">({formatCurrency(assessment.projectedExpenses)})</span>
+
+                    {/* Expenses */}
+                    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Lock size={12} />
+                          YTD Actual Expenses
+                        </span>
+                        <span className="font-medium text-gray-700">{formatCurrency(assessment.ytdExpenses)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <Pencil size={12} />
+                          Projected Additional
+                        </span>
+                        <span className="font-medium text-blue-600">{formatCurrency(assessment.projectedAdditionalExpenses)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                        <span className="text-gray-700 font-medium">Full Year Expenses</span>
+                        <span className="font-semibold text-red-600">({formatCurrency(assessment.projectedExpenses)})</span>
+                      </div>
                     </div>
+
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">Less: Depreciation</span>
                       <span className="font-medium text-red-600">({formatCurrency(assessment.projectedDepreciation)})</span>

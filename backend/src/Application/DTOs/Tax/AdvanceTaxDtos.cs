@@ -14,7 +14,16 @@ namespace Application.DTOs.Tax
         public string AssessmentYear { get; set; } = string.Empty;
         public string Status { get; set; } = "draft";
 
-        // Projected Income
+        // YTD Actuals (locked - fetched from ledger)
+        public decimal YtdRevenue { get; set; }
+        public decimal YtdExpenses { get; set; }
+        public DateOnly? YtdThroughDate { get; set; }
+
+        // Projected Additional (editable)
+        public decimal ProjectedAdditionalRevenue { get; set; }
+        public decimal ProjectedAdditionalExpenses { get; set; }
+
+        // Full Year Projections (computed: YTD + Projected Additional)
         public decimal ProjectedRevenue { get; set; }
         public decimal ProjectedExpenses { get; set; }
         public decimal ProjectedDepreciation { get; set; }
@@ -87,12 +96,13 @@ namespace Application.DTOs.Tax
     }
 
     /// <summary>
-    /// Request to update assessment projections
+    /// Request to update assessment projections (only editable fields)
     /// </summary>
     public class UpdateAdvanceTaxAssessmentDto
     {
-        public decimal ProjectedRevenue { get; set; }
-        public decimal ProjectedExpenses { get; set; }
+        // Projected additional values (editable - for remaining FY)
+        public decimal ProjectedAdditionalRevenue { get; set; }
+        public decimal ProjectedAdditionalExpenses { get; set; }
         public decimal ProjectedDepreciation { get; set; }
         public decimal ProjectedOtherIncome { get; set; }
 
@@ -103,6 +113,37 @@ namespace Application.DTOs.Tax
         public decimal MatCredit { get; set; }
 
         public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// Request to refresh YTD actuals from ledger
+    /// </summary>
+    public class RefreshYtdRequest
+    {
+        public Guid AssessmentId { get; set; }
+
+        /// <summary>
+        /// If true, auto-calculate projected additional based on trend
+        /// </summary>
+        public bool AutoProjectFromTrend { get; set; } = false;
+    }
+
+    /// <summary>
+    /// YTD financials data from ledger
+    /// </summary>
+    public class YtdFinancialsDto
+    {
+        public decimal YtdRevenue { get; set; }
+        public decimal YtdExpenses { get; set; }
+        public DateOnly ThroughDate { get; set; }
+        public int MonthsCovered { get; set; }
+
+        // Trend-based projections
+        public decimal AvgMonthlyRevenue { get; set; }
+        public decimal AvgMonthlyExpenses { get; set; }
+        public int RemainingMonths { get; set; }
+        public decimal SuggestedAdditionalRevenue { get; set; }
+        public decimal SuggestedAdditionalExpenses { get; set; }
     }
 
     // ==================== Schedule DTOs ====================

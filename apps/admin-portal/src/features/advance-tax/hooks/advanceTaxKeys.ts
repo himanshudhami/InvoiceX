@@ -58,4 +58,11 @@ export const advanceTaxKeys = {
     byAssessment: (assessmentId: string) =>
       [...advanceTaxKeys.computation.all(), assessmentId] as const,
   },
+
+  // YTD Preview
+  ytdPreview: {
+    all: () => [...advanceTaxKeys.all, 'ytd-preview'] as const,
+    byCompanyFy: (companyId: string, financialYear: string) =>
+      [...advanceTaxKeys.ytdPreview.all(), companyId, financialYear] as const,
+  },
 };

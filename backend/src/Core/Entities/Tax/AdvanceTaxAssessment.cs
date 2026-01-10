@@ -27,9 +27,45 @@ namespace Core.Entities.Tax
         /// </summary>
         public string Status { get; set; } = "draft";
 
-        // ==================== Projected Income ====================
+        // ==================== YTD Actuals (locked) ====================
 
+        /// <summary>
+        /// Actual revenue from ledger (Apr to YtdThroughDate)
+        /// </summary>
+        public decimal YtdRevenue { get; set; }
+
+        /// <summary>
+        /// Actual expenses from ledger (Apr to YtdThroughDate)
+        /// </summary>
+        public decimal YtdExpenses { get; set; }
+
+        /// <summary>
+        /// Last date of actuals - data is locked up to this date
+        /// </summary>
+        public DateOnly? YtdThroughDate { get; set; }
+
+        // ==================== Projected Additional (editable) ====================
+
+        /// <summary>
+        /// User's projection for remaining FY revenue (after YtdThroughDate)
+        /// </summary>
+        public decimal ProjectedAdditionalRevenue { get; set; }
+
+        /// <summary>
+        /// User's projection for remaining FY expenses (after YtdThroughDate)
+        /// </summary>
+        public decimal ProjectedAdditionalExpenses { get; set; }
+
+        // ==================== Full Year Projections (computed) ====================
+
+        /// <summary>
+        /// Full year revenue = YtdRevenue + ProjectedAdditionalRevenue
+        /// </summary>
         public decimal ProjectedRevenue { get; set; }
+
+        /// <summary>
+        /// Full year expenses = YtdExpenses + ProjectedAdditionalExpenses
+        /// </summary>
         public decimal ProjectedExpenses { get; set; }
         public decimal ProjectedDepreciation { get; set; }
         public decimal ProjectedOtherIncome { get; set; }

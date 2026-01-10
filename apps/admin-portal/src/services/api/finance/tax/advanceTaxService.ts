@@ -11,6 +11,8 @@ import type {
   UpdateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
   RunScenarioRequest,
+  RefreshYtdRequest,
+  YtdFinancials,
 } from '../../types';
 
 /**
@@ -83,6 +85,22 @@ export class AdvanceTaxService {
    */
   async deleteAssessment(id: string): Promise<void> {
     return apiClient.delete(`${this.endpoint}/assessment/${id}`);
+  }
+
+  /**
+   * Refresh YTD actuals from ledger
+   */
+  async refreshYtd(request: RefreshYtdRequest): Promise<AdvanceTaxAssessment> {
+    return apiClient.post<AdvanceTaxAssessment>(`${this.endpoint}/assessment/refresh-ytd`, request);
+  }
+
+  /**
+   * Preview YTD financials with trend-based projections
+   */
+  async getYtdFinancialsPreview(companyId: string, financialYear: string): Promise<YtdFinancials> {
+    return apiClient.get<YtdFinancials>(
+      `${this.endpoint}/ytd-preview/${companyId}/${financialYear}`
+    );
   }
 
   // ==================== Schedule Operations ====================

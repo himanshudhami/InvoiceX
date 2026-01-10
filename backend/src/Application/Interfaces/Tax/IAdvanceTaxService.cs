@@ -50,6 +50,16 @@ namespace Application.Interfaces.Tax
         /// </summary>
         Task<Result<bool>> DeleteAssessmentAsync(Guid id);
 
+        /// <summary>
+        /// Refresh YTD actuals from ledger and optionally auto-project remaining months
+        /// </summary>
+        Task<Result<AdvanceTaxAssessmentDto>> RefreshYtdAsync(RefreshYtdRequest request, Guid userId);
+
+        /// <summary>
+        /// Get YTD financials with trend-based projections (preview before refresh)
+        /// </summary>
+        Task<Result<YtdFinancialsDto>> GetYtdFinancialsPreviewAsync(Guid companyId, string financialYear);
+
         // ==================== Schedule Operations ====================
 
         /// <summary>

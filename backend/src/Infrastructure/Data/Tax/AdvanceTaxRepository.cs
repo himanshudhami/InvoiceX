@@ -16,6 +16,11 @@ namespace Infrastructure.Data.Tax
         private static readonly string[] AssessmentColumns = new[]
         {
             "id", "company_id", "financial_year", "assessment_year", "status",
+            // YTD actuals
+            "ytd_revenue", "ytd_expenses", "ytd_through_date",
+            // Projected additional
+            "projected_additional_revenue", "projected_additional_expenses",
+            // Full year projections
             "projected_revenue", "projected_expenses", "projected_depreciation",
             "projected_other_income", "projected_profit_before_tax",
             "taxable_income", "tax_regime", "tax_rate", "surcharge_rate", "cess_rate",
@@ -123,6 +128,8 @@ namespace Infrastructure.Data.Tax
             const string sql = @"
                 INSERT INTO advance_tax_assessments (
                     id, company_id, financial_year, assessment_year, status,
+                    ytd_revenue, ytd_expenses, ytd_through_date,
+                    projected_additional_revenue, projected_additional_expenses,
                     projected_revenue, projected_expenses, projected_depreciation,
                     projected_other_income, projected_profit_before_tax,
                     taxable_income, tax_regime, tax_rate, surcharge_rate, cess_rate,
@@ -133,6 +140,8 @@ namespace Infrastructure.Data.Tax
                     created_by, created_at, updated_at
                 ) VALUES (
                     @Id, @CompanyId, @FinancialYear, @AssessmentYear, @Status,
+                    @YtdRevenue, @YtdExpenses, @YtdThroughDate,
+                    @ProjectedAdditionalRevenue, @ProjectedAdditionalExpenses,
                     @ProjectedRevenue, @ProjectedExpenses, @ProjectedDepreciation,
                     @ProjectedOtherIncome, @ProjectedProfitBeforeTax,
                     @TaxableIncome, @TaxRegime, @TaxRate, @SurchargeRate, @CessRate,
@@ -156,6 +165,11 @@ namespace Infrastructure.Data.Tax
             const string sql = @"
                 UPDATE advance_tax_assessments SET
                     status = @Status,
+                    ytd_revenue = @YtdRevenue,
+                    ytd_expenses = @YtdExpenses,
+                    ytd_through_date = @YtdThroughDate,
+                    projected_additional_revenue = @ProjectedAdditionalRevenue,
+                    projected_additional_expenses = @ProjectedAdditionalExpenses,
                     projected_revenue = @ProjectedRevenue,
                     projected_expenses = @ProjectedExpenses,
                     projected_depreciation = @ProjectedDepreciation,

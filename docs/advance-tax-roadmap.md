@@ -16,7 +16,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] What-if scenario analysis
 - [x] Frontend dashboard
 - [x] **Auto-fetch YTD actuals from ledger** (Phase 1 complete)
-- [ ] **YTD vs Projection split** ← Next
+- [x] **YTD vs Projection split** (Phase 2 complete)
 
 ---
 
@@ -70,10 +70,33 @@ The auto-fetch was returning incorrect values due to Tally migration bugs. Fixed
 
 ---
 
-## Phase 2: YTD vs Projection Split
+## Phase 2: YTD vs Projection Split (COMPLETED)
 
 ### Goal
 Show actuals (locked) vs projections (editable) separately.
+
+### Implementation (Done)
+1. **Database Migration**: `149_add_ytd_projection_split.sql`
+   - Added `ytd_revenue`, `ytd_expenses`, `ytd_through_date`
+   - Added `projected_additional_revenue`, `projected_additional_expenses`
+
+2. **Backend Changes**:
+   - Updated `AdvanceTaxAssessment` entity with new fields
+   - Updated `AdvanceTaxAssessmentDto` and `UpdateAdvanceTaxAssessmentDto`
+   - Added `RefreshYtdRequest` and `YtdFinancialsDto`
+   - Updated repository INSERT/UPDATE statements
+   - Modified `ComputeAssessmentAsync` to auto-calculate trend projections
+   - Modified `UpdateAssessmentAsync` to use projected additional fields
+   - Added `RefreshYtdAsync` - refreshes YTD from ledger
+   - Added `GetYtdFinancialsPreviewAsync` - preview with trend suggestions
+   - Added API endpoints: `POST /assessment/refresh-ytd`, `GET /ytd-preview/{companyId}/{fy}`
+
+3. **Frontend Changes**:
+   - Updated TypeScript types for new fields
+   - Added `refreshYtd()` and `getYtdFinancialsPreview()` to API service
+   - Added `useRefreshYtd` and `useYtdFinancialsPreview` hooks
+   - Updated UI to show YTD (locked) and Projected (editable) separately
+   - Added "Refresh YTD" button in Tax Computation section
 
 ### Data Model Changes
 ```
@@ -290,8 +313,8 @@ Bird's-eye view of advance tax status across all companies.
 ## Priority Order
 
 1. ~~**Phase 1** - Auto-fetch YTD~~ ✅ DONE
-2. **Phase 2** - YTD vs Projection split ← NEXT
-3. **Phase 3** - Book → Taxable reconciliation
+2. ~~**Phase 2** - YTD vs Projection split~~ ✅ DONE
+3. **Phase 3** - Book → Taxable reconciliation ← NEXT
 4. **Phase 5** - TDS/TCS integration
 5. **Phase 4** - Quarterly re-estimation
 6. **Phase 6** - MAT computation

@@ -14,7 +14,16 @@ export interface AdvanceTaxAssessment {
   assessmentYear: string;
   status: AdvanceTaxStatus;
 
-  // Projected Income
+  // YTD Actuals (locked - fetched from ledger)
+  ytdRevenue: number;
+  ytdExpenses: number;
+  ytdThroughDate?: string;
+
+  // Projected Additional (editable)
+  projectedAdditionalRevenue: number;
+  projectedAdditionalExpenses: number;
+
+  // Full Year Projections (computed: YTD + Projected Additional)
   projectedRevenue: number;
   projectedExpenses: number;
   projectedDepreciation: number;
@@ -83,8 +92,9 @@ export interface CreateAdvanceTaxAssessmentRequest {
 }
 
 export interface UpdateAdvanceTaxAssessmentRequest {
-  projectedRevenue: number;
-  projectedExpenses: number;
+  // Projected additional values (editable - for remaining FY)
+  projectedAdditionalRevenue: number;
+  projectedAdditionalExpenses: number;
   projectedDepreciation: number;
   projectedOtherIncome: number;
 
@@ -95,6 +105,25 @@ export interface UpdateAdvanceTaxAssessmentRequest {
   matCredit: number;
 
   notes?: string;
+}
+
+export interface RefreshYtdRequest {
+  assessmentId: string;
+  autoProjectFromTrend?: boolean;
+}
+
+export interface YtdFinancials {
+  ytdRevenue: number;
+  ytdExpenses: number;
+  throughDate: string;
+  monthsCovered: number;
+
+  // Trend-based projections
+  avgMonthlyRevenue: number;
+  avgMonthlyExpenses: number;
+  remainingMonths: number;
+  suggestedAdditionalRevenue: number;
+  suggestedAdditionalExpenses: number;
 }
 
 // ==================== Schedule Types ====================

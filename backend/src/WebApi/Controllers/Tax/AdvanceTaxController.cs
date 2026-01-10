@@ -198,6 +198,45 @@ namespace WebApi.Controllers.Tax
             return NoContent();
         }
 
+        /// <summary>
+        /// Refresh YTD actuals from ledger
+        /// </summary>
+        [HttpPost("assessment/refresh-ytd")]
+        [ProducesResponseType(typeof(AdvanceTaxAssessmentDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> RefreshYtd([FromBody] RefreshYtdRequest request)
+        {
+            var result = await _service.RefreshYtdAsync(request, CurrentUserId);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Preview YTD financials with trend-based projections
+        /// </summary>
+        [HttpGet("ytd-preview/{companyId:guid}/{financialYear}")]
+        [ProducesResponseType(typeof(YtdFinancialsDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetYtdFinancialsPreview(Guid companyId, string financialYear)
+        {
+            var result = await _service.GetYtdFinancialsPreviewAsync(companyId, financialYear);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
         // ==================== Schedule Endpoints ====================
 
         /// <summary>

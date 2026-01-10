@@ -7,6 +7,7 @@ import type {
   UpdateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
   RunScenarioRequest,
+  RefreshYtdRequest,
 } from '@/services/api/types';
 import { advanceTaxKeys } from './advanceTaxKeys';
 
@@ -251,6 +252,43 @@ export const useDeleteAdvanceTaxAssessment = () => {
     onError: (error: any) => {
       toast.error(error?.message || 'Failed to delete assessment');
     },
+  });
+};
+
+/**
+ * Refresh YTD actuals from ledger
+ */
+export const useRefreshYtd = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: RefreshYtdRequest) => advanceTaxService.refreshYtd(request),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: advanceTaxKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: advanceTaxKeys.assessments.detail(result.id),
+      });
+      toast.success('YTD actuals refreshed from ledger');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to refresh YTD');
+    },
+  });
+};
+
+/**
+ * Fetch YTD financials preview
+ */
+export const useYtdFinancialsPreview = (
+  companyId: string,
+  financialYear: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.ytdPreview.byCompanyFy(companyId, financialYear),
+    queryFn: () => advanceTaxService.getYtdFinancialsPreview(companyId, financialYear),
+    enabled: enabled && !!companyId && !!financialYear,
+    staleTime: 1 * 60 * 1000, // 1 minute - fresh data important
   });
 };
 
