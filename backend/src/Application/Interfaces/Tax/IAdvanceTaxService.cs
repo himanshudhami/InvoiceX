@@ -188,5 +188,17 @@ namespace Application.Interfaces.Tax
         /// Get MAT credit utilization history
         /// </summary>
         Task<Result<IEnumerable<MatCreditUtilizationDto>>> GetMatCreditUtilizationsAsync(Guid matCreditId);
+
+        // ==================== Form 280 (Challan) Operations ====================
+
+        /// <summary>
+        /// Get pre-filled Form 280 challan data
+        /// </summary>
+        Task<Result<Form280ChallanDto>> GetForm280DataAsync(GenerateForm280Request request);
+
+        /// <summary>
+        /// Generate Form 280 challan as PDF
+        /// </summary>
+        Task<Result<byte[]>> GenerateForm280PdfAsync(GenerateForm280Request request);
     }
 }

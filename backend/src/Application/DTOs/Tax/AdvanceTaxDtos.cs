@@ -655,4 +655,108 @@ namespace Application.DTOs.Tax
         public decimal ExpiringSoonAmount { get; set; }
         public int ExpiringSoonCount { get; set; }
     }
+
+    // ==================== Form 280 (Challan) DTOs ====================
+
+    /// <summary>
+    /// Request to generate Form 280 challan
+    /// </summary>
+    public class GenerateForm280Request
+    {
+        public Guid AssessmentId { get; set; }
+        public int? Quarter { get; set; }
+        public decimal Amount { get; set; }
+        public DateOnly? PaymentDate { get; set; }
+
+        /// <summary>
+        /// Bank through which payment will be made
+        /// </summary>
+        public string? BankName { get; set; }
+
+        /// <summary>
+        /// Bank branch name
+        /// </summary>
+        public string? BranchName { get; set; }
+    }
+
+    /// <summary>
+    /// Form 280 challan data (pre-filled)
+    /// </summary>
+    public class Form280ChallanDto
+    {
+        // Taxpayer Information
+        public string CompanyName { get; set; } = string.Empty;
+        public string Pan { get; set; } = string.Empty;
+        public string Tan { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public string Pincode { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+
+        // Assessment Details
+        public string AssessmentYear { get; set; } = string.Empty;
+        public string FinancialYear { get; set; } = string.Empty;
+
+        // Payment Type Codes
+        /// <summary>
+        /// Major Head: 0020 (Company) or 0021 (Other than Company)
+        /// </summary>
+        public string MajorHead { get; set; } = "0020";
+        public string MajorHeadDescription { get; set; } = "Income Tax on Companies (Corporation Tax)";
+
+        /// <summary>
+        /// Minor Head: 100 (Advance Tax), 300 (Self Assessment), 400 (Regular Assessment)
+        /// </summary>
+        public string MinorHead { get; set; } = "100";
+        public string MinorHeadDescription { get; set; } = "Advance Tax";
+
+        // Payment Details
+        public decimal Amount { get; set; }
+        public string AmountInWords { get; set; } = string.Empty;
+        public int? Quarter { get; set; }
+        public string? QuarterLabel { get; set; }
+        public DateOnly DueDate { get; set; }
+        public DateOnly? PaymentDate { get; set; }
+
+        // Bank Details (if already paid)
+        public string? BankName { get; set; }
+        public string? BranchName { get; set; }
+        public string? ChallanNumber { get; set; }
+        public string? BsrCode { get; set; }
+        public string? Cin { get; set; }
+
+        // Status
+        public bool IsPaid { get; set; }
+        public string Status { get; set; } = "pending";
+
+        // Breakdown (for information)
+        public decimal TotalTaxLiability { get; set; }
+        public decimal TdsCredit { get; set; }
+        public decimal TcsCredit { get; set; }
+        public decimal AdvanceTaxPaid { get; set; }
+        public decimal NetPayable { get; set; }
+
+        // Quarter-wise requirement (for context)
+        public decimal CumulativePercentRequired { get; set; }
+        public decimal CumulativeAmountRequired { get; set; }
+        public decimal CumulativePaid { get; set; }
+
+        // Generation metadata
+        public DateTime GeneratedAt { get; set; }
+        public string FormType { get; set; } = "ITNS 280";
+    }
+
+    /// <summary>
+    /// BSR Code lookup entry
+    /// </summary>
+    public class BsrCodeDto
+    {
+        public string BsrCode { get; set; } = string.Empty;
+        public string BankName { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+    }
 }

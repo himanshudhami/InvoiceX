@@ -610,5 +610,52 @@ namespace WebApi.Controllers.Tax
 
             return Ok(result.Value);
         }
+
+        // ==================== Form 280 (Challan) Endpoints ====================
+
+        /// <summary>
+        /// Get pre-filled Form 280 challan data
+        /// </summary>
+        [HttpPost("form280/data")]
+        [ProducesResponseType(typeof(Form280ChallanDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetForm280Data([FromBody] GenerateForm280Request request)
+        {
+            var result = await _service.GetForm280DataAsync(request);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Generate Form 280 challan as PDF
+        /// </summary>
+        [HttpPost("form280/pdf")]
+        [ProducesResponseType(typeof(FileContentResult), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GenerateForm280Pdf([FromBody] GenerateForm280Request request)
+        {
+            var result = await _service.GenerateForm280PdfAsync(request);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            var fileName = $"Form280_Challan_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            return File(result.Value!, "application/pdf", fileName);
+        }
     }
 }

@@ -1689,5 +1689,204 @@ namespace Application.Services.Tax
         {
             return GetExpiryYear(financialYear, 2);
         }
+
+        // ==================== Form 280 (Challan) Operations ====================
+
+        private readonly Form280PdfService _form280PdfService = new();
+
+        public async Task<Result<Form280ChallanDto>> GetForm280DataAsync(GenerateForm280Request request)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(request.AssessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {request.AssessmentId} not found");
+
+            var company = await _companiesRepository.GetByIdAsync(assessment.CompanyId);
+            if (company == null)
+                return Error.NotFound($"Company {assessment.CompanyId} not found");
+
+            var schedules = await _repository.GetSchedulesByAssessmentAsync(assessment.Id);
+            var payments = await _repository.GetPaymentsByAssessmentAsync(assessment.Id);
+
+            // Get schedule for the requested quarter
+            AdvanceTaxSchedule? targetSchedule = null;
+            if (request.Quarter.HasValue)
+            {
+                targetSchedule = schedules.FirstOrDefault(s => s.Quarter == request.Quarter);
+            }
+            else
+            {
+                // Get the next due schedule
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                targetSchedule = schedules
+                    .Where(s => s.PaymentStatus != "paid" && s.DueDate >= today)
+                    .OrderBy(s => s.DueDate)
+                    .FirstOrDefault();
+
+                // If all future paid, get the most recent
+                targetSchedule ??= schedules.OrderByDescending(s => s.Quarter).FirstOrDefault();
+            }
+
+            var totalPaid = payments.Sum(p => p.Amount);
+
+            // Build address from address lines
+            var addressParts = new List<string>();
+            if (!string.IsNullOrEmpty(company.AddressLine1)) addressParts.Add(company.AddressLine1);
+            if (!string.IsNullOrEmpty(company.AddressLine2)) addressParts.Add(company.AddressLine2);
+            var fullAddress = string.Join(", ", addressParts);
+
+            var challan = new Form280ChallanDto
+            {
+                // Taxpayer Information
+                CompanyName = company.Name ?? string.Empty,
+                Pan = company.PanNumber ?? string.Empty,
+                Tan = string.Empty, // TAN not stored in Companies entity
+                Address = fullAddress,
+                City = company.City ?? string.Empty,
+                State = company.State ?? string.Empty,
+                Pincode = company.ZipCode ?? string.Empty,
+                Email = company.Email ?? string.Empty,
+                Phone = company.Phone ?? string.Empty,
+
+                // Assessment Details
+                AssessmentYear = assessment.AssessmentYear,
+                FinancialYear = assessment.FinancialYear,
+
+                // Payment Type Codes (Corporate = 0020, Advance Tax = 100)
+                MajorHead = "0020",
+                MajorHeadDescription = "Income Tax on Companies (Corporation Tax)",
+                MinorHead = "100",
+                MinorHeadDescription = "Advance Tax",
+
+                // Payment Details
+                Amount = request.Amount > 0 ? request.Amount :
+                    (targetSchedule?.TaxPayableThisQuarter - targetSchedule?.TaxPaidThisQuarter ?? 0),
+                Quarter = targetSchedule?.Quarter,
+                QuarterLabel = targetSchedule != null ? $"Q{targetSchedule.Quarter}" : null,
+                DueDate = targetSchedule?.DueDate ?? DateOnly.FromDateTime(DateTime.Today),
+                PaymentDate = request.PaymentDate,
+
+                // Bank Details (if provided)
+                BankName = request.BankName,
+                BranchName = request.BranchName,
+
+                // Status
+                IsPaid = false,
+                Status = "pending",
+
+                // Breakdown
+                TotalTaxLiability = assessment.TotalTaxLiability,
+                TdsCredit = assessment.TdsReceivable,
+                TcsCredit = assessment.TcsCredit,
+                AdvanceTaxPaid = totalPaid,
+                NetPayable = assessment.NetTaxPayable,
+
+                // Quarter-wise requirement
+                CumulativePercentRequired = targetSchedule?.CumulativePercentage ?? 100,
+                CumulativeAmountRequired = targetSchedule?.CumulativeTaxDue ?? assessment.NetTaxPayable,
+                CumulativePaid = targetSchedule?.CumulativeTaxPaid ?? totalPaid,
+
+                // Generation metadata
+                GeneratedAt = DateTime.UtcNow,
+                FormType = "ITNS 280"
+            };
+
+            // Convert amount to words
+            challan.AmountInWords = ConvertAmountToWords(challan.Amount);
+
+            return challan;
+        }
+
+        public async Task<Result<byte[]>> GenerateForm280PdfAsync(GenerateForm280Request request)
+        {
+            var challanResult = await GetForm280DataAsync(request);
+            if (challanResult.IsFailure)
+                return Error.Validation(challanResult.Error!.Message);
+
+            try
+            {
+                var pdfBytes = _form280PdfService.GenerateChallan(challanResult.Value!);
+                return pdfBytes;
+            }
+            catch (Exception ex)
+            {
+                return Error.Internal($"Failed to generate PDF: {ex.Message}");
+            }
+        }
+
+        private static string ConvertAmountToWords(decimal amount)
+        {
+            if (amount == 0)
+                return "Zero Rupees Only";
+
+            var intAmount = (long)Math.Floor(amount);
+            var paise = (int)((amount - intAmount) * 100);
+
+            var result = ConvertToIndianWords(intAmount) + " Rupees";
+
+            if (paise > 0)
+            {
+                result += " and " + ConvertToIndianWords(paise) + " Paise";
+            }
+
+            return result + " Only";
+        }
+
+        private static string ConvertToIndianWords(long number)
+        {
+            if (number == 0)
+                return "Zero";
+
+            string[] ones = { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+                            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+                            "Seventeen", "Eighteen", "Nineteen" };
+            string[] tens = { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+
+            var words = new System.Text.StringBuilder();
+
+            // Crore (10,000,000)
+            if (number >= 10000000)
+            {
+                words.Append(ConvertToIndianWords(number / 10000000) + " Crore ");
+                number %= 10000000;
+            }
+
+            // Lakh (100,000)
+            if (number >= 100000)
+            {
+                words.Append(ConvertToIndianWords(number / 100000) + " Lakh ");
+                number %= 100000;
+            }
+
+            // Thousand
+            if (number >= 1000)
+            {
+                words.Append(ConvertToIndianWords(number / 1000) + " Thousand ");
+                number %= 1000;
+            }
+
+            // Hundred
+            if (number >= 100)
+            {
+                words.Append(ones[number / 100] + " Hundred ");
+                number %= 100;
+            }
+
+            // Tens and Ones
+            if (number > 0)
+            {
+                if (number < 20)
+                {
+                    words.Append(ones[number]);
+                }
+                else
+                {
+                    words.Append(tens[number / 10]);
+                    if (number % 10 > 0)
+                        words.Append(" " + ones[number % 10]);
+                }
+            }
+
+            return words.ToString().Trim();
+        }
     }
 }

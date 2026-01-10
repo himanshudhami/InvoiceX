@@ -9,6 +9,7 @@ import type {
   RunScenarioRequest,
   RefreshYtdRequest,
   CreateRevisionRequest,
+  GenerateForm280Request,
 } from '@/services/api/types';
 import { advanceTaxKeys } from './advanceTaxKeys';
 
@@ -538,5 +539,54 @@ export const useMatCreditUtilizations = (matCreditId: string, enabled = true) =>
     queryFn: () => advanceTaxService.getMatCreditUtilizations(matCreditId),
     enabled: enabled && !!matCreditId,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+// ==================== Form 280 (Challan) Hooks ====================
+
+/**
+ * Fetch Form 280 challan data
+ */
+export const useForm280Data = (
+  assessmentId: string,
+  quarter?: number,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.form280.data(assessmentId, quarter),
+    queryFn: () => advanceTaxService.getForm280Data({
+      assessmentId,
+      quarter,
+      amount: 0, // Will be calculated from schedule
+    }),
+    enabled: enabled && !!assessmentId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+};
+
+/**
+ * Download Form 280 as PDF
+ */
+export const useDownloadForm280Pdf = () => {
+  return useMutation({
+    mutationFn: async (request: GenerateForm280Request) => {
+      const blob = await advanceTaxService.downloadForm280Pdf(request);
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Form280_Challan_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return blob;
+    },
+    onSuccess: () => {
+      toast.success('Form 280 challan downloaded');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to download challan');
+    },
   });
 };

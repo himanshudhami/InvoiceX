@@ -21,6 +21,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] **TDS/TCS Integration** (Phase 5 complete)
 - [x] **Quarterly Re-estimation Workflow** (Phase 4 complete)
 - [x] **MAT (Minimum Alternate Tax) Computation** (Phase 6 complete)
+- [x] **Form 280 (Challan) Generation** (Phase 7 complete)
 
 ---
 
@@ -446,15 +447,70 @@ advance_tax_assessments:
 
 ---
 
-## Phase 7: Form 280 (Challan) Generation
+## Phase 7: Form 280 (Challan) Generation (COMPLETED)
 
 ### Goal
-Generate pre-filled Form 280 for advance tax payment.
+Generate pre-filled Form 280 (ITNS 280) challan for advance tax payment.
+
+### Implementation (Done)
+1. **DTOs Added to `AdvanceTaxDtos.cs`**:
+   - `GenerateForm280Request` - Request to generate challan (assessmentId, quarter, amount, bank details)
+   - `Form280ChallanDto` - Complete challan data (taxpayer info, assessment details, payment codes, amounts)
+   - `BsrCodeDto` - Bank BSR code lookup entry
+
+2. **PDF Service**: `Form280PdfService.cs`
+   - Using QuestPDF library for modern PDF generation
+   - Complete ITNS 280 challan format with:
+     - Header with form type and tax code checkboxes
+     - Taxpayer details section (PAN, TAN, address)
+     - Assessment details section (AY, FY, Major/Minor Head codes)
+     - Payment details with tax breakdown and amount in words
+     - Bank details section (for office use)
+     - Instructions section
+     - Indian numbering format (Lakh/Crore)
+
+3. **Service Implementation**: Added to `AdvanceTaxService.cs`
+   - `GetForm280DataAsync` - Generates pre-filled challan data from assessment
+   - `GenerateForm280PdfAsync` - Generates PDF using Form280PdfService
+   - `ConvertAmountToWords` - Converts amount to Indian number words (Crore/Lakh/Thousand)
+
+4. **API Endpoints**:
+   - `POST /api/tax/advance-tax/form280/data` - Get challan data as JSON
+   - `POST /api/tax/advance-tax/form280/pdf` - Download challan as PDF
+
+5. **Frontend Changes**:
+   - Added `GenerateForm280Request` and `Form280Challan` TypeScript types
+   - Added `getForm280Data` and `downloadForm280Pdf` to API service
+   - Added `form280` query keys
+   - Added `useForm280Data` and `useDownloadForm280Pdf` hooks
+   - Added Download icon button in Quarterly Payment Schedule table
+   - Challan downloads for quarters with outstanding payments
 
 ### Features
-- PDF generation with company details, TAN, amount
-- Integration with e-payment gateway (future)
-- BSR code lookup
+- Pre-filled with company PAN, TAN, address from database
+- Auto-calculates amount from schedule shortfall
+- Major Head: 0020 (Corporation Tax)
+- Minor Head: 100 (Advance Tax)
+- Amount displayed in both figures and Indian words
+- Quarter-specific due dates and cumulative percentages
+- Tax breakdown showing liability, credits, and net payable
+- Professional PDF layout matching official ITNS 280 format
+
+### UI Integration
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  QUARTERLY PAYMENT SCHEDULE                                             │
+├────────┬──────────┬──────────┬──────────┬──────────┬──────────┬────────┤
+│ Quarter│ Cum %    │ Payable  │ Paid     │ Shortfall│ Status   │ Actions│
+├────────┼──────────┼──────────┼──────────┼──────────┼──────────┼────────┤
+│ Q1     │ 15%      │ ₹30,000  │ ₹30,000  │ -        │ Paid     │        │
+│ Q2     │ 45%      │ ₹60,000  │ ₹40,000  │ ₹20,000  │ Partial  │ 💳 📥  │
+│ Q3     │ 75%      │ ₹60,000  │ ₹0       │ ₹60,000  │ Pending  │ 💳 📥  │
+│ Q4     │ 100%     │ ₹50,000  │ ₹0       │ ₹50,000  │ Pending  │ 💳 📥  │
+└────────┴──────────┴──────────┴──────────┴──────────┴──────────┴────────┘
+                                                        💳 = Record Payment
+                                                        📥 = Download Form 280
+```
 
 ---
 
@@ -502,5 +558,5 @@ Bird's-eye view of advance tax status across all companies.
 4. ~~**Phase 5** - TDS/TCS integration~~ ✅ DONE
 5. ~~**Phase 4** - Quarterly re-estimation~~ ✅ DONE
 6. ~~**Phase 6** - MAT computation~~ ✅ DONE
-7. **Phase 7** - Form 280 generation ← NEXT
-8. **Phase 8** - Compliance dashboard
+7. ~~**Phase 7** - Form 280 generation~~ ✅ DONE
+8. **Phase 8** - Compliance dashboard ← NEXT

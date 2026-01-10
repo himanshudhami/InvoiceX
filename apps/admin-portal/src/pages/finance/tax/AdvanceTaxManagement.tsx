@@ -22,6 +22,7 @@ import {
   useRefreshYtd,
   useRefreshTdsTcs,
   useCreateRevision,
+  useDownloadForm280Pdf,
 } from '@/features/advance-tax/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import type {
@@ -60,6 +61,7 @@ import {
   History,
   TrendingUp,
   TrendingDown,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -233,6 +235,7 @@ const AdvanceTaxManagement = () => {
   const refreshYtd = useRefreshYtd();
   const refreshTdsTcs = useRefreshTdsTcs();
   const createRevision = useCreateRevision();
+  const downloadForm280 = useDownloadForm280Pdf();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -487,6 +490,7 @@ const AdvanceTaxManagement = () => {
       cell: ({ row }) => {
         const schedule = row.original;
         const canPay = schedule.paymentStatus !== 'paid' && assessment?.status !== 'finalized';
+        const shortfall = schedule.taxPayableThisQuarter - schedule.taxPaidThisQuarter;
         return (
           <div className="flex space-x-2">
             {canPay && (
@@ -496,6 +500,20 @@ const AdvanceTaxManagement = () => {
                 title="Record Payment"
               >
                 <CreditCard size={16} />
+              </button>
+            )}
+            {assessment && shortfall > 0 && (
+              <button
+                onClick={() => downloadForm280.mutate({
+                  assessmentId: assessment.id,
+                  quarter: schedule.quarter,
+                  amount: shortfall,
+                })}
+                disabled={downloadForm280.isPending}
+                className="text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50 transition-colors"
+                title="Download Form 280 Challan"
+              >
+                <Download size={16} />
               </button>
             )}
           </div>

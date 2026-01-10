@@ -21,6 +21,8 @@ import type {
   RefreshYtdRequest,
   CreateRevisionRequest,
   YtdFinancials,
+  GenerateForm280Request,
+  Form280Challan,
 } from '../../types';
 
 /**
@@ -285,6 +287,35 @@ export class AdvanceTaxService {
     return apiClient.get<MatCreditUtilization[]>(
       `${this.endpoint}/mat-credit-utilizations/${matCreditId}`
     );
+  }
+
+  // ==================== Form 280 (Challan) Operations ====================
+
+  /**
+   * Get pre-filled Form 280 challan data
+   */
+  async getForm280Data(request: GenerateForm280Request): Promise<Form280Challan> {
+    return apiClient.post<Form280Challan>(`${this.endpoint}/form280/data`, request);
+  }
+
+  /**
+   * Generate Form 280 challan as PDF and download
+   */
+  async downloadForm280Pdf(request: GenerateForm280Request): Promise<Blob> {
+    const response = await fetch(`/api/${this.endpoint}/form280/pdf`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to generate PDF');
+    }
+
+    return response.blob();
   }
 }
 

@@ -94,4 +94,11 @@ export const advanceTaxKeys = {
     utilizations: (matCreditId: string) =>
       [...advanceTaxKeys.matCredit.all(), 'utilizations', matCreditId] as const,
   },
+
+  // Form 280 (Challan)
+  form280: {
+    all: () => [...advanceTaxKeys.all, 'form280'] as const,
+    data: (assessmentId: string, quarter?: number) =>
+      [...advanceTaxKeys.form280.all(), 'data', assessmentId, quarter] as const,
+  },
 };

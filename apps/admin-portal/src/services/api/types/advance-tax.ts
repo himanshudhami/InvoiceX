@@ -538,3 +538,72 @@ export interface MatCreditSummary {
   expiringSoonAmount: number;
   expiringSoonCount: number;
 }
+
+// ==================== Form 280 (Challan) Types ====================
+
+export interface GenerateForm280Request {
+  assessmentId: string;
+  quarter?: number;
+  amount: number;
+  paymentDate?: string;
+  bankName?: string;
+  branchName?: string;
+}
+
+export interface Form280Challan {
+  // Taxpayer Information
+  companyName: string;
+  pan: string;
+  tan: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  email: string;
+  phone: string;
+
+  // Assessment Details
+  assessmentYear: string;
+  financialYear: string;
+
+  // Payment Type Codes
+  majorHead: string;
+  majorHeadDescription: string;
+  minorHead: string;
+  minorHeadDescription: string;
+
+  // Payment Details
+  amount: number;
+  amountInWords: string;
+  quarter?: number;
+  quarterLabel?: string;
+  dueDate: string;
+  paymentDate?: string;
+
+  // Bank Details
+  bankName?: string;
+  branchName?: string;
+  challanNumber?: string;
+  bsrCode?: string;
+  cin?: string;
+
+  // Status
+  isPaid: boolean;
+  status: string;
+
+  // Breakdown
+  totalTaxLiability: number;
+  tdsCredit: number;
+  tcsCredit: number;
+  advanceTaxPaid: number;
+  netPayable: number;
+
+  // Quarter-wise requirement
+  cumulativePercentRequired: number;
+  cumulativeAmountRequired: number;
+  cumulativePaid: number;
+
+  // Generation metadata
+  generatedAt: string;
+  formType: string;
+}
