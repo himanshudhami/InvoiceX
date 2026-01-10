@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useCallback } from 'react'
 import { useInvoice, useInvoiceItems } from '@/hooks/api/useInvoices'
+import { useCreditNotesByInvoice } from '@/features/credit-notes/hooks'
 import { useCustomers } from '@/hooks/api/useCustomers'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { format } from 'date-fns'
@@ -17,7 +18,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  FileMinus,
+  ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TemplateSelectModal } from '@/components/modals/TemplateSelectModal'
@@ -50,6 +53,7 @@ const InvoiceView = () => {
   // Scope customers to the invoice company to avoid cross-company mismatches
   const { data: customers = [] } = useCustomers(invoice?.companyId)
   const { data: companies = [] } = useCompanies()
+  const { data: creditNotes = [] } = useCreditNotesByInvoice(id!, !!invoice)
 
   const customer = customers.find(c => c.id === invoice?.partyId)
   const company = companies.find(c => c.id === invoice?.companyId)
@@ -288,7 +292,7 @@ const InvoiceView = () => {
                   {/* Credit Note option - shown for paid or partially paid invoices */}
                   {(invoice.status === 'paid' || (invoice.paidAmount && invoice.paidAmount > 0)) && (
                     <DropdownMenuItem
-                      onClick={() => alert('Credit Note functionality coming soon. This will allow you to issue corrections for paid invoices.')}
+                      onClick={() => navigate(`/credit-notes/from-invoice/${invoice.id}`)}
                       className="text-amber-600 focus:text-amber-600"
                     >
                       <FileCheck className="mr-2 h-4 w-4" />
@@ -561,6 +565,46 @@ const InvoiceView = () => {
                   />
                 )}
               </div>
+
+              {/* Credit Notes */}
+              {creditNotes.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                    Credit Notes ({creditNotes.length})
+                  </p>
+                  <div className="space-y-2">
+                    {creditNotes.map(cn => (
+                      <button
+                        key={cn.id}
+                        onClick={() => navigate(`/credit-notes/${cn.id}`)}
+                        className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileMinus className="h-4 w-4 text-amber-500" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{cn.creditNoteNumber}</p>
+                            <p className="text-xs text-gray-500">
+                              {cn.creditNoteDate ? format(new Date(cn.creditNoteDate), 'MMM dd, yyyy') : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-red-600">
+                            -{formatINR(cn.totalAmount)}
+                          </span>
+                          <ExternalLink className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </button>
+                    ))}
+                    <div className="pt-2 border-t flex justify-between text-sm">
+                      <span className="text-gray-500">Total Credited</span>
+                      <span className="font-medium text-red-600">
+                        -{formatINR(creditNotes.reduce((sum, cn) => sum + (cn.totalAmount || 0), 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* E-Invoice QR Code */}
               {invoice.irn && invoice.qrCodeData && (

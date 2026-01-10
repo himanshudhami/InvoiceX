@@ -22,6 +22,9 @@ const QuoteCreate = lazy(() => import('./pages/billing/quotes/QuoteCreate'))
 const QuoteEdit = lazy(() => import('./pages/billing/quotes/QuoteEdit'))
 const QuoteView = lazy(() => import('./pages/billing/quotes/QuoteView'))
 const InvoiceList = lazy(() => import('./pages/billing/invoices/InvoiceList'))
+const CreditNoteList = lazy(() => import('./pages/billing/credit-notes/CreditNoteList'))
+const CreditNoteView = lazy(() => import('./pages/billing/credit-notes/CreditNoteView'))
+const CreditNoteFromInvoice = lazy(() => import('./pages/billing/credit-notes/CreditNoteFromInvoice'))
 const CustomerList = lazy(() => import('./pages/crm/customers/CustomerList'))
 const CustomerCreate = lazy(() => import('./pages/crm/customers/CustomerCreate'))
 const CustomerEdit = lazy(() => import('./pages/crm/customers/CustomerEdit'))
@@ -251,6 +254,11 @@ function AppRoutes() {
               <Route path="/invoices/new" element={<InvoiceCreate />} />
               <Route path="/invoices/:id" element={<InvoiceView />} />
               <Route path="/invoices/:id/edit" element={<InvoiceEdit />} />
+
+              {/* Credit Note Routes */}
+              <Route path="/credit-notes" element={<CreditNoteList />} />
+              <Route path="/credit-notes/:id" element={<CreditNoteView />} />
+              <Route path="/credit-notes/from-invoice/:invoiceId" element={<CreditNoteFromInvoice />} />
 
               {/* Quote Routes */}
               <Route path="/quotes" element={<QuoteList />} />

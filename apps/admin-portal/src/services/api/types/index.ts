@@ -10,6 +10,7 @@
  * - '@/services/api/types/customer' for Customer types
  * - '@/services/api/types/product' for Product types
  * - '@/services/api/types/invoice' for Invoice types
+ * - '@/services/api/types/credit-note' for Credit Note types
  * - '@/services/api/types/quote' for Quote types
  * - '@/services/api/types/tax-rate' for TaxRate types
  * - '@/services/api/types/invoice-template' for InvoiceTemplate types
@@ -44,6 +45,7 @@ export * from './company';
 export * from './customer';
 export * from './product';
 export * from './invoice';
+export * from './credit-note';
 export * from './quote';
 export * from './tax-rate';
 export * from './invoice-template';

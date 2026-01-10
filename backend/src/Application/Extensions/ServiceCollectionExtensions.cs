@@ -34,6 +34,8 @@ services.AddScoped<Application.Interfaces.IInvoiceTemplatesService,
                               Application.Services.InvoiceTemplatesService>();
 services.AddScoped<Application.Interfaces.IInvoicesService,
                               Application.Services.InvoicesService>();
+services.AddScoped<Application.Interfaces.ICreditNotesService,
+                              Application.Services.CreditNotesService>();
 services.AddScoped<Application.Interfaces.IPaymentsService,
                               Application.Services.PaymentsService>();
 services.AddScoped<Application.Interfaces.IProductsService,

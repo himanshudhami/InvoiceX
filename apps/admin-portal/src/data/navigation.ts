@@ -35,6 +35,7 @@ import {
   PieChart,
   ScrollText,
   FileCheck,
+  FileMinus,
   BookMarked,
   Globe,
   DollarSign,
@@ -97,6 +98,7 @@ export const navigationGroups: NavigationItem[] = [
     icon: FileText,
     items: [
       { name: 'Invoices', href: '/invoices', icon: FileText },
+      { name: 'Credit Notes', href: '/credit-notes', icon: FileMinus },
       { name: 'Quotes', href: '/quotes', icon: FileEdit },
       { name: 'Customers', href: '/customers', icon: Users },
       { name: 'Products', href: '/products', icon: Package },

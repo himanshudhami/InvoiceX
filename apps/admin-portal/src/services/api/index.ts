@@ -6,6 +6,7 @@ export * from './admin/companyService'
 export * from './core/dashboardService'
 
 export * from './billing/invoiceService'
+export * from './billing/creditNoteService'
 export * from './billing/quoteService'
 export * from './billing/invoiceTemplateService'
 

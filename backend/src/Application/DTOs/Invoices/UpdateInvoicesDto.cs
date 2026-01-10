@@ -7,98 +7,118 @@ namespace Application.DTOs.Invoices
     /// </summary>
     public class UpdateInvoicesDto
     {
-/// <summary>
+        /// <summary>
         /// CompanyId
         /// </summary>
         public Guid? CompanyId { get; set; }
-/// <summary>
+
+        /// <summary>
         /// PartyId
         /// </summary>
         public Guid? PartyId { get; set; }
-/// <summary>
+
+        /// <summary>
         /// InvoiceNumber
         /// </summary>
         [Required(ErrorMessage = "InvoiceNumber is required")]
         [StringLength(255, ErrorMessage = "InvoiceNumber cannot exceed 255 characters")]
         public string InvoiceNumber { get; set; } = string.Empty;
-/// <summary>
+
+        /// <summary>
         /// InvoiceDate
         /// </summary>
         public DateOnly InvoiceDate { get; set; }
-/// <summary>
+
+        /// <summary>
         /// DueDate
         /// </summary>
         public DateOnly DueDate { get; set; }
-/// <summary>
+
+        /// <summary>
         /// Status
         /// </summary>
         [StringLength(255, ErrorMessage = "Status cannot exceed 255 characters")]
         public string? Status { get; set; }
-/// <summary>
+
+        /// <summary>
         /// Subtotal
         /// </summary>
         [Required(ErrorMessage = "Subtotal is required")]
         public decimal Subtotal { get; set; }
-/// <summary>
+
+        /// <summary>
         /// TaxAmount
         /// </summary>
         public decimal? TaxAmount { get; set; }
-/// <summary>
+
+        /// <summary>
         /// DiscountAmount
         /// </summary>
         public decimal? DiscountAmount { get; set; }
-/// <summary>
+
+        /// <summary>
         /// TotalAmount
         /// </summary>
         [Required(ErrorMessage = "TotalAmount is required")]
         public decimal TotalAmount { get; set; }
-/// <summary>
+
+        /// <summary>
         /// PaidAmount
         /// </summary>
         public decimal? PaidAmount { get; set; }
-/// <summary>
+
+        /// <summary>
         /// Currency
         /// </summary>
         [StringLength(255, ErrorMessage = "Currency cannot exceed 255 characters")]
         public string? Currency { get; set; }
-/// <summary>
+
+        /// <summary>
         /// Notes
         /// </summary>
         [StringLength(255, ErrorMessage = "Notes cannot exceed 255 characters")]
         public string? Notes { get; set; }
-/// <summary>
+
+        /// <summary>
         /// Terms
         /// </summary>
         [StringLength(255, ErrorMessage = "Terms cannot exceed 255 characters")]
         public string? Terms { get; set; }
-/// <summary>
+
+        /// <summary>
         /// PaymentInstructions
         /// </summary>
         public string? PaymentInstructions { get; set; }
-/// <summary>
+
+        /// <summary>
         /// PoNumber
         /// </summary>
         [StringLength(255, ErrorMessage = "PoNumber cannot exceed 255 characters")]
         public string? PoNumber { get; set; }
-/// <summary>
+
+        /// <summary>
         /// ProjectName
         /// </summary>
         [StringLength(255, ErrorMessage = "ProjectName cannot exceed 255 characters")]
         public string? ProjectName { get; set; }
-/// <summary>
+
+        /// <summary>
         /// SentAt
         /// </summary>
         public DateTime? SentAt { get; set; }
-/// <summary>
+
+        /// <summary>
         /// ViewedAt
         /// </summary>
         public DateTime? ViewedAt { get; set; }
-/// <summary>
+
+        /// <summary>
         /// PaidAt
         /// </summary>
         public DateTime? PaidAt { get; set; }
 
         // GST Classification
+
         /// <summary>
         /// Invoice type: export, domestic_b2b, domestic_b2c, sez, deemed_export
         /// </summary>
@@ -124,11 +144,12 @@ namespace Application.DTOs.Invoices
 
         /// <summary>
         /// Exchange rate to INR on invoice date (RBI reference rate)
+        /// Only required for non-INR currency invoices
         /// </summary>
-        [Range(0.0001, double.MaxValue, ErrorMessage = "ExchangeRate must be greater than 0")]
         public decimal? ExchangeRate { get; set; }
 
         // GST Totals
+
         /// <summary>
         /// Total CGST amount for the invoice
         /// </summary>
@@ -150,6 +171,7 @@ namespace Application.DTOs.Invoices
         public decimal? TotalCess { get; set; }
 
         // E-invoicing fields
+
         /// <summary>
         /// Whether e-invoicing is applicable
         /// </summary>
@@ -178,6 +200,7 @@ namespace Application.DTOs.Invoices
         public string? EInvoiceQrCode { get; set; }
 
         // Shipping details
+
         /// <summary>
         /// Shipping/delivery address
         /// </summary>
@@ -200,5 +223,5 @@ namespace Application.DTOs.Invoices
         /// </summary>
         [StringLength(50, ErrorMessage = "EwayBillNumber cannot exceed 50 characters")]
         public string? EwayBillNumber { get; set; }
-}
+    }
 }

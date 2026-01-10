@@ -34,6 +34,10 @@ services.AddScoped<Core.Interfaces.IInvoiceTemplatesRepository>(sp =>
             new Infrastructure.Data.InvoiceTemplatesRepository(connectionString));
 services.AddScoped<Core.Interfaces.IInvoicesRepository>(sp =>
             new Infrastructure.Data.InvoicesRepository(connectionString));
+services.AddScoped<Core.Interfaces.ICreditNotesRepository>(sp =>
+            new Infrastructure.Data.CreditNotesRepository(connectionString));
+services.AddScoped<Core.Interfaces.ICreditNoteItemsRepository>(sp =>
+            new Infrastructure.Data.CreditNoteItemsRepository(connectionString));
 services.AddScoped<Core.Interfaces.IPaymentsRepository>(sp =>
             new Infrastructure.Data.PaymentsRepository(connectionString));
 services.AddScoped<Core.Interfaces.IProductsRepository>(sp =>
