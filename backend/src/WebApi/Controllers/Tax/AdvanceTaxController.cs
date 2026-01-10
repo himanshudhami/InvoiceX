@@ -657,5 +657,44 @@ namespace WebApi.Controllers.Tax
             var fileName = $"Form280_Challan_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
             return File(result.Value!, "application/pdf", fileName);
         }
+
+        // ==================== Compliance Dashboard Endpoints ====================
+
+        /// <summary>
+        /// Get multi-company compliance dashboard
+        /// </summary>
+        [HttpPost("compliance-dashboard")]
+        [ProducesResponseType(typeof(ComplianceDashboardDto), 200)]
+        public async Task<IActionResult> GetComplianceDashboard([FromBody] ComplianceDashboardRequest request)
+        {
+            var result = await _service.GetComplianceDashboardAsync(request);
+
+            if (result.IsFailure)
+                return BadRequest(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get year-on-year comparison for a company
+        /// </summary>
+        [HttpPost("year-on-year-comparison")]
+        [ProducesResponseType(typeof(YearOnYearComparisonDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetYearOnYearComparison([FromBody] YearOnYearComparisonRequest request)
+        {
+            var result = await _service.GetYearOnYearComparisonAsync(request);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
     }
 }

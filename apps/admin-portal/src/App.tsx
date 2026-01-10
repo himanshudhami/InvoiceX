@@ -110,6 +110,7 @@ const TaxRulePacksManagement = lazy(() => import('./pages/finance/tax/TaxRulePac
 
 // Advance Tax (Section 207 - Corporate)
 const AdvanceTaxManagement = lazy(() => import('./pages/finance/tax/AdvanceTaxManagement'))
+const AdvanceTaxComplianceDashboard = lazy(() => import('./pages/finance/tax/advance-tax/AdvanceTaxComplianceDashboard'))
 
 // GST Compliance
 const GstComplianceDashboard = lazy(() => import('./pages/finance/tax/gst/GstComplianceDashboard'))
@@ -379,6 +380,7 @@ function AppRoutes() {
 
               {/* Advance Tax (Section 207 - Corporate) */}
               <Route path="/tax/advance-tax" element={<AdvanceTaxManagement />} />
+              <Route path="/tax/advance-tax/compliance" element={<AdvanceTaxComplianceDashboard />} />
 
               {/* GST Compliance Routes */}
               <Route path="/gst" element={<GstComplianceDashboard />} />

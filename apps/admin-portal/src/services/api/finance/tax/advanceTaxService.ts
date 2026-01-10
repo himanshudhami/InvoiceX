@@ -23,6 +23,10 @@ import type {
   YtdFinancials,
   GenerateForm280Request,
   Form280Challan,
+  ComplianceDashboardRequest,
+  ComplianceDashboard,
+  YearOnYearComparisonRequest,
+  YearOnYearComparison,
 } from '../../types';
 
 /**
@@ -316,6 +320,22 @@ export class AdvanceTaxService {
     }
 
     return response.blob();
+  }
+
+  // ==================== Compliance Dashboard Operations ====================
+
+  /**
+   * Get multi-company compliance dashboard
+   */
+  async getComplianceDashboard(request: ComplianceDashboardRequest): Promise<ComplianceDashboard> {
+    return apiClient.post<ComplianceDashboard>(`${this.endpoint}/compliance-dashboard`, request);
+  }
+
+  /**
+   * Get year-on-year comparison for a company
+   */
+  async getYearOnYearComparison(request: YearOnYearComparisonRequest): Promise<YearOnYearComparison> {
+    return apiClient.post<YearOnYearComparison>(`${this.endpoint}/year-on-year-comparison`, request);
   }
 }
 

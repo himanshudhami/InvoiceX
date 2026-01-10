@@ -10,6 +10,8 @@ import type {
   RefreshYtdRequest,
   CreateRevisionRequest,
   GenerateForm280Request,
+  ComplianceDashboardRequest,
+  YearOnYearComparisonRequest,
 } from '@/services/api/types';
 import { advanceTaxKeys } from './advanceTaxKeys';
 
@@ -587,6 +589,74 @@ export const useDownloadForm280Pdf = () => {
     },
     onError: (error: any) => {
       toast.error(error?.message || 'Failed to download challan');
+    },
+  });
+};
+
+// ==================== Compliance Dashboard Hooks ====================
+
+/**
+ * Fetch multi-company compliance dashboard
+ */
+export const useComplianceDashboard = (
+  financialYear: string,
+  companyIds?: string[],
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.complianceDashboard.byFy(financialYear, companyIds),
+    queryFn: () =>
+      advanceTaxService.getComplianceDashboard({
+        financialYear,
+        companyIds,
+      }),
+    enabled: enabled && !!financialYear,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+};
+
+/**
+ * Fetch multi-company compliance dashboard with custom request
+ */
+export const useComplianceDashboardMutation = () => {
+  return useMutation({
+    mutationFn: (request: ComplianceDashboardRequest) =>
+      advanceTaxService.getComplianceDashboard(request),
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to load compliance dashboard');
+    },
+  });
+};
+
+/**
+ * Fetch year-on-year comparison for a company
+ */
+export const useYearOnYearComparison = (
+  companyId: string,
+  numberOfYears?: number,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.yoyComparison.byCompany(companyId, numberOfYears),
+    queryFn: () =>
+      advanceTaxService.getYearOnYearComparison({
+        companyId,
+        numberOfYears,
+      }),
+    enabled: enabled && !!companyId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Fetch year-on-year comparison with custom request
+ */
+export const useYearOnYearComparisonMutation = () => {
+  return useMutation({
+    mutationFn: (request: YearOnYearComparisonRequest) =>
+      advanceTaxService.getYearOnYearComparison(request),
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to load year-on-year comparison');
     },
   });
 };

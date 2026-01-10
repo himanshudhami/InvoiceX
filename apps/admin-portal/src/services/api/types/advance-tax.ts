@@ -607,3 +607,129 @@ export interface Form280Challan {
   generatedAt: string;
   formType: string;
 }
+
+// ==================== Compliance Dashboard Types ====================
+
+export interface ComplianceDashboardRequest {
+  financialYear: string;
+  companyIds?: string[];
+}
+
+export interface ComplianceDashboard {
+  financialYear: string;
+  totalCompanies: number;
+  companiesWithAssessments: number;
+  companiesWithoutAssessments: number;
+
+  companiesFullyPaid: number;
+  companiesPartiallyPaid: number;
+  companiesOverdue: number;
+
+  totalTaxLiability: number;
+  totalTaxPaid: number;
+  totalOutstanding: number;
+  totalInterestLiability: number;
+
+  currentQuarter: number;
+  nextDueDate?: string;
+  daysUntilNextDue: number;
+  nextQuarterTotalDue: number;
+
+  companyStatuses: CompanyComplianceStatus[];
+  upcomingDueDates: UpcomingDueDate[];
+  alerts: ComplianceAlert[];
+}
+
+export interface CompanyComplianceStatus {
+  companyId: string;
+  companyName: string;
+  pan?: string;
+
+  assessmentId?: string;
+  assessmentStatus: string;
+
+  totalTaxLiability: number;
+  taxPaid: number;
+  outstanding: number;
+  paymentPercentage: number;
+
+  interest234B: number;
+  interest234C: number;
+  totalInterest: number;
+
+  currentQuarter: number;
+  currentQuarterStatus: string;
+  currentQuarterDue: number;
+  currentQuarterPaid: number;
+  currentQuarterShortfall: number;
+
+  nextDueDate?: string;
+  nextQuarterAmount: number;
+  daysUntilDue: number;
+
+  isOverdue: boolean;
+  hasInterestLiability: boolean;
+  needsRevision: boolean;
+  overallStatus: string; // on_track, at_risk, overdue, no_assessment
+}
+
+export interface UpcomingDueDate {
+  dueDate: string;
+  quarter: number;
+  quarterLabel: string;
+  daysUntilDue: number;
+  companiesCount: number;
+  totalAmountDue: number;
+  companies: CompanyDue[];
+}
+
+export interface CompanyDue {
+  companyId: string;
+  companyName: string;
+  amountDue: number;
+  amountPaid: number;
+  shortfall: number;
+  status: string;
+}
+
+export interface ComplianceAlert {
+  alertType: string;
+  severity: string;
+  title: string;
+  message: string;
+  companyId?: string;
+  companyName?: string;
+  assessmentId?: string;
+  amount?: number;
+  dueDate?: string;
+}
+
+export interface YearOnYearComparisonRequest {
+  companyId: string;
+  numberOfYears?: number;
+}
+
+export interface YearOnYearComparison {
+  companyId: string;
+  companyName: string;
+  yearlySummaries: YearlyTaxSummary[];
+  revenueGrowthPercent: number;
+  taxLiabilityGrowthPercent: number;
+  effectiveTaxRateChange: number;
+}
+
+export interface YearlyTaxSummary {
+  financialYear: string;
+  assessmentYear: string;
+  projectedRevenue: number;
+  projectedExpenses: number;
+  taxableIncome: number;
+  totalTaxLiability: number;
+  effectiveTaxRate: number;
+  taxPaid: number;
+  interest234B: number;
+  interest234C: number;
+  totalInterest: number;
+  taxRegime: string;
+  status: string;
+}

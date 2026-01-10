@@ -22,6 +22,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] **Quarterly Re-estimation Workflow** (Phase 4 complete)
 - [x] **MAT (Minimum Alternate Tax) Computation** (Phase 6 complete)
 - [x] **Form 280 (Challan) Generation** (Phase 7 complete)
+- [x] **Compliance Dashboard** (Phase 8 complete)
 
 ---
 
@@ -514,16 +515,145 @@ Generate pre-filled Form 280 (ITNS 280) challan for advance tax payment.
 
 ---
 
-## Phase 8: Compliance Dashboard
+## Phase 8: Compliance Dashboard (COMPLETED)
 
 ### Goal
 Bird's-eye view of advance tax status across all companies.
 
+### Implementation (Done)
+1. **DTOs Added to `AdvanceTaxDtos.cs`**:
+   - `ComplianceDashboardDto` - Multi-company summary with totals, status counts, alerts
+   - `CompanyComplianceStatusDto` - Individual company compliance status (on_track, at_risk, overdue, no_assessment)
+   - `UpcomingDueDateDto` - Aggregated upcoming due dates across companies
+   - `CompanyDueDto` - Company due amount for specific date
+   - `ComplianceAlertDto` - Alert with type, severity (critical, warning, info), message
+   - `YearOnYearComparisonDto` - YoY comparison with growth rates
+   - `YearlyTaxSummaryDto` - Yearly tax summary
+   - `ComplianceDashboardRequest` - Request with FY and optional company IDs
+   - `YearOnYearComparisonRequest` - Request with company ID and number of years
+
+2. **Service Implementation**: Added to `AdvanceTaxService.cs`
+   - `GetComplianceDashboardAsync` - Builds multi-company dashboard with:
+     - Company-wise compliance statuses
+     - Total tax liability, paid, outstanding across all companies
+     - Upcoming due dates aggregated by quarter
+     - Alerts generation (overdue, upcoming, high interest, missing assessments)
+   - `GetYearOnYearComparisonAsync` - Compares tax data across years with:
+     - Tax growth rate calculations
+     - Compliance rate tracking
+     - Average tax liability and interest
+   - Private helpers: `BuildCompanyComplianceStatus`, `GenerateAlertsForCompany`, `BuildUpcomingDueDates`, `GetNextQuarterDueDate`
+
+3. **API Endpoints**:
+   - `POST /api/tax/advance-tax/compliance-dashboard` - Get multi-company dashboard
+   - `POST /api/tax/advance-tax/year-on-year-comparison` - Get YoY comparison
+
+4. **Frontend Changes**:
+   - Added TypeScript types for all dashboard interfaces
+   - Added `getComplianceDashboard` and `getYearOnYearComparison` to API service
+   - Added `complianceDashboard` and `yoyComparison` query keys
+   - Added React Query hooks: `useComplianceDashboard`, `useYearOnYearComparison`
+   - Created `AdvanceTaxComplianceDashboard.tsx` page with:
+     - Overview tab with summary stats, upcoming due dates, alerts
+     - Company Status tab with detailed table
+     - Year-on-Year tab with comparison table and trend analysis
+
 ### Features
-1. **Multi-company view** (for CA firms / groups)
-2. **Due date calendar** with reminders
+1. **Multi-company view**
+   - Summary stats: Total companies, tax liability, paid, outstanding
+   - Company-wise status: on_track, at_risk, overdue, no_assessment
+   - Click-through to company details
+
+2. **Due date calendar with reminders**
+   - Aggregated upcoming due dates by quarter
+   - Days until due countdown
+   - Total amount due across companies
+
 3. **Interest liability alerts**
+   - Alert severity: critical (overdue), warning (upcoming), info
+   - Alert types: payment_overdue, interest_accruing, upcoming_due, no_assessment
+   - Company-specific alert messages
+
 4. **Year-on-year comparison**
+   - 5-year historical comparison
+   - Tax growth rate calculation
+   - Compliance rate tracking
+   - Total interest paid across years
+
+### Data Model
+```
+ComplianceDashboardDto:
+  financialYear VARCHAR
+  totalCompanies INT
+  companiesWithAssessments INT
+  companiesWithoutAssessments INT
+  companiesFullyPaid INT
+  companiesPartiallyPaid INT
+  companiesOverdue INT
+  totalTaxLiability DECIMAL
+  totalTaxPaid DECIMAL
+  totalOutstanding DECIMAL
+  totalInterestLiability DECIMAL
+  currentQuarter INT
+  nextDueDate DATE
+  daysUntilNextDue INT
+  nextQuarterTotalDue DECIMAL
+  companyStatuses List<CompanyComplianceStatusDto>
+  upcomingDueDates List<UpcomingDueDateDto>
+  alerts List<ComplianceAlertDto>
+
+CompanyComplianceStatusDto:
+  companyId UUID
+  companyName VARCHAR
+  status VARCHAR (on_track, at_risk, overdue, no_assessment)
+  currentQuarter INT
+  totalTaxLiability DECIMAL
+  totalTaxPaid DECIMAL
+  totalOutstanding DECIMAL
+  totalInterest234C DECIMAL
+  nextDueDate DATE
+  daysUntilNextDue INT
+  nextQuarterDue DECIMAL
+  assessmentId UUID (nullable)
+
+YearOnYearComparisonDto:
+  companyId UUID
+  companyName VARCHAR
+  yearlySummaries List<YearlyTaxSummaryDto>
+  averageTaxLiability DECIMAL
+  totalInterestPaid DECIMAL
+  complianceRate DECIMAL
+  averageTaxGrowth DECIMAL (nullable)
+```
+
+### UI: Compliance Dashboard
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ADVANCE TAX COMPLIANCE                              FY [2024-25 ▼]         │
+│  Track advance tax payments across all companies                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [Overview]  [Company Status]  [Year-on-Year]                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
+│  │ 5       │ │₹50L     │ │₹35L     │ │₹15L     │ │₹2.5L    │ │ Q3      │   │
+│  │Companies│ │Liability│ │Paid     │ │Due      │ │Interest │ │Quarter  │   │
+│  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘   │
+│                                                                             │
+│  ┌───────────────────────────────┐ ┌───────────────────────────────────┐   │
+│  │ UPCOMING DUE DATES            │ │ ALERTS                            │   │
+│  │ Q3 - 15 Dec 2024              │ │ ⚠ CRITICAL: ABC Ltd - Q2 overdue  │   │
+│  │   3 companies • ₹15L due      │ │ ⚠ WARNING: XYZ Pvt - Due in 5 days│   │
+│  │   7 days left                 │ │ ℹ INFO: New Co - No assessment    │   │
+│  └───────────────────────────────┘ └───────────────────────────────────┘   │
+│                                                                             │
+│  COMPANIES BY STATUS                                                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                       │
+│  │  3       │ │  1       │ │  1       │ │  0       │                       │
+│  │Fully Paid│ │ Partial  │ │ Overdue  │ │No Assess │                       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -559,4 +689,18 @@ Bird's-eye view of advance tax status across all companies.
 5. ~~**Phase 4** - Quarterly re-estimation~~ ✅ DONE
 6. ~~**Phase 6** - MAT computation~~ ✅ DONE
 7. ~~**Phase 7** - Form 280 generation~~ ✅ DONE
-8. **Phase 8** - Compliance dashboard ← NEXT
+8. ~~**Phase 8** - Compliance dashboard~~ ✅ DONE
+
+---
+
+## All Phases Complete!
+
+The Advance Tax Engine is now fully implemented with:
+- Auto-fetch YTD actuals from ledger
+- YTD vs Projection split (editable projections, locked actuals)
+- Book Profit to Taxable Income reconciliation
+- TDS/TCS integration from existing modules
+- Quarterly re-estimation workflow with audit trail
+- MAT (Minimum Alternate Tax) computation with credit register
+- Form 280 (ITNS 280) challan generation as PDF
+- Multi-company compliance dashboard with YoY comparison

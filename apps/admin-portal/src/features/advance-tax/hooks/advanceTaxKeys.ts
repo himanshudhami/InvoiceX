@@ -101,4 +101,18 @@ export const advanceTaxKeys = {
     data: (assessmentId: string, quarter?: number) =>
       [...advanceTaxKeys.form280.all(), 'data', assessmentId, quarter] as const,
   },
+
+  // Compliance Dashboard
+  complianceDashboard: {
+    all: () => [...advanceTaxKeys.all, 'compliance-dashboard'] as const,
+    byFy: (financialYear: string, companyIds?: string[]) =>
+      [...advanceTaxKeys.complianceDashboard.all(), financialYear, companyIds] as const,
+  },
+
+  // Year-on-Year Comparison
+  yoyComparison: {
+    all: () => [...advanceTaxKeys.all, 'yoy-comparison'] as const,
+    byCompany: (companyId: string, numberOfYears?: number) =>
+      [...advanceTaxKeys.yoyComparison.all(), companyId, numberOfYears] as const,
+  },
 };

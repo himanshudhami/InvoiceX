@@ -1,6 +1,7 @@
 using Application.DTOs.Tax;
 using Application.Interfaces.Tax;
 using Core.Common;
+using Core.Entities;
 using Core.Entities.Tax;
 using Core.Interfaces;
 using Core.Interfaces.Tax;
@@ -1887,6 +1888,409 @@ namespace Application.Services.Tax
             }
 
             return words.ToString().Trim();
+        }
+
+        // ==================== Compliance Dashboard Operations ====================
+
+        public async Task<Result<ComplianceDashboardDto>> GetComplianceDashboardAsync(ComplianceDashboardRequest request)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var currentQuarter = GetCurrentQuarter();
+
+            // Get all companies or filtered list
+            var allCompanies = await _companiesRepository.GetAllAsync();
+            var companies = request.CompanyIds?.Any() == true
+                ? allCompanies.Where(c => request.CompanyIds.Contains(c.Id)).ToList()
+                : allCompanies.ToList();
+
+            // Get all assessments for the FY
+            var allAssessments = new List<(Companies Company, AdvanceTaxAssessment? Assessment, IEnumerable<AdvanceTaxSchedule> Schedules, IEnumerable<AdvanceTaxPayment> Payments)>();
+
+            foreach (var company in companies)
+            {
+                var assessment = await _repository.GetAssessmentByCompanyAndFYAsync(company.Id, request.FinancialYear);
+                var schedules = assessment != null
+                    ? await _repository.GetSchedulesByAssessmentAsync(assessment.Id)
+                    : Enumerable.Empty<AdvanceTaxSchedule>();
+                var payments = assessment != null
+                    ? await _repository.GetPaymentsByAssessmentAsync(assessment.Id)
+                    : Enumerable.Empty<AdvanceTaxPayment>();
+
+                allAssessments.Add((company, assessment, schedules, payments));
+            }
+
+            // Build company statuses
+            var companyStatuses = new List<CompanyComplianceStatusDto>();
+            var alerts = new List<ComplianceAlertDto>();
+
+            foreach (var (company, assessment, schedules, payments) in allAssessments)
+            {
+                var status = BuildCompanyComplianceStatus(company, assessment, schedules.ToList(), payments.ToList(), currentQuarter, today);
+                companyStatuses.Add(status);
+
+                // Generate alerts for this company
+                alerts.AddRange(GenerateAlertsForCompany(status, company.Name ?? "Unknown"));
+            }
+
+            // Calculate summaries
+            var withAssessments = companyStatuses.Where(c => c.AssessmentId.HasValue).ToList();
+            var totalTaxLiability = withAssessments.Sum(c => c.TotalTaxLiability);
+            var totalTaxPaid = withAssessments.Sum(c => c.TaxPaid);
+            var totalOutstanding = withAssessments.Sum(c => c.Outstanding);
+            var totalInterest = withAssessments.Sum(c => c.TotalInterest);
+
+            // Build upcoming due dates
+            var upcomingDueDates = BuildUpcomingDueDates(allAssessments.ToList(), request.FinancialYear, today);
+
+            // Get next due date
+            var nextDueDate = GetNextQuarterDueDate(request.FinancialYear, currentQuarter);
+            var daysUntilNextDue = nextDueDate.HasValue ? (nextDueDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days : 0;
+
+            return new ComplianceDashboardDto
+            {
+                FinancialYear = request.FinancialYear,
+                TotalCompanies = companies.Count,
+                CompaniesWithAssessments = withAssessments.Count,
+                CompaniesWithoutAssessments = companies.Count - withAssessments.Count,
+
+                CompaniesFullyPaid = companyStatuses.Count(c => c.OverallStatus == "on_track" && c.PaymentPercentage >= 100),
+                CompaniesPartiallyPaid = companyStatuses.Count(c => c.OverallStatus == "on_track" && c.PaymentPercentage > 0 && c.PaymentPercentage < 100),
+                CompaniesOverdue = companyStatuses.Count(c => c.IsOverdue),
+
+                TotalTaxLiability = totalTaxLiability,
+                TotalTaxPaid = totalTaxPaid,
+                TotalOutstanding = totalOutstanding,
+                TotalInterestLiability = totalInterest,
+
+                CurrentQuarter = currentQuarter,
+                NextDueDate = nextDueDate,
+                DaysUntilNextDue = daysUntilNextDue,
+                NextQuarterTotalDue = withAssessments.Sum(c => c.NextQuarterAmount),
+
+                CompanyStatuses = companyStatuses.OrderByDescending(c => c.IsOverdue)
+                    .ThenByDescending(c => c.Outstanding)
+                    .ToList(),
+                UpcomingDueDates = upcomingDueDates,
+                Alerts = alerts.OrderByDescending(a => a.Severity == "critical")
+                    .ThenByDescending(a => a.Severity == "warning")
+                    .ToList()
+            };
+        }
+
+        public async Task<Result<YearOnYearComparisonDto>> GetYearOnYearComparisonAsync(YearOnYearComparisonRequest request)
+        {
+            var company = await _companiesRepository.GetByIdAsync(request.CompanyId);
+            if (company == null)
+                return Error.NotFound($"Company {request.CompanyId} not found");
+
+            var assessments = await _repository.GetAssessmentsByCompanyAsync(request.CompanyId);
+
+            // Sort by FY descending and take requested number of years
+            var sortedAssessments = assessments
+                .OrderByDescending(a => a.FinancialYear)
+                .Take(request.NumberOfYears)
+                .ToList();
+
+            var yearlySummaries = new List<YearlyTaxSummaryDto>();
+
+            foreach (var assessment in sortedAssessments)
+            {
+                var payments = await _repository.GetPaymentsByAssessmentAsync(assessment.Id);
+                var totalPaid = payments.Sum(p => p.Amount);
+
+                var effectiveTaxRate = assessment.TaxableIncome > 0
+                    ? (assessment.TotalTaxLiability / assessment.TaxableIncome) * 100
+                    : 0;
+
+                yearlySummaries.Add(new YearlyTaxSummaryDto
+                {
+                    FinancialYear = assessment.FinancialYear,
+                    AssessmentYear = assessment.AssessmentYear,
+                    ProjectedRevenue = assessment.ProjectedRevenue,
+                    ProjectedExpenses = assessment.ProjectedExpenses,
+                    TaxableIncome = assessment.TaxableIncome,
+                    TotalTaxLiability = assessment.TotalTaxLiability,
+                    EffectiveTaxRate = effectiveTaxRate,
+                    TaxPaid = totalPaid,
+                    Interest234B = assessment.Interest234B,
+                    Interest234C = assessment.Interest234C,
+                    TotalInterest = assessment.TotalInterest,
+                    TaxRegime = assessment.TaxRegime,
+                    Status = assessment.Status
+                });
+            }
+
+            // Calculate growth rates (if we have at least 2 years)
+            decimal revenueGrowth = 0;
+            decimal taxLiabilityGrowth = 0;
+            decimal effectiveTaxRateChange = 0;
+
+            if (yearlySummaries.Count >= 2)
+            {
+                var current = yearlySummaries[0];
+                var previous = yearlySummaries[1];
+
+                if (previous.ProjectedRevenue > 0)
+                    revenueGrowth = ((current.ProjectedRevenue - previous.ProjectedRevenue) / previous.ProjectedRevenue) * 100;
+
+                if (previous.TotalTaxLiability > 0)
+                    taxLiabilityGrowth = ((current.TotalTaxLiability - previous.TotalTaxLiability) / previous.TotalTaxLiability) * 100;
+
+                effectiveTaxRateChange = current.EffectiveTaxRate - previous.EffectiveTaxRate;
+            }
+
+            return new YearOnYearComparisonDto
+            {
+                CompanyId = request.CompanyId,
+                CompanyName = company.Name ?? string.Empty,
+                YearlySummaries = yearlySummaries,
+                RevenueGrowthPercent = revenueGrowth,
+                TaxLiabilityGrowthPercent = taxLiabilityGrowth,
+                EffectiveTaxRateChange = effectiveTaxRateChange
+            };
+        }
+
+        private CompanyComplianceStatusDto BuildCompanyComplianceStatus(
+            Companies company,
+            AdvanceTaxAssessment? assessment,
+            List<AdvanceTaxSchedule> schedules,
+            List<AdvanceTaxPayment> payments,
+            int currentQuarter,
+            DateOnly today)
+        {
+            if (assessment == null)
+            {
+                return new CompanyComplianceStatusDto
+                {
+                    CompanyId = company.Id,
+                    CompanyName = company.Name ?? string.Empty,
+                    Pan = company.PanNumber,
+                    AssessmentStatus = "no_assessment",
+                    OverallStatus = "no_assessment",
+                    CurrentQuarter = currentQuarter
+                };
+            }
+
+            var totalPaid = payments.Sum(p => p.Amount);
+            var outstanding = Math.Max(0, assessment.NetTaxPayable - totalPaid);
+            var paymentPercentage = assessment.NetTaxPayable > 0
+                ? (totalPaid / assessment.NetTaxPayable) * 100
+                : 100;
+
+            // Current quarter schedule
+            var currentSchedule = schedules.FirstOrDefault(s => s.Quarter == currentQuarter);
+            var currentQuarterDue = currentSchedule?.TaxPayableThisQuarter ?? 0;
+            var currentQuarterPaid = currentSchedule?.TaxPaidThisQuarter ?? 0;
+            var currentQuarterShortfall = currentSchedule?.ShortfallAmount ?? 0;
+            var currentQuarterStatus = currentSchedule?.PaymentStatus ?? "pending";
+
+            // Next due
+            var nextSchedule = schedules
+                .Where(s => s.DueDate >= today && s.PaymentStatus != "paid")
+                .OrderBy(s => s.DueDate)
+                .FirstOrDefault();
+
+            var nextDueDate = nextSchedule?.DueDate;
+            var nextQuarterAmount = nextSchedule?.TaxPayableThisQuarter - nextSchedule?.TaxPaidThisQuarter ?? 0;
+            var daysUntilDue = nextDueDate.HasValue ? (nextDueDate.Value.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days : 0;
+
+            // Is overdue?
+            var isOverdue = schedules.Any(s => s.DueDate < today && s.PaymentStatus != "paid" && s.ShortfallAmount > 0);
+
+            // Has interest liability?
+            var hasInterest = assessment.Interest234B > 0 || assessment.Interest234C > 0;
+
+            // Determine overall status
+            string overallStatus;
+            if (isOverdue)
+                overallStatus = "overdue";
+            else if (hasInterest || currentQuarterShortfall > 0)
+                overallStatus = "at_risk";
+            else
+                overallStatus = "on_track";
+
+            return new CompanyComplianceStatusDto
+            {
+                CompanyId = company.Id,
+                CompanyName = company.Name ?? string.Empty,
+                Pan = company.PanNumber,
+                AssessmentId = assessment.Id,
+                AssessmentStatus = assessment.Status,
+
+                TotalTaxLiability = assessment.TotalTaxLiability,
+                TaxPaid = totalPaid,
+                Outstanding = outstanding,
+                PaymentPercentage = paymentPercentage,
+
+                Interest234B = assessment.Interest234B,
+                Interest234C = assessment.Interest234C,
+                TotalInterest = assessment.TotalInterest,
+
+                CurrentQuarter = currentQuarter,
+                CurrentQuarterStatus = currentQuarterStatus,
+                CurrentQuarterDue = currentQuarterDue,
+                CurrentQuarterPaid = currentQuarterPaid,
+                CurrentQuarterShortfall = currentQuarterShortfall,
+
+                NextDueDate = nextDueDate,
+                NextQuarterAmount = Math.Max(0, nextQuarterAmount),
+                DaysUntilDue = daysUntilDue,
+
+                IsOverdue = isOverdue,
+                HasInterestLiability = hasInterest,
+                NeedsRevision = false, // Could be enhanced to check revision status
+                OverallStatus = overallStatus
+            };
+        }
+
+        private List<ComplianceAlertDto> GenerateAlertsForCompany(CompanyComplianceStatusDto status, string companyName)
+        {
+            var alerts = new List<ComplianceAlertDto>();
+
+            // No assessment alert
+            if (status.OverallStatus == "no_assessment")
+            {
+                alerts.Add(new ComplianceAlertDto
+                {
+                    AlertType = "no_assessment",
+                    Severity = "warning",
+                    Title = "No Assessment Created",
+                    Message = $"{companyName} does not have an advance tax assessment for this FY",
+                    CompanyId = status.CompanyId,
+                    CompanyName = companyName
+                });
+            }
+
+            // Overdue alert
+            if (status.IsOverdue)
+            {
+                alerts.Add(new ComplianceAlertDto
+                {
+                    AlertType = "overdue",
+                    Severity = "critical",
+                    Title = "Payment Overdue",
+                    Message = $"{companyName} has overdue advance tax payment of {status.Outstanding:C}",
+                    CompanyId = status.CompanyId,
+                    CompanyName = companyName,
+                    AssessmentId = status.AssessmentId,
+                    Amount = status.Outstanding
+                });
+            }
+
+            // Due soon alert (within 7 days)
+            if (status.DaysUntilDue > 0 && status.DaysUntilDue <= 7 && status.NextQuarterAmount > 0)
+            {
+                alerts.Add(new ComplianceAlertDto
+                {
+                    AlertType = "due_soon",
+                    Severity = "warning",
+                    Title = "Payment Due Soon",
+                    Message = $"{companyName} has payment of {status.NextQuarterAmount:C} due in {status.DaysUntilDue} days",
+                    CompanyId = status.CompanyId,
+                    CompanyName = companyName,
+                    AssessmentId = status.AssessmentId,
+                    Amount = status.NextQuarterAmount,
+                    DueDate = status.NextDueDate
+                });
+            }
+
+            // High interest alert
+            if (status.TotalInterest > 10000) // Alert if interest > 10,000
+            {
+                alerts.Add(new ComplianceAlertDto
+                {
+                    AlertType = "interest_high",
+                    Severity = "warning",
+                    Title = "High Interest Liability",
+                    Message = $"{companyName} has accumulated interest liability of {status.TotalInterest:C}",
+                    CompanyId = status.CompanyId,
+                    CompanyName = companyName,
+                    AssessmentId = status.AssessmentId,
+                    Amount = status.TotalInterest
+                });
+            }
+
+            return alerts;
+        }
+
+        private List<UpcomingDueDateDto> BuildUpcomingDueDates(
+            List<(Companies Company, AdvanceTaxAssessment? Assessment, IEnumerable<AdvanceTaxSchedule> Schedules, IEnumerable<AdvanceTaxPayment> Payments)> assessments,
+            string financialYear,
+            DateOnly today)
+        {
+            var upcomingDates = new List<UpcomingDueDateDto>();
+            var fyDates = GetFYDateRange(financialYear);
+
+            // Quarter due dates
+            var quarterDueDates = new[]
+            {
+                (Quarter: 1, DueDate: new DateOnly(fyDates.StartDate.Year, 6, 15), Label: "Q1"),
+                (Quarter: 2, DueDate: new DateOnly(fyDates.StartDate.Year, 9, 15), Label: "Q2"),
+                (Quarter: 3, DueDate: new DateOnly(fyDates.StartDate.Year, 12, 15), Label: "Q3"),
+                (Quarter: 4, DueDate: new DateOnly(fyDates.StartDate.Year + 1, 3, 15), Label: "Q4")
+            };
+
+            foreach (var (quarter, dueDate, label) in quarterDueDates)
+            {
+                if (dueDate < today)
+                    continue;
+
+                var companiesDue = new List<CompanyDueDto>();
+
+                foreach (var (company, assessment, schedules, _) in assessments)
+                {
+                    if (assessment == null)
+                        continue;
+
+                    var schedule = schedules.FirstOrDefault(s => s.Quarter == quarter);
+                    if (schedule == null)
+                        continue;
+
+                    var shortfall = schedule.TaxPayableThisQuarter - schedule.TaxPaidThisQuarter;
+                    if (shortfall <= 0)
+                        continue;
+
+                    companiesDue.Add(new CompanyDueDto
+                    {
+                        CompanyId = company.Id,
+                        CompanyName = company.Name ?? string.Empty,
+                        AmountDue = schedule.TaxPayableThisQuarter,
+                        AmountPaid = schedule.TaxPaidThisQuarter,
+                        Shortfall = shortfall,
+                        Status = schedule.PaymentStatus
+                    });
+                }
+
+                if (companiesDue.Count > 0)
+                {
+                    upcomingDates.Add(new UpcomingDueDateDto
+                    {
+                        DueDate = dueDate,
+                        Quarter = quarter,
+                        QuarterLabel = label,
+                        DaysUntilDue = (dueDate.ToDateTime(TimeOnly.MinValue) - DateTime.Today).Days,
+                        CompaniesCount = companiesDue.Count,
+                        TotalAmountDue = companiesDue.Sum(c => c.Shortfall),
+                        Companies = companiesDue.OrderByDescending(c => c.Shortfall).ToList()
+                    });
+                }
+            }
+
+            return upcomingDates.OrderBy(d => d.DueDate).ToList();
+        }
+
+        private static DateOnly? GetNextQuarterDueDate(string financialYear, int currentQuarter)
+        {
+            var fyDates = GetFYDateRange(financialYear);
+
+            return currentQuarter switch
+            {
+                1 => new DateOnly(fyDates.StartDate.Year, 6, 15),
+                2 => new DateOnly(fyDates.StartDate.Year, 9, 15),
+                3 => new DateOnly(fyDates.StartDate.Year, 12, 15),
+                4 => new DateOnly(fyDates.StartDate.Year + 1, 3, 15),
+                _ => null
+            };
         }
     }
 }

@@ -200,5 +200,17 @@ namespace Application.Interfaces.Tax
         /// Generate Form 280 challan as PDF
         /// </summary>
         Task<Result<byte[]>> GenerateForm280PdfAsync(GenerateForm280Request request);
+
+        // ==================== Compliance Dashboard Operations ====================
+
+        /// <summary>
+        /// Get multi-company compliance dashboard
+        /// </summary>
+        Task<Result<ComplianceDashboardDto>> GetComplianceDashboardAsync(ComplianceDashboardRequest request);
+
+        /// <summary>
+        /// Get year-on-year comparison for a company
+        /// </summary>
+        Task<Result<YearOnYearComparisonDto>> GetYearOnYearComparisonAsync(YearOnYearComparisonRequest request);
     }
 }

@@ -759,4 +759,185 @@ namespace Application.DTOs.Tax
         public string City { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
     }
+
+    // ==================== Compliance Dashboard DTOs ====================
+
+    /// <summary>
+    /// Multi-company compliance dashboard summary
+    /// </summary>
+    public class ComplianceDashboardDto
+    {
+        public string FinancialYear { get; set; } = string.Empty;
+        public int TotalCompanies { get; set; }
+        public int CompaniesWithAssessments { get; set; }
+        public int CompaniesWithoutAssessments { get; set; }
+
+        // Payment Status Summary
+        public int CompaniesFullyPaid { get; set; }
+        public int CompaniesPartiallyPaid { get; set; }
+        public int CompaniesOverdue { get; set; }
+
+        // Financial Summary
+        public decimal TotalTaxLiability { get; set; }
+        public decimal TotalTaxPaid { get; set; }
+        public decimal TotalOutstanding { get; set; }
+        public decimal TotalInterestLiability { get; set; }
+
+        // Current Quarter Status
+        public int CurrentQuarter { get; set; }
+        public DateOnly? NextDueDate { get; set; }
+        public int DaysUntilNextDue { get; set; }
+        public decimal NextQuarterTotalDue { get; set; }
+
+        // Company-wise breakdown
+        public List<CompanyComplianceStatusDto> CompanyStatuses { get; set; } = new();
+
+        // Upcoming due dates
+        public List<UpcomingDueDateDto> UpcomingDueDates { get; set; } = new();
+
+        // Alerts
+        public List<ComplianceAlertDto> Alerts { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Individual company compliance status
+    /// </summary>
+    public class CompanyComplianceStatusDto
+    {
+        public Guid CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string? Pan { get; set; }
+
+        public Guid? AssessmentId { get; set; }
+        public string AssessmentStatus { get; set; } = string.Empty;
+
+        // Tax amounts
+        public decimal TotalTaxLiability { get; set; }
+        public decimal TaxPaid { get; set; }
+        public decimal Outstanding { get; set; }
+        public decimal PaymentPercentage { get; set; }
+
+        // Interest
+        public decimal Interest234B { get; set; }
+        public decimal Interest234C { get; set; }
+        public decimal TotalInterest { get; set; }
+
+        // Current quarter status
+        public int CurrentQuarter { get; set; }
+        public string CurrentQuarterStatus { get; set; } = string.Empty;
+        public decimal CurrentQuarterDue { get; set; }
+        public decimal CurrentQuarterPaid { get; set; }
+        public decimal CurrentQuarterShortfall { get; set; }
+
+        // Next due
+        public DateOnly? NextDueDate { get; set; }
+        public decimal NextQuarterAmount { get; set; }
+        public int DaysUntilDue { get; set; }
+
+        // Status indicators
+        public bool IsOverdue { get; set; }
+        public bool HasInterestLiability { get; set; }
+        public bool NeedsRevision { get; set; }
+        public string OverallStatus { get; set; } = string.Empty; // on_track, at_risk, overdue, no_assessment
+    }
+
+    /// <summary>
+    /// Upcoming due date entry
+    /// </summary>
+    public class UpcomingDueDateDto
+    {
+        public DateOnly DueDate { get; set; }
+        public int Quarter { get; set; }
+        public string QuarterLabel { get; set; } = string.Empty;
+        public int DaysUntilDue { get; set; }
+        public int CompaniesCount { get; set; }
+        public decimal TotalAmountDue { get; set; }
+        public List<CompanyDueDto> Companies { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Company due amount for a specific date
+    /// </summary>
+    public class CompanyDueDto
+    {
+        public Guid CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public decimal AmountDue { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal Shortfall { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Compliance alert
+    /// </summary>
+    public class ComplianceAlertDto
+    {
+        public string AlertType { get; set; } = string.Empty; // overdue, due_soon, interest_high, revision_needed, no_assessment
+        public string Severity { get; set; } = string.Empty; // critical, warning, info
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public Guid? CompanyId { get; set; }
+        public string? CompanyName { get; set; }
+        public Guid? AssessmentId { get; set; }
+        public decimal? Amount { get; set; }
+        public DateOnly? DueDate { get; set; }
+    }
+
+    /// <summary>
+    /// Year-on-year comparison
+    /// </summary>
+    public class YearOnYearComparisonDto
+    {
+        public Guid CompanyId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+
+        public List<YearlyTaxSummaryDto> YearlySummaries { get; set; } = new();
+
+        // Variance analysis
+        public decimal RevenueGrowthPercent { get; set; }
+        public decimal TaxLiabilityGrowthPercent { get; set; }
+        public decimal EffectiveTaxRateChange { get; set; }
+    }
+
+    /// <summary>
+    /// Yearly tax summary for comparison
+    /// </summary>
+    public class YearlyTaxSummaryDto
+    {
+        public string FinancialYear { get; set; } = string.Empty;
+        public string AssessmentYear { get; set; } = string.Empty;
+
+        public decimal ProjectedRevenue { get; set; }
+        public decimal ProjectedExpenses { get; set; }
+        public decimal TaxableIncome { get; set; }
+        public decimal TotalTaxLiability { get; set; }
+        public decimal EffectiveTaxRate { get; set; }
+
+        public decimal TaxPaid { get; set; }
+        public decimal Interest234B { get; set; }
+        public decimal Interest234C { get; set; }
+        public decimal TotalInterest { get; set; }
+
+        public string TaxRegime { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Request for compliance dashboard
+    /// </summary>
+    public class ComplianceDashboardRequest
+    {
+        public string FinancialYear { get; set; } = string.Empty;
+        public List<Guid>? CompanyIds { get; set; } // Filter by specific companies (optional)
+    }
+
+    /// <summary>
+    /// Request for year-on-year comparison
+    /// </summary>
+    public class YearOnYearComparisonRequest
+    {
+        public Guid CompanyId { get; set; }
+        public int NumberOfYears { get; set; } = 3;
+    }
 }

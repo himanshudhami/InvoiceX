@@ -222,6 +222,7 @@ export const navigationGroups: NavigationItem[] = [
       { name: 'PF ECR', href: '/statutory/pf-ecr', icon: BadgeIndianRupee },
       { name: 'ESI Returns', href: '/statutory/esi-return', icon: Receipt },
       { name: 'Advance Tax (Sec 207)', href: '/tax/advance-tax', icon: Calculator },
+      { name: 'Advance Tax Dashboard', href: '/tax/advance-tax/compliance', icon: BarChart3 },
     ],
   },
   {
