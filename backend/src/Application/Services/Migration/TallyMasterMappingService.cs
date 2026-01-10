@@ -887,6 +887,7 @@ namespace Application.Services.Migration
                 AccountCode = accountCode,
                 AccountName = ledger.Name,
                 AccountType = accountType,
+                NormalBalance = GetNormalBalance(accountType),
                 OpeningBalance = ledger.OpeningBalance,
                 CurrentBalance = ledger.ClosingBalance,
                 IsActive = true,
@@ -943,6 +944,7 @@ namespace Application.Services.Migration
                 AccountCode = accountCode,
                 AccountName = accountName,
                 AccountType = "asset",
+                NormalBalance = "debit",
                 AccountSubtype = "trade_receivables",
                 OpeningBalance = ledger.OpeningBalance,
                 CurrentBalance = ledger.ClosingBalance,
@@ -984,6 +986,7 @@ namespace Application.Services.Migration
                 AccountCode = accountCode,
                 AccountName = accountName,
                 AccountType = "liability",
+                NormalBalance = "credit",
                 AccountSubtype = "trade_payables",
                 OpeningBalance = ledger.OpeningBalance,
                 CurrentBalance = ledger.ClosingBalance,
@@ -1025,6 +1028,7 @@ namespace Application.Services.Migration
                 AccountCode = accountCode,
                 AccountName = accountName,
                 AccountType = "asset",
+                NormalBalance = "debit",
                 AccountSubtype = "bank",
                 OpeningBalance = ledger.OpeningBalance,
                 CurrentBalance = ledger.ClosingBalance,
@@ -1038,6 +1042,20 @@ namespace Application.Services.Migration
             };
 
             await _coaRepository.AddAsync(account);
+        }
+
+        private static string GetNormalBalance(string accountType)
+        {
+            // Standard accounting: Assets/Expenses are debit-normal, Liabilities/Equity/Income are credit-normal
+            return accountType switch
+            {
+                "asset" => "debit",
+                "expense" => "debit",
+                "liability" => "credit",
+                "equity" => "credit",
+                "income" => "credit",
+                _ => "debit"
+            };
         }
 
         private string DetermineAccountType(string? ledgerGroup, string targetEntity)

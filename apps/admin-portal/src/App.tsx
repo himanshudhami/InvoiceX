@@ -108,6 +108,9 @@ const EInvoiceSettings = lazy(() => import('./pages/finance/tax/EInvoiceSettings
 // Tax Rule Packs
 const TaxRulePacksManagement = lazy(() => import('./pages/finance/tax/TaxRulePacksManagement'))
 
+// Advance Tax (Section 207 - Corporate)
+const AdvanceTaxManagement = lazy(() => import('./pages/finance/tax/AdvanceTaxManagement'))
+
 // GST Compliance
 const GstComplianceDashboard = lazy(() => import('./pages/finance/tax/gst/GstComplianceDashboard'))
 const RcmManagement = lazy(() => import('./pages/finance/tax/gst/RcmManagement'))
@@ -116,6 +119,8 @@ const LdcManagement = lazy(() => import('./pages/finance/tax/gst/LdcManagement')
 const TcsManagement = lazy(() => import('./pages/finance/tax/gst/TcsManagement'))
 const ItcBlockedManagement = lazy(() => import('./pages/finance/tax/gst/ItcBlockedManagement'))
 const ItcReversalManagement = lazy(() => import('./pages/finance/tax/gst/ItcReversalManagement'))
+const Gstr3bFilingPack = lazy(() => import('./pages/finance/tax/gst/Gstr3bFilingPack'))
+const Gstr2bReconciliation = lazy(() => import('./pages/finance/tax/gst/Gstr2bReconciliation'))
 
 // Export & Forex Management
 const ExportDashboard = lazy(() => import('./pages/finance/exports/ExportDashboard'))
@@ -372,6 +377,9 @@ function AppRoutes() {
               {/* Tax Rule Packs */}
               <Route path="/tax-rule-packs" element={<TaxRulePacksManagement />} />
 
+              {/* Advance Tax (Section 207 - Corporate) */}
+              <Route path="/tax/advance-tax" element={<AdvanceTaxManagement />} />
+
               {/* GST Compliance Routes */}
               <Route path="/gst" element={<GstComplianceDashboard />} />
               <Route path="/gst/rcm" element={<RcmManagement />} />
@@ -380,6 +388,8 @@ function AppRoutes() {
               <Route path="/gst/tcs" element={<TcsManagement />} />
               <Route path="/gst/itc-blocked" element={<ItcBlockedManagement />} />
               <Route path="/gst/itc-reversal" element={<ItcReversalManagement />} />
+              <Route path="/gst/gstr3b" element={<Gstr3bFilingPack />} />
+              <Route path="/gst/gstr2b" element={<Gstr2bReconciliation />} />
 
               {/* Statutory Compliance Routes (TDS, PF, ESI) */}
               <Route path="/statutory" element={<StatutoryDashboard />} />

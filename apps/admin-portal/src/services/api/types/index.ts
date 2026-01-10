@@ -76,6 +76,7 @@ export * from './forex';
 export * from './gst';
 export * from './tds-return';
 export * from './statutory';
+export * from './advance-tax';
 
 // Tags & Attribution types
 export * from './tag';

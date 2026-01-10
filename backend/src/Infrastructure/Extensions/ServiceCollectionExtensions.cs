@@ -312,6 +312,10 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.Gst.IRcmTransactionRepository>(sp =>
                 new Infrastructure.Data.Gst.RcmTransactionRepository(connectionString));
 
+            // GSTR-3B repository
+            services.AddScoped<Core.Interfaces.Gst.IGstr3bRepository>(sp =>
+                new Infrastructure.Data.Gst.Gstr3bRepository(connectionString));
+
             // TCS Transaction repository (Tax Collected at Source)
             services.AddScoped<Core.Interfaces.Tax.ITcsTransactionRepository>(sp =>
                 new Infrastructure.Data.Tax.TcsTransactionRepository(connectionString));
@@ -361,6 +365,48 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
                     sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Gst.GstPostingService>>()
+                ));
+
+            // GSTR-1 service (outward supplies data)
+            services.AddScoped<Application.Interfaces.Gst.IGstr1Service>(sp =>
+                new Application.Services.Gst.Gstr1Service(
+                    sp.GetRequiredService<Core.Interfaces.IInvoicesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICustomersRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Forex.ILutRegisterRepository>()
+                ));
+
+            // GSTR-3B Filing Pack service
+            services.AddScoped<Application.Interfaces.Gst.IGstr3bService>(sp =>
+                new Application.Services.Gst.Gstr3bService(
+                    sp.GetRequiredService<Core.Interfaces.Gst.IGstr3bRepository>(),
+                    sp.GetRequiredService<Application.Interfaces.Gst.IGstr1Service>(),
+                    sp.GetRequiredService<Core.Interfaces.Gst.IRcmTransactionRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IVendorInvoicesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>()
+                ));
+
+            // GSTR-2B repository
+            services.AddScoped<Core.Interfaces.Gst.IGstr2bRepository>(sp =>
+                new Infrastructure.Data.Gst.Gstr2bRepository(connectionString));
+
+            // GSTR-2B Ingestion & Reconciliation service
+            services.AddScoped<Application.Interfaces.Gst.IGstr2bService>(sp =>
+                new Application.Services.Gst.Gstr2bService(
+                    sp.GetRequiredService<Core.Interfaces.Gst.IGstr2bRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IVendorInvoicesRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>()
+                ));
+
+            // Advance Tax repository
+            services.AddScoped<Core.Interfaces.Tax.IAdvanceTaxRepository>(sp =>
+                new Infrastructure.Data.Tax.AdvanceTaxRepository(connectionString));
+
+            // Advance Tax service (Section 207 - Corporate Advance Tax)
+            services.AddScoped<Application.Interfaces.Tax.IAdvanceTaxService>(sp =>
+                new Application.Services.Tax.AdvanceTaxService(
+                    sp.GetRequiredService<Core.Interfaces.Tax.IAdvanceTaxRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ICompaniesRepository>()
                 ));
 
             // TDS Return service (Form 26Q and Form 24Q preparation)

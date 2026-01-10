@@ -96,4 +96,49 @@ export const gstKeys = {
     liability: (companyId: string, fy: string) =>
       [...gstKeys.tcs.all, 'liability', companyId, fy] as const,
   },
+
+  // GSTR-3B
+  gstr3b: {
+    all: ['gstr3b'] as const,
+    filings: () => [...gstKeys.gstr3b.all, 'filing'] as const,
+    filing: (id: string) => [...gstKeys.gstr3b.filings(), id] as const,
+    byPeriod: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr3b.all, 'period', companyId, returnPeriod] as const,
+    table31: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr3b.all, 'table31', companyId, returnPeriod] as const,
+    table4: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr3b.all, 'table4', companyId, returnPeriod] as const,
+    table5: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr3b.all, 'table5', companyId, returnPeriod] as const,
+    lineItems: (filingId: string, tableCode?: string) =>
+      [...gstKeys.gstr3b.all, 'line-items', filingId, tableCode] as const,
+    sourceDocuments: (lineItemId: string) =>
+      [...gstKeys.gstr3b.all, 'source-docs', lineItemId] as const,
+    variance: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr3b.all, 'variance', companyId, returnPeriod] as const,
+    history: (companyId: string, params?: object) =>
+      [...gstKeys.gstr3b.all, 'history', companyId, params] as const,
+  },
+
+  // GSTR-2B
+  gstr2b: {
+    all: ['gstr2b'] as const,
+    imports: () => [...gstKeys.gstr2b.all, 'import'] as const,
+    import: (id: string) => [...gstKeys.gstr2b.imports(), id] as const,
+    importByPeriod: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr2b.all, 'import-period', companyId, returnPeriod] as const,
+    importList: (companyId: string, params?: object) =>
+      [...gstKeys.gstr2b.all, 'import-list', companyId, params] as const,
+    invoices: (importId: string, params?: object) =>
+      [...gstKeys.gstr2b.all, 'invoices', importId, params] as const,
+    invoice: (id: string) => [...gstKeys.gstr2b.all, 'invoice', id] as const,
+    reconciliationSummary: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr2b.all, 'recon-summary', companyId, returnPeriod] as const,
+    supplierSummary: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr2b.all, 'supplier-summary', companyId, returnPeriod] as const,
+    itcComparison: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr2b.all, 'itc-comparison', companyId, returnPeriod] as const,
+    mismatches: (companyId: string, returnPeriod: string) =>
+      [...gstKeys.gstr2b.all, 'mismatches', companyId, returnPeriod] as const,
+  },
 };

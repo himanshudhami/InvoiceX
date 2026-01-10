@@ -215,3 +215,341 @@ export interface ItcAvailabilityReport {
   itcUtilized: number;
   itcBalance: number;
 }
+
+// ==================== GSTR-3B Types ====================
+
+export type Gstr3bFilingStatus = 'draft' | 'generated' | 'reviewed' | 'filed';
+
+// GSTR-3B Filing
+export interface Gstr3bFiling {
+  id: string;
+  companyId: string;
+  gstin: string;
+  returnPeriod: string;
+  financialYear: string;
+  status: Gstr3bFilingStatus;
+  generatedAt?: string;
+  generatedBy?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  filedAt?: string;
+  filedBy?: string;
+  arn?: string;
+  filingDate?: string;
+  notes?: string;
+  table31?: Gstr3bTable31;
+  table4?: Gstr3bTable4;
+  table5?: Gstr3bTable5;
+  variance?: Gstr3bVarianceSummary;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Table 3.1 - Outward and inward supplies
+export interface Gstr3bTable31 {
+  outwardTaxable: Gstr3bRow;
+  outwardZeroRated: Gstr3bRow;
+  otherOutward: Gstr3bRow;
+  inwardRcm: Gstr3bRow;
+  nonGst: Gstr3bRow;
+}
+
+export interface Gstr3bRow {
+  taxableValue: number;
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  sourceCount?: number;
+}
+
+// Table 4 - ITC
+export interface Gstr3bTable4 {
+  itcAvailable: Gstr3bItcAvailable;
+  itcReversed: Gstr3bItcReversed;
+  itcIneligible: Gstr3bItcIneligible;
+  netItc: Gstr3bItcTotal;
+}
+
+export interface Gstr3bItcAvailable {
+  importGoods: Gstr3bItcRow;
+  importServices: Gstr3bItcRow;
+  rcmInward: Gstr3bItcRow;
+  isdInward: Gstr3bItcRow;
+  allOtherItc: Gstr3bItcRow;
+  total: Gstr3bItcTotal;
+}
+
+export interface Gstr3bItcReversed {
+  rule42: Gstr3bItcRow;
+  rule43: Gstr3bItcRow;
+  others: Gstr3bItcRow;
+  total: Gstr3bItcTotal;
+}
+
+export interface Gstr3bItcIneligible {
+  section17_5: Gstr3bItcRow;
+  others: Gstr3bItcRow;
+  total: Gstr3bItcTotal;
+}
+
+export interface Gstr3bItcRow {
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  sourceCount?: number;
+}
+
+export interface Gstr3bItcTotal {
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  totalItc: number;
+}
+
+// Table 5 - Exempt supplies
+export interface Gstr3bTable5 {
+  interStateSupplies: Gstr3bExemptRow;
+  intraStateSupplies: Gstr3bExemptRow;
+}
+
+export interface Gstr3bExemptRow {
+  nilRated: number;
+  exempted: number;
+  nonGst: number;
+  total?: number;
+}
+
+// Line Item
+export interface Gstr3bLineItem {
+  id: string;
+  tableCode: string;
+  rowOrder: number;
+  description: string;
+  taxableValue: number;
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  sourceCount: number;
+  sourceType: string;
+  computationNotes?: string;
+}
+
+// Source Document (for drill-down)
+export interface Gstr3bSourceDocument {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  sourceNumber: string;
+  sourceDate: string;
+  taxableValue: number;
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  partyName?: string;
+  partyGstin?: string;
+}
+
+// Variance
+export interface Gstr3bVarianceSummary {
+  previousPeriod: string;
+  items: Gstr3bVarianceItem[];
+}
+
+export interface Gstr3bVarianceItem {
+  field: string;
+  tableCode: string;
+  previousValue: number;
+  currentValue?: number;
+  variance?: number;
+  variancePercentage?: number;
+}
+
+// Filing History
+export interface Gstr3bFilingHistory {
+  id: string;
+  returnPeriod: string;
+  financialYear: string;
+  status: Gstr3bFilingStatus;
+  generatedAt?: string;
+  filedAt?: string;
+  arn?: string;
+}
+
+// Request DTOs
+export interface GenerateGstr3bRequest {
+  companyId: string;
+  returnPeriod: string;
+  regenerate?: boolean;
+}
+
+export interface ReviewGstr3bRequest {
+  notes?: string;
+}
+
+export interface FileGstr3bRequest {
+  arn: string;
+  filingDate: string;
+}
+
+// ==================== GSTR-2B Types ====================
+
+export type Gstr2bImportStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type Gstr2bMatchStatus = 'pending' | 'matched' | 'partial_match' | 'unmatched' | 'manual_match';
+export type Gstr2bActionStatus = 'pending' | 'accepted' | 'rejected';
+
+// GSTR-2B Import
+export interface Gstr2bImport {
+  id: string;
+  companyId: string;
+  returnPeriod: string;
+  gstin: string;
+  importSource: string;
+  fileName?: string;
+  importStatus: Gstr2bImportStatus;
+  errorMessage?: string;
+  totalInvoices: number;
+  matchedInvoices: number;
+  unmatchedInvoices: number;
+  partiallyMatchedInvoices: number;
+  totalItcIgst: number;
+  totalItcCgst: number;
+  totalItcSgst: number;
+  totalItcCess: number;
+  totalItcAmount: number;
+  matchedItcAmount: number;
+  importedAt?: string;
+  processedAt?: string;
+  createdAt: string;
+}
+
+// GSTR-2B Invoice
+export interface Gstr2bInvoice {
+  id: string;
+  importId: string;
+  returnPeriod: string;
+  supplierGstin: string;
+  supplierName?: string;
+  supplierTradeName?: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  invoiceType?: string;
+  documentType?: string;
+  taxableValue: number;
+  igstAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  cessAmount: number;
+  totalGst: number;
+  totalInvoiceValue: number;
+  itcEligible: boolean;
+  itcIgst: number;
+  itcCgst: number;
+  itcSgst: number;
+  itcCess: number;
+  placeOfSupply?: string;
+  supplyType?: string;
+  reverseCharge: boolean;
+  matchStatus: Gstr2bMatchStatus;
+  matchedVendorInvoiceId?: string;
+  matchedVendorInvoiceNumber?: string;
+  matchConfidence?: number;
+  discrepancies?: string[];
+  actionStatus?: Gstr2bActionStatus;
+  actionNotes?: string;
+}
+
+// GSTR-2B Invoice List Item (lighter version)
+export interface Gstr2bInvoiceListItem {
+  id: string;
+  supplierGstin: string;
+  supplierName?: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  invoiceType?: string;
+  taxableValue: number;
+  totalItc: number;
+  matchStatus: Gstr2bMatchStatus;
+  matchConfidence?: number;
+  actionStatus?: Gstr2bActionStatus;
+}
+
+// GSTR-2B Reconciliation Summary
+export interface Gstr2bReconciliationSummary {
+  returnPeriod: string;
+  totalInvoices: number;
+  matchedInvoices: number;
+  partialMatchInvoices: number;
+  unmatchedInvoices: number;
+  acceptedInvoices: number;
+  rejectedInvoices: number;
+  pendingReviewInvoices: number;
+  matchPercentage: number;
+  totalTaxableValue: number;
+  matchedTaxableValue: number;
+  unmatchedTaxableValue: number;
+  totalItcAvailable: number;
+  matchedItc: number;
+  unmatchedItc: number;
+}
+
+// GSTR-2B Supplier Summary
+export interface Gstr2bSupplierSummary {
+  supplierGstin: string;
+  supplierName?: string;
+  invoiceCount: number;
+  matchedCount: number;
+  unmatchedCount: number;
+  totalTaxableValue: number;
+  totalItc: number;
+  matchPercentage: number;
+}
+
+// GSTR-2B ITC Comparison
+export interface Gstr2bItcComparison {
+  returnPeriod: string;
+  gstr2b: Gstr2bItcBreakdown;
+  books: Gstr2bItcBreakdown;
+  difference: Gstr2bItcBreakdown;
+}
+
+export interface Gstr2bItcBreakdown {
+  igst: number;
+  cgst: number;
+  sgst: number;
+  cess: number;
+  total: number;
+}
+
+// GSTR-2B Request DTOs
+export interface ImportGstr2bRequest {
+  companyId: string;
+  returnPeriod: string;
+  jsonData: string;
+  fileName?: string;
+}
+
+export interface RunReconciliationRequest {
+  importId: string;
+  force?: boolean;
+}
+
+export interface AcceptMismatchRequest {
+  invoiceId: string;
+  notes?: string;
+}
+
+export interface RejectInvoiceRequest {
+  invoiceId: string;
+  reason: string;
+}
+
+export interface ManualMatchRequest {
+  gstr2bInvoiceId: string;
+  vendorInvoiceId: string;
+  notes?: string;
+}

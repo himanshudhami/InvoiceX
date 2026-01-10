@@ -66,7 +66,8 @@ namespace Application.DTOs.Migration
         public string LedgerName { get; set; } = string.Empty;
         public string? LedgerGuid { get; set; }
         public decimal Amount { get; set; }
-        public bool IsDebit => Amount > 0;
+        // Tally convention: Negative amount = Debit, Positive amount = Credit
+        public bool IsDebit => Amount < 0;
 
         // GST breakdown
         public decimal? CgstAmount { get; set; }

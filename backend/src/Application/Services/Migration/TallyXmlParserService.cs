@@ -1215,7 +1215,7 @@ namespace Application.Services.Migration
             // Remove currency symbols and spaces
             value = value.Replace("₹", "").Replace("Rs.", "").Replace("Rs", "").Trim();
 
-            // Handle Dr/Cr suffix
+            // Handle Dr/Cr suffix - Tally exports sometimes use this format
             bool isDebit = value.EndsWith(" Dr", StringComparison.OrdinalIgnoreCase);
             bool isCredit = value.EndsWith(" Cr", StringComparison.OrdinalIgnoreCase);
 
@@ -1224,8 +1224,13 @@ namespace Application.Services.Migration
 
             if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result))
             {
-                // In Tally, positive amounts are debits, negative are credits
-                // We preserve the sign as-is
+                // Convention: positive = debit, negative = credit
+                // Apply sign based on Dr/Cr suffix if present
+                if (isCredit)
+                    return -Math.Abs(result);  // Credits are negative
+                if (isDebit)
+                    return Math.Abs(result);   // Debits are positive
+                // If no suffix, preserve original sign from Tally
                 return result;
             }
 

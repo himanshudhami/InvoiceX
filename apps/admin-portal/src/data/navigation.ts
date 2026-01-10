@@ -207,6 +207,8 @@ export const navigationGroups: NavigationItem[] = [
       { name: 'TCS Management', href: '/gst/tcs', icon: Coins },
       { name: 'ITC Blocked', href: '/gst/itc-blocked', icon: FileX },
       { name: 'ITC Reversal', href: '/gst/itc-reversal', icon: ArrowDownUp },
+      { name: 'GSTR-3B Filing', href: '/gst/gstr3b', icon: FileCheck },
+      { name: 'GSTR-2B Reconciliation', href: '/gst/gstr2b', icon: FileSearch },
     ],
   },
   {
@@ -219,6 +221,7 @@ export const navigationGroups: NavigationItem[] = [
       { name: 'TDS Challans', href: '/statutory/tds-challan', icon: ClipboardList },
       { name: 'PF ECR', href: '/statutory/pf-ecr', icon: BadgeIndianRupee },
       { name: 'ESI Returns', href: '/statutory/esi-return', icon: Receipt },
+      { name: 'Advance Tax (Sec 207)', href: '/tax/advance-tax', icon: Calculator },
     ],
   },
   {

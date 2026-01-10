@@ -980,6 +980,7 @@ namespace Application.Services.Migration
                     _logger.LogWarning("Using suspense account for unmapped ledger: {LedgerName}", entry.LedgerName);
                 }
 
+                // Tally convention: Negative amount = Debit, Positive amount = Credit
                 var line = new JournalEntryLine
                 {
                     Id = Guid.NewGuid(),
@@ -987,8 +988,8 @@ namespace Application.Services.Migration
                     LineNumber = lineNumber,
                     AccountId = accountId,
                     Description = entry.LedgerName,
-                    DebitAmount = entry.Amount > 0 ? entry.Amount : 0,
-                    CreditAmount = entry.Amount < 0 ? Math.Abs(entry.Amount) : 0
+                    DebitAmount = entry.Amount < 0 ? Math.Abs(entry.Amount) : 0,
+                    CreditAmount = entry.Amount > 0 ? entry.Amount : 0
                 };
 
                 lines.Add(line);
