@@ -87,6 +87,19 @@ namespace Application.DTOs.Tax
         public DateOnly? LastRevisionDate { get; set; }
         public int? LastRevisionQuarter { get; set; }
 
+        // MAT (Minimum Alternate Tax)
+        public bool IsMatApplicable { get; set; }
+        public decimal MatBookProfit { get; set; }
+        public decimal MatRate { get; set; }
+        public decimal MatOnBookProfit { get; set; }
+        public decimal MatSurcharge { get; set; }
+        public decimal MatCess { get; set; }
+        public decimal TotalMat { get; set; }
+        public decimal MatCreditAvailable { get; set; }
+        public decimal MatCreditToUtilize { get; set; }
+        public decimal MatCreditCreatedThisYear { get; set; }
+        public decimal TaxPayableAfterMat { get; set; }
+
         // Audit
         public Guid? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -529,5 +542,117 @@ namespace Application.DTOs.Tax
         // Variance analysis if actuals differ from projections
         public decimal ActualVsProjectedVariance { get; set; }
         public decimal VariancePercentage { get; set; }
+    }
+
+    // ==================== MAT Credit DTOs ====================
+
+    /// <summary>
+    /// MAT Credit Register entry
+    /// </summary>
+    public class MatCreditRegisterDto
+    {
+        public Guid Id { get; set; }
+        public Guid CompanyId { get; set; }
+        public string FinancialYear { get; set; } = string.Empty;
+        public string AssessmentYear { get; set; } = string.Empty;
+
+        // MAT computation
+        public decimal BookProfit { get; set; }
+        public decimal MatRate { get; set; }
+        public decimal MatOnBookProfit { get; set; }
+        public decimal MatSurcharge { get; set; }
+        public decimal MatCess { get; set; }
+        public decimal TotalMat { get; set; }
+
+        // Normal tax comparison
+        public decimal NormalTax { get; set; }
+
+        // Credit tracking
+        public decimal MatCreditCreated { get; set; }
+        public decimal MatCreditUtilized { get; set; }
+        public decimal MatCreditBalance { get; set; }
+
+        // Expiry
+        public string ExpiryYear { get; set; } = string.Empty;
+        public bool IsExpired { get; set; }
+        public string Status { get; set; } = "active";
+
+        public string? Notes { get; set; }
+
+        public Guid? CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// MAT Credit utilization record
+    /// </summary>
+    public class MatCreditUtilizationDto
+    {
+        public Guid Id { get; set; }
+        public Guid MatCreditId { get; set; }
+        public string UtilizationYear { get; set; } = string.Empty;
+        public Guid? AssessmentId { get; set; }
+        public decimal AmountUtilized { get; set; }
+        public decimal BalanceAfter { get; set; }
+        public string? Notes { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// MAT computation summary for an assessment
+    /// </summary>
+    public class MatComputationDto
+    {
+        public Guid AssessmentId { get; set; }
+        public string FinancialYear { get; set; } = string.Empty;
+
+        // Book profit for MAT
+        public decimal BookProfit { get; set; }
+
+        // MAT calculation
+        public decimal MatRate { get; set; }
+        public decimal MatOnBookProfit { get; set; }
+        public decimal MatSurcharge { get; set; }
+        public decimal MatSurchargeRate { get; set; }
+        public decimal MatCess { get; set; }
+        public decimal MatCessRate { get; set; }
+        public decimal TotalMat { get; set; }
+
+        // Normal tax
+        public decimal NormalTax { get; set; }
+
+        // Comparison
+        public bool IsMatApplicable { get; set; }
+        public decimal TaxDifference { get; set; }
+
+        // Credit implications
+        public decimal MatCreditCreatedThisYear { get; set; }
+        public decimal MatCreditAvailable { get; set; }
+        public decimal MatCreditToUtilize { get; set; }
+
+        // Final tax
+        public decimal FinalTaxPayable { get; set; }
+
+        // Explanation
+        public string MatApplicabilityReason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Available MAT credit summary
+    /// </summary>
+    public class MatCreditSummaryDto
+    {
+        public Guid CompanyId { get; set; }
+        public string CurrentFinancialYear { get; set; } = string.Empty;
+
+        public decimal TotalCreditAvailable { get; set; }
+        public int YearsWithCredit { get; set; }
+
+        public List<MatCreditRegisterDto> AvailableCredits { get; set; } = new();
+
+        // Expiring soon (within 2 years)
+        public decimal ExpiringSoonAmount { get; set; }
+        public int ExpiringSoonCount { get; set; }
     }
 }

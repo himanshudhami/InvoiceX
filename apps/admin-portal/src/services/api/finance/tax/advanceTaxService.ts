@@ -10,6 +10,10 @@ import type {
   TdsTcsPreview,
   AdvanceTaxRevision,
   RevisionStatus,
+  MatComputation,
+  MatCreditSummary,
+  MatCreditRegister,
+  MatCreditUtilization,
   CreateAdvanceTaxAssessmentRequest,
   UpdateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
@@ -247,6 +251,40 @@ export class AdvanceTaxService {
    */
   async getRevisionStatus(assessmentId: string): Promise<RevisionStatus> {
     return apiClient.get<RevisionStatus>(`${this.endpoint}/revision-status/${assessmentId}`);
+  }
+
+  // ==================== MAT Credit Operations ====================
+
+  /**
+   * Get MAT computation for an assessment
+   */
+  async getMatComputation(assessmentId: string): Promise<MatComputation> {
+    return apiClient.get<MatComputation>(`${this.endpoint}/mat-computation/${assessmentId}`);
+  }
+
+  /**
+   * Get available MAT credits summary for a company
+   */
+  async getMatCreditSummary(companyId: string, financialYear: string): Promise<MatCreditSummary> {
+    return apiClient.get<MatCreditSummary>(
+      `${this.endpoint}/mat-credit-summary/${companyId}/${financialYear}`
+    );
+  }
+
+  /**
+   * Get all MAT credit entries for a company
+   */
+  async getMatCredits(companyId: string): Promise<MatCreditRegister[]> {
+    return apiClient.get<MatCreditRegister[]>(`${this.endpoint}/mat-credits/${companyId}`);
+  }
+
+  /**
+   * Get MAT credit utilization history
+   */
+  async getMatCreditUtilizations(matCreditId: string): Promise<MatCreditUtilization[]> {
+    return apiClient.get<MatCreditUtilization[]>(
+      `${this.endpoint}/mat-credit-utilizations/${matCreditId}`
+    );
   }
 }
 

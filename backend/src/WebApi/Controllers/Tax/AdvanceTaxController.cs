@@ -544,5 +544,71 @@ namespace WebApi.Controllers.Tax
 
             return Ok(result.Value);
         }
+
+        // ==================== MAT Credit Endpoints ====================
+
+        /// <summary>
+        /// Get MAT computation for an assessment
+        /// </summary>
+        [HttpGet("mat-computation/{assessmentId:guid}")]
+        [ProducesResponseType(typeof(MatComputationDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetMatComputation(Guid assessmentId)
+        {
+            var result = await _service.GetMatComputationAsync(assessmentId);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get available MAT credits summary for a company
+        /// </summary>
+        [HttpGet("mat-credit-summary/{companyId:guid}/{financialYear}")]
+        [ProducesResponseType(typeof(MatCreditSummaryDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetMatCreditSummary(Guid companyId, string financialYear)
+        {
+            var result = await _service.GetMatCreditSummaryAsync(companyId, financialYear);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get all MAT credit entries for a company
+        /// </summary>
+        [HttpGet("mat-credits/{companyId:guid}")]
+        [ProducesResponseType(typeof(IEnumerable<MatCreditRegisterDto>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetMatCredits(Guid companyId)
+        {
+            var result = await _service.GetMatCreditsAsync(companyId);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get MAT credit utilization history
+        /// </summary>
+        [HttpGet("mat-credit-utilizations/{matCreditId:guid}")]
+        [ProducesResponseType(typeof(IEnumerable<MatCreditUtilizationDto>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetMatCreditUtilizations(Guid matCreditId)
+        {
+            var result = await _service.GetMatCreditUtilizationsAsync(matCreditId);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
     }
 }

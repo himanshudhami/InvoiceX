@@ -1100,6 +1100,19 @@ namespace Application.Services.Tax
                 LastRevisionDate = entity.LastRevisionDate,
                 LastRevisionQuarter = entity.LastRevisionQuarter,
 
+                // MAT fields
+                IsMatApplicable = entity.IsMatApplicable,
+                MatBookProfit = entity.MatBookProfit,
+                MatRate = entity.MatRate,
+                MatOnBookProfit = entity.MatOnBookProfit,
+                MatSurcharge = entity.MatSurcharge,
+                MatCess = entity.MatCess,
+                TotalMat = entity.TotalMat,
+                MatCreditAvailable = entity.MatCreditAvailable,
+                MatCreditToUtilize = entity.MatCreditToUtilize,
+                MatCreditCreatedThisYear = entity.MatCreditCreatedThisYear,
+                TaxPayableAfterMat = entity.TaxPayableAfterMat,
+
                 CreatedBy = entity.CreatedBy,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
@@ -1338,6 +1351,343 @@ namespace Application.Services.Tax
                 ActualVsProjectedVariance = variance,
                 VariancePercentage = variancePercentage
             };
+        }
+
+        // ==================== MAT Credit Operations ====================
+
+        private const decimal MatRate = 15.00m; // MAT rate is 15% of book profit
+
+        public async Task<Result<MatComputationDto>> GetMatComputationAsync(Guid assessmentId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(assessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {assessmentId} not found");
+
+            // Get available MAT credits
+            var availableCredit = await _repository.GetTotalAvailableMatCreditAsync(
+                assessment.CompanyId, assessment.FinancialYear);
+
+            return ComputeMatInternal(assessment, availableCredit);
+        }
+
+        public async Task<Result<MatCreditSummaryDto>> GetMatCreditSummaryAsync(Guid companyId, string financialYear)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company == null)
+                return Error.NotFound($"Company {companyId} not found");
+
+            var availableCredits = await _repository.GetAvailableMatCreditsAsync(companyId, financialYear);
+            var creditDtos = availableCredits.Select(MapMatCreditToDto).ToList();
+
+            // Calculate credits expiring in next 2 years
+            var twoYearsLater = GetFYYearPlusTwoYears(financialYear);
+            var expiringSoon = creditDtos.Where(c => string.Compare(c.ExpiryYear, twoYearsLater) <= 0).ToList();
+
+            return new MatCreditSummaryDto
+            {
+                CompanyId = companyId,
+                CurrentFinancialYear = financialYear,
+                TotalCreditAvailable = creditDtos.Sum(c => c.MatCreditBalance),
+                YearsWithCredit = creditDtos.Count,
+                AvailableCredits = creditDtos,
+                ExpiringSoonAmount = expiringSoon.Sum(c => c.MatCreditBalance),
+                ExpiringSoonCount = expiringSoon.Count
+            };
+        }
+
+        public async Task<Result<IEnumerable<MatCreditRegisterDto>>> GetMatCreditsAsync(Guid companyId)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company == null)
+                return Error.NotFound($"Company {companyId} not found");
+
+            var credits = await _repository.GetMatCreditsByCompanyAsync(companyId);
+            return credits.Select(MapMatCreditToDto).ToList();
+        }
+
+        public async Task<Result<IEnumerable<MatCreditUtilizationDto>>> GetMatCreditUtilizationsAsync(Guid matCreditId)
+        {
+            var matCredit = await _repository.GetMatCreditByIdAsync(matCreditId);
+            if (matCredit == null)
+                return Error.NotFound($"MAT credit {matCreditId} not found");
+
+            var utilizations = await _repository.GetMatCreditUtilizationsAsync(matCreditId);
+            return utilizations.Select(MapMatCreditUtilizationToDto).ToList();
+        }
+
+        /// <summary>
+        /// Compute MAT for an assessment and update assessment fields
+        /// </summary>
+        private async Task ComputeAndApplyMatAsync(AdvanceTaxAssessment assessment)
+        {
+            var availableCredit = await _repository.GetTotalAvailableMatCreditAsync(
+                assessment.CompanyId, assessment.FinancialYear);
+
+            var matComputation = ComputeMatInternal(assessment, availableCredit);
+
+            // Update assessment with MAT values
+            assessment.IsMatApplicable = matComputation.IsMatApplicable;
+            assessment.MatBookProfit = matComputation.BookProfit;
+            assessment.MatRate = matComputation.MatRate;
+            assessment.MatOnBookProfit = matComputation.MatOnBookProfit;
+            assessment.MatSurcharge = matComputation.MatSurcharge;
+            assessment.MatCess = matComputation.MatCess;
+            assessment.TotalMat = matComputation.TotalMat;
+            assessment.MatCreditAvailable = matComputation.MatCreditAvailable;
+            assessment.MatCreditToUtilize = matComputation.MatCreditToUtilize;
+            assessment.MatCreditCreatedThisYear = matComputation.MatCreditCreatedThisYear;
+            assessment.TaxPayableAfterMat = matComputation.FinalTaxPayable;
+
+            // If MAT applies, update net tax payable
+            if (assessment.IsMatApplicable)
+            {
+                // MAT is the tax payable (normal tax is lower)
+                // No credits to utilize when MAT applies
+                assessment.NetTaxPayable = assessment.TotalMat - assessment.TdsReceivable -
+                    assessment.TcsCredit - assessment.AdvanceTaxAlreadyPaid;
+            }
+            else
+            {
+                // Normal tax applies, utilize MAT credit if available
+                assessment.NetTaxPayable = assessment.TotalTaxLiability -
+                    assessment.TdsReceivable - assessment.TcsCredit - assessment.MatCredit -
+                    assessment.MatCreditToUtilize - assessment.AdvanceTaxAlreadyPaid;
+            }
+
+            assessment.NetTaxPayable = Math.Max(0, assessment.NetTaxPayable);
+        }
+
+        private MatComputationDto ComputeMatInternal(AdvanceTaxAssessment assessment, decimal availableCredit)
+        {
+            // Book profit for MAT (as per Section 115JB)
+            // For simplicity, using book profit from reconciliation
+            // In full implementation, this would have specific MAT adjustments
+            var bookProfit = assessment.BookProfit;
+
+            // MAT Calculation
+            var matOnBookProfit = bookProfit * MatRate / 100m;
+
+            // Surcharge on MAT (same rules as normal tax)
+            var (_, surchargeRate) = TaxRegimes.GetValueOrDefault(assessment.TaxRegime, (25m, 7m));
+            var matSurcharge = bookProfit > 10000000 ? matOnBookProfit * surchargeRate / 100m : 0; // Surcharge if income > 1 Cr
+
+            // Cess on MAT
+            var matCess = (matOnBookProfit + matSurcharge) * CessRate / 100m;
+
+            var totalMat = matOnBookProfit + matSurcharge + matCess;
+
+            // Normal tax comparison
+            var normalTax = assessment.TotalTaxLiability;
+
+            // Determine applicability
+            var isMatApplicable = totalMat > normalTax;
+
+            decimal matCreditCreated = 0;
+            decimal matCreditToUtilize = 0;
+            decimal finalTaxPayable;
+            string applicabilityReason;
+
+            if (isMatApplicable)
+            {
+                // MAT is higher - pay MAT and create credit for the difference
+                matCreditCreated = totalMat - normalTax;
+                finalTaxPayable = totalMat;
+                applicabilityReason = $"MAT ({totalMat:C}) > Normal Tax ({normalTax:C}). MAT Credit of {matCreditCreated:C} created.";
+            }
+            else
+            {
+                // Normal tax is higher - pay normal tax and can utilize MAT credits
+                var excessOverMat = normalTax - totalMat;
+                matCreditToUtilize = Math.Min(availableCredit, excessOverMat);
+                finalTaxPayable = normalTax - matCreditToUtilize;
+                applicabilityReason = $"Normal Tax ({normalTax:C}) > MAT ({totalMat:C}). ";
+                if (matCreditToUtilize > 0)
+                    applicabilityReason += $"Utilizing MAT Credit of {matCreditToUtilize:C}.";
+                else if (availableCredit == 0)
+                    applicabilityReason += "No MAT Credit available.";
+            }
+
+            return new MatComputationDto
+            {
+                AssessmentId = assessment.Id,
+                FinancialYear = assessment.FinancialYear,
+                BookProfit = bookProfit,
+                MatRate = MatRate,
+                MatOnBookProfit = matOnBookProfit,
+                MatSurcharge = matSurcharge,
+                MatSurchargeRate = surchargeRate,
+                MatCess = matCess,
+                MatCessRate = CessRate,
+                TotalMat = totalMat,
+                NormalTax = normalTax,
+                IsMatApplicable = isMatApplicable,
+                TaxDifference = totalMat - normalTax,
+                MatCreditCreatedThisYear = matCreditCreated,
+                MatCreditAvailable = availableCredit,
+                MatCreditToUtilize = matCreditToUtilize,
+                FinalTaxPayable = finalTaxPayable,
+                MatApplicabilityReason = applicabilityReason
+            };
+        }
+
+        /// <summary>
+        /// Create or update MAT credit register entry when assessment is finalized
+        /// </summary>
+        private async Task CreateOrUpdateMatCreditEntryAsync(AdvanceTaxAssessment assessment, Guid userId)
+        {
+            if (!assessment.IsMatApplicable || assessment.MatCreditCreatedThisYear <= 0)
+                return;
+
+            var existingCredit = await _repository.GetMatCreditByCompanyAndFYAsync(
+                assessment.CompanyId, assessment.FinancialYear);
+
+            var expiryYear = GetExpiryYear(assessment.FinancialYear, 15);
+
+            if (existingCredit != null)
+            {
+                // Update existing
+                existingCredit.BookProfit = assessment.MatBookProfit;
+                existingCredit.MatRate = assessment.MatRate;
+                existingCredit.MatOnBookProfit = assessment.MatOnBookProfit;
+                existingCredit.MatSurcharge = assessment.MatSurcharge;
+                existingCredit.MatCess = assessment.MatCess;
+                existingCredit.TotalMat = assessment.TotalMat;
+                existingCredit.NormalTax = assessment.TotalTaxLiability;
+                existingCredit.MatCreditCreated = assessment.MatCreditCreatedThisYear;
+                existingCredit.MatCreditBalance = existingCredit.MatCreditCreated - existingCredit.MatCreditUtilized;
+
+                await _repository.UpdateMatCreditAsync(existingCredit);
+            }
+            else
+            {
+                // Create new
+                var matCredit = new MatCreditRegister
+                {
+                    CompanyId = assessment.CompanyId,
+                    FinancialYear = assessment.FinancialYear,
+                    AssessmentYear = assessment.AssessmentYear,
+                    BookProfit = assessment.MatBookProfit,
+                    MatRate = assessment.MatRate,
+                    MatOnBookProfit = assessment.MatOnBookProfit,
+                    MatSurcharge = assessment.MatSurcharge,
+                    MatCess = assessment.MatCess,
+                    TotalMat = assessment.TotalMat,
+                    NormalTax = assessment.TotalTaxLiability,
+                    MatCreditCreated = assessment.MatCreditCreatedThisYear,
+                    MatCreditUtilized = 0,
+                    MatCreditBalance = assessment.MatCreditCreatedThisYear,
+                    ExpiryYear = expiryYear,
+                    Status = "active",
+                    CreatedBy = userId
+                };
+
+                await _repository.CreateMatCreditAsync(matCredit);
+            }
+        }
+
+        /// <summary>
+        /// Record MAT credit utilization when assessment uses available credits
+        /// </summary>
+        private async Task RecordMatCreditUtilizationAsync(AdvanceTaxAssessment assessment)
+        {
+            if (assessment.MatCreditToUtilize <= 0)
+                return;
+
+            var availableCredits = (await _repository.GetAvailableMatCreditsAsync(
+                assessment.CompanyId, assessment.FinancialYear)).ToList();
+
+            var remainingToUtilize = assessment.MatCreditToUtilize;
+
+            // FIFO utilization (oldest credits first)
+            foreach (var credit in availableCredits.OrderBy(c => c.FinancialYear))
+            {
+                if (remainingToUtilize <= 0)
+                    break;
+
+                var utilizeFromThis = Math.Min(credit.MatCreditBalance, remainingToUtilize);
+
+                // Record utilization
+                var utilization = new MatCreditUtilization
+                {
+                    MatCreditId = credit.Id,
+                    UtilizationYear = assessment.FinancialYear,
+                    AssessmentId = assessment.Id,
+                    AmountUtilized = utilizeFromThis,
+                    BalanceAfter = credit.MatCreditBalance - utilizeFromThis
+                };
+
+                await _repository.CreateMatCreditUtilizationAsync(utilization);
+
+                // Update credit balance
+                credit.MatCreditUtilized += utilizeFromThis;
+                credit.MatCreditBalance = credit.MatCreditCreated - credit.MatCreditUtilized;
+
+                if (credit.MatCreditBalance <= 0)
+                    credit.Status = "fully_utilized";
+
+                await _repository.UpdateMatCreditAsync(credit);
+
+                remainingToUtilize -= utilizeFromThis;
+            }
+        }
+
+        private static MatCreditRegisterDto MapMatCreditToDto(MatCreditRegister entity)
+        {
+            return new MatCreditRegisterDto
+            {
+                Id = entity.Id,
+                CompanyId = entity.CompanyId,
+                FinancialYear = entity.FinancialYear,
+                AssessmentYear = entity.AssessmentYear,
+                BookProfit = entity.BookProfit,
+                MatRate = entity.MatRate,
+                MatOnBookProfit = entity.MatOnBookProfit,
+                MatSurcharge = entity.MatSurcharge,
+                MatCess = entity.MatCess,
+                TotalMat = entity.TotalMat,
+                NormalTax = entity.NormalTax,
+                MatCreditCreated = entity.MatCreditCreated,
+                MatCreditUtilized = entity.MatCreditUtilized,
+                MatCreditBalance = entity.MatCreditBalance,
+                ExpiryYear = entity.ExpiryYear,
+                IsExpired = entity.IsExpired,
+                Status = entity.Status,
+                Notes = entity.Notes,
+                CreatedBy = entity.CreatedBy,
+                CreatedAt = entity.CreatedAt,
+                UpdatedAt = entity.UpdatedAt
+            };
+        }
+
+        private static MatCreditUtilizationDto MapMatCreditUtilizationToDto(MatCreditUtilization entity)
+        {
+            return new MatCreditUtilizationDto
+            {
+                Id = entity.Id,
+                MatCreditId = entity.MatCreditId,
+                UtilizationYear = entity.UtilizationYear,
+                AssessmentId = entity.AssessmentId,
+                AmountUtilized = entity.AmountUtilized,
+                BalanceAfter = entity.BalanceAfter,
+                Notes = entity.Notes,
+                CreatedAt = entity.CreatedAt
+            };
+        }
+
+        private static string GetExpiryYear(string financialYear, int yearsToAdd)
+        {
+            var parts = financialYear.Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0], out var startYear))
+            {
+                var expiryStartYear = startYear + yearsToAdd;
+                return $"{expiryStartYear}-{(expiryStartYear + 1) % 100:D2}";
+            }
+            return financialYear;
+        }
+
+        private static string GetFYYearPlusTwoYears(string financialYear)
+        {
+            return GetExpiryYear(financialYear, 2);
         }
     }
 }

@@ -118,5 +118,57 @@ namespace Core.Interfaces.Tax
         /// Get revision count for an assessment
         /// </summary>
         Task<int> GetRevisionCountAsync(Guid assessmentId);
+
+        // ==================== MAT Credit Operations ====================
+
+        /// <summary>
+        /// Get MAT credit register entry by ID
+        /// </summary>
+        Task<MatCreditRegister?> GetMatCreditByIdAsync(Guid id);
+
+        /// <summary>
+        /// Get MAT credit entry for a company and financial year
+        /// </summary>
+        Task<MatCreditRegister?> GetMatCreditByCompanyAndFYAsync(Guid companyId, string financialYear);
+
+        /// <summary>
+        /// Get all MAT credit entries for a company
+        /// </summary>
+        Task<IEnumerable<MatCreditRegister>> GetMatCreditsByCompanyAsync(Guid companyId);
+
+        /// <summary>
+        /// Get all available (non-expired, not fully utilized) MAT credits for a company
+        /// </summary>
+        Task<IEnumerable<MatCreditRegister>> GetAvailableMatCreditsAsync(Guid companyId, string currentFinancialYear);
+
+        /// <summary>
+        /// Get total available MAT credit balance for a company
+        /// </summary>
+        Task<decimal> GetTotalAvailableMatCreditAsync(Guid companyId, string currentFinancialYear);
+
+        /// <summary>
+        /// Create a new MAT credit entry
+        /// </summary>
+        Task<MatCreditRegister> CreateMatCreditAsync(MatCreditRegister matCredit);
+
+        /// <summary>
+        /// Update a MAT credit entry
+        /// </summary>
+        Task UpdateMatCreditAsync(MatCreditRegister matCredit);
+
+        /// <summary>
+        /// Get utilization history for a MAT credit
+        /// </summary>
+        Task<IEnumerable<MatCreditUtilization>> GetMatCreditUtilizationsAsync(Guid matCreditId);
+
+        /// <summary>
+        /// Record a MAT credit utilization
+        /// </summary>
+        Task<MatCreditUtilization> CreateMatCreditUtilizationAsync(MatCreditUtilization utilization);
+
+        /// <summary>
+        /// Mark expired MAT credits (15 years from creation)
+        /// </summary>
+        Task<int> MarkExpiredMatCreditsAsync(string currentFinancialYear);
     }
 }

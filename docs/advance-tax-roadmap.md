@@ -20,6 +20,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] **Book Profit → Taxable Income reconciliation** (Phase 3 complete)
 - [x] **TDS/TCS Integration** (Phase 5 complete)
 - [x] **Quarterly Re-estimation Workflow** (Phase 4 complete)
+- [x] **MAT (Minimum Alternate Tax) Computation** (Phase 6 complete)
 
 ---
 
@@ -325,19 +326,47 @@ Auto-fetch TDS receivable and TCS credit from existing modules.
 
 ---
 
-## Phase 6: MAT (Minimum Alternate Tax) Computation
+## Phase 6: MAT (Minimum Alternate Tax) Computation (COMPLETED)
 
 ### Goal
-For companies where normal tax < 15% of book profit, MAT applies.
+For companies where normal tax < 15% of book profit, MAT applies (Section 115JB).
+
+### Implementation (Done)
+1. **Database Migration**: `152_add_mat_credit_register.sql`
+   - Created `mat_credit_register` table for tracking MAT credit entries
+   - Created `mat_credit_utilizations` table for tracking credit usage history
+   - Added MAT-related columns to `advance_tax_assessments`
+
+2. **Backend Changes**:
+   - Created `MatCreditRegister` and `MatCreditUtilization` entities
+   - Updated `AdvanceTaxAssessment` entity with MAT fields
+   - Added MAT repository methods: `GetMatCreditByIdAsync`, `GetAvailableMatCreditsAsync`, `CreateMatCreditAsync`, etc.
+   - Added DTOs: `MatCreditRegisterDto`, `MatCreditUtilizationDto`, `MatComputationDto`, `MatCreditSummaryDto`
+   - Added service methods: `GetMatComputationAsync`, `GetMatCreditSummaryAsync`, `GetMatCreditsAsync`, `GetMatCreditUtilizationsAsync`
+   - Added private helpers: `ComputeAndApplyMatAsync`, `ComputeMatInternal`, `CreateOrUpdateMatCreditEntryAsync`, `RecordMatCreditUtilizationAsync`
+   - Added API endpoints: `GET /mat-computation/{id}`, `GET /mat-credit-summary/{companyId}/{fy}`, `GET /mat-credits/{companyId}`, `GET /mat-credit-utilizations/{matCreditId}`
+
+3. **Frontend Changes**:
+   - Updated TypeScript types with MAT interfaces
+   - Added `getMatComputation`, `getMatCreditSummary`, `getMatCredits`, `getMatCreditUtilizations` to API service
+   - Added `matCredit` query keys
+   - Added React Query hooks: `useMatComputation`, `useMatCreditSummary`, `useMatCredits`, `useMatCreditUtilizations`
+   - Added MAT Computation section in UI with:
+     - MAT vs Normal Tax comparison
+     - MAT calculation breakdown
+     - MAT Credit status (available, utilized, created)
+     - Visual tax comparison bar chart
+     - Expiring credit alerts
 
 ### Logic
 ```
-If (Normal Tax < 15% of Book Profit):
-    Tax Payable = 15% of Book Profit + Surcharge + Cess
-    MAT Credit = MAT Paid - Normal Tax (carry forward 15 years)
+If (Normal Tax < MAT on Book Profit):
+    Tax Payable = MAT (15% of Book Profit + Surcharge + Cess)
+    MAT Credit Created = MAT - Normal Tax (carry forward 15 years per Section 115JAA)
 Else:
     Tax Payable = Normal Tax
-    Utilize available MAT Credit
+    Utilize available MAT Credit (FIFO - oldest first)
+    MAT Credit Utilized = min(Available Credit, Normal Tax - MAT)
 ```
 
 ### Data Model
@@ -346,10 +375,73 @@ mat_credit_register:
   id UUID PRIMARY KEY
   company_id UUID
   financial_year VARCHAR(10)
-  mat_credit_created DECIMAL
-  mat_credit_utilized DECIMAL
-  mat_credit_balance DECIMAL
+  assessment_year VARCHAR(10)
+  book_profit DECIMAL(18,2)
+  mat_rate DECIMAL(5,2) DEFAULT 15.00
+  mat_on_book_profit DECIMAL(18,2)
+  mat_surcharge DECIMAL(18,2)
+  mat_cess DECIMAL(18,2)
+  total_mat DECIMAL(18,2)
+  normal_tax DECIMAL(18,2)
+  mat_credit_created DECIMAL(18,2)
+  mat_credit_utilized DECIMAL(18,2)
+  mat_credit_balance DECIMAL(18,2)
   expiry_year VARCHAR(10)  -- Created year + 15
+  is_expired BOOLEAN
+  status VARCHAR(20)
+  created_at, updated_at TIMESTAMPTZ
+
+mat_credit_utilizations:
+  id UUID PRIMARY KEY
+  mat_credit_id UUID REFERENCES mat_credit_register
+  utilization_year VARCHAR(10)
+  assessment_id UUID REFERENCES advance_tax_assessments
+  amount_utilized DECIMAL(18,2)
+  balance_after DECIMAL(18,2)
+  notes TEXT
+  created_at TIMESTAMPTZ
+
+advance_tax_assessments:
+  + is_mat_applicable BOOLEAN
+  + mat_book_profit DECIMAL(18,2)
+  + mat_rate DECIMAL(5,2) DEFAULT 15.00
+  + mat_on_book_profit DECIMAL(18,2)
+  + mat_surcharge DECIMAL(18,2)
+  + mat_cess DECIMAL(18,2)
+  + total_mat DECIMAL(18,2)
+  + mat_credit_available DECIMAL(18,2)
+  + mat_credit_to_utilize DECIMAL(18,2)
+  + mat_credit_created_this_year DECIMAL(18,2)
+  + tax_payable_after_mat DECIMAL(18,2)
+```
+
+### UI: MAT Computation Section
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  MAT COMPUTATION (Section 115JB)                    [Normal Tax Applies]│
+│  Minimum Alternate Tax on Book Profit                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐        │
+│  │ Tax Comparison   │ │ MAT Calculation  │ │ MAT Credit       │        │
+│  │                  │ │                  │ │ (Section 115JAA) │        │
+│  │ Normal Tax:      │ │ Book Profit:     │ │                  │        │
+│  │   ₹2,50,000      │ │   ₹10,00,000     │ │ Available:       │        │
+│  │ MAT @ 15%:       │ │ MAT @ 15%:       │ │   ₹50,000        │        │
+│  │   ₹1,75,170      │ │   ₹1,50,000      │ │                  │        │
+│  │ Difference:      │ │ H&E Cess @ 4%:   │ │ Credit Utilized: │        │
+│  │   +₹74,830       │ │   ₹25,170        │ │   (₹30,000)      │        │
+│  │ ─────────────    │ │ ─────────────    │ │                  │        │
+│  │ Tax Payable:     │ │ Total MAT:       │ │ ⚠ ₹20,000        │        │
+│  │   ₹2,50,000      │ │   ₹1,75,170      │ │ expiring soon    │        │
+│  └──────────────────┘ └──────────────────┘ └──────────────────┘        │
+│                                                                         │
+│  Tax Comparison Visualization:                                          │
+│  Normal Tax ████████████████████████████████████████ ₹2,50,000         │
+│  MAT        ██████████████████████████████           ₹1,75,170         │
+│                                                                         │
+│  → You pay the normal tax amount                                        │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -409,6 +501,6 @@ Bird's-eye view of advance tax status across all companies.
 3. ~~**Phase 3** - Book → Taxable reconciliation~~ ✅ DONE
 4. ~~**Phase 5** - TDS/TCS integration~~ ✅ DONE
 5. ~~**Phase 4** - Quarterly re-estimation~~ ✅ DONE
-6. **Phase 6** - MAT computation ← NEXT
-7. **Phase 7** - Form 280 generation
+6. ~~**Phase 6** - MAT computation~~ ✅ DONE
+7. **Phase 7** - Form 280 generation ← NEXT
 8. **Phase 8** - Compliance dashboard

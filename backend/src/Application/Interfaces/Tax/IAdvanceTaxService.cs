@@ -166,5 +166,27 @@ namespace Application.Interfaces.Tax
         /// Get revision status (prompt for dashboard)
         /// </summary>
         Task<Result<RevisionStatusDto>> GetRevisionStatusAsync(Guid assessmentId);
+
+        // ==================== MAT Credit Operations ====================
+
+        /// <summary>
+        /// Get MAT computation for an assessment
+        /// </summary>
+        Task<Result<MatComputationDto>> GetMatComputationAsync(Guid assessmentId);
+
+        /// <summary>
+        /// Get available MAT credits for a company
+        /// </summary>
+        Task<Result<MatCreditSummaryDto>> GetMatCreditSummaryAsync(Guid companyId, string financialYear);
+
+        /// <summary>
+        /// Get all MAT credit entries for a company
+        /// </summary>
+        Task<Result<IEnumerable<MatCreditRegisterDto>>> GetMatCreditsAsync(Guid companyId);
+
+        /// <summary>
+        /// Get MAT credit utilization history
+        /// </summary>
+        Task<Result<IEnumerable<MatCreditUtilizationDto>>> GetMatCreditUtilizationsAsync(Guid matCreditId);
     }
 }

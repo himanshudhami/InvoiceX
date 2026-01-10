@@ -194,6 +194,56 @@ namespace Core.Entities.Tax
         public DateOnly? LastRevisionDate { get; set; }
         public int? LastRevisionQuarter { get; set; }
 
+        // ==================== MAT (Minimum Alternate Tax) ====================
+
+        /// <summary>
+        /// True if MAT > Normal Tax for this assessment
+        /// </summary>
+        public bool IsMatApplicable { get; set; }
+
+        /// <summary>
+        /// Book profit for MAT calculation (may differ from taxable income)
+        /// </summary>
+        public decimal MatBookProfit { get; set; }
+
+        /// <summary>
+        /// MAT rate (currently 15%)
+        /// </summary>
+        public decimal MatRate { get; set; } = 15.00m;
+
+        /// <summary>
+        /// MAT on book profit before surcharge and cess
+        /// </summary>
+        public decimal MatOnBookProfit { get; set; }
+
+        public decimal MatSurcharge { get; set; }
+        public decimal MatCess { get; set; }
+
+        /// <summary>
+        /// Total MAT = MatOnBookProfit + MatSurcharge + MatCess
+        /// </summary>
+        public decimal TotalMat { get; set; }
+
+        /// <summary>
+        /// Available MAT credit from previous years
+        /// </summary>
+        public decimal MatCreditAvailable { get; set; }
+
+        /// <summary>
+        /// MAT credit being utilized this year
+        /// </summary>
+        public decimal MatCreditToUtilize { get; set; }
+
+        /// <summary>
+        /// New MAT credit created this year (if MAT > Normal Tax)
+        /// </summary>
+        public decimal MatCreditCreatedThisYear { get; set; }
+
+        /// <summary>
+        /// Final tax payable after MAT computation
+        /// </summary>
+        public decimal TaxPayableAfterMat { get; set; }
+
         // ==================== Audit ====================
 
         public Guid? CreatedBy { get; set; }

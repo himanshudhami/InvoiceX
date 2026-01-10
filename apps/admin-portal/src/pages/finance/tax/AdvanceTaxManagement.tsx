@@ -9,6 +9,8 @@ import {
   useAdvanceTaxScenarios,
   useAdvanceTaxRevisions,
   useRevisionStatus,
+  useMatComputation,
+  useMatCreditSummary,
   useComputeAdvanceTax,
   useUpdateAdvanceTaxAssessment,
   useActivateAdvanceTax,
@@ -205,6 +207,19 @@ const AdvanceTaxManagement = () => {
   const { data: revisionStatus } = useRevisionStatus(
     assessment?.id || '',
     !!assessment?.id && assessment?.status === 'active'
+  );
+
+  // Fetch MAT computation
+  const { data: matComputation } = useMatComputation(
+    assessment?.id || '',
+    !!assessment?.id
+  );
+
+  // Fetch MAT credit summary
+  const { data: matCreditSummary } = useMatCreditSummary(
+    selectedCompanyId,
+    selectedFy,
+    !!selectedCompanyId && !!assessment?.id
   );
 
   // Mutations
@@ -1085,6 +1100,189 @@ const AdvanceTaxManagement = () => {
               </div>
             </div>
           </div>
+
+          {/* MAT Computation Section */}
+          {assessment && matComputation && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">MAT Computation (Section 115JB)</h2>
+                    <p className="text-sm text-gray-500 mt-1">Minimum Alternate Tax on Book Profit</p>
+                  </div>
+                  {assessment.isMatApplicable ? (
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 rounded-lg font-medium">
+                      <AlertTriangle className="h-5 w-5" />
+                      MAT Applicable
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
+                      <CheckCircle className="h-5 w-5" />
+                      Normal Tax Applies
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* MAT vs Normal Tax Comparison */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-700 mb-4 flex items-center gap-2">
+                      <Calculator className="h-4 w-4 text-blue-600" />
+                      Tax Comparison
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-gray-600">Normal Tax Liability</span>
+                        <span className="font-semibold">{formatCurrency(matComputation.normalTax)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-gray-600">MAT @ {matComputation.matRate}%</span>
+                        <span className="font-semibold">{formatCurrency(matComputation.totalMat)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-gray-600">Difference</span>
+                        <span className={cn(
+                          'font-semibold',
+                          matComputation.taxDifference > 0 ? 'text-green-600' : 'text-red-600'
+                        )}>
+                          {matComputation.taxDifference > 0 ? '+' : ''}{formatCurrency(matComputation.taxDifference)}
+                        </span>
+                      </div>
+                      <div className={cn(
+                        'flex justify-between items-center py-2 px-3 rounded-lg font-medium',
+                        assessment.isMatApplicable ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-800'
+                      )}>
+                        <span>Tax Payable</span>
+                        <span className="font-bold">{formatCurrency(matComputation.finalTaxPayable)}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3 italic">
+                      {matComputation.matApplicabilityReason}
+                    </p>
+                  </div>
+
+                  {/* MAT Calculation Breakdown */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-700 mb-4 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-purple-600" />
+                      MAT Calculation
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-600">Book Profit (for MAT)</span>
+                        <span className="font-medium">{formatCurrency(matComputation.bookProfit)}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-600">MAT @ {matComputation.matRate}%</span>
+                        <span className="font-medium">{formatCurrency(matComputation.matOnBookProfit)}</span>
+                      </div>
+                      {matComputation.matSurcharge > 0 && (
+                        <div className="flex justify-between py-1">
+                          <span className="text-gray-600">Surcharge @ {matComputation.matSurchargeRate}%</span>
+                          <span className="font-medium">{formatCurrency(matComputation.matSurcharge)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-600">H&E Cess @ {matComputation.matCessRate}%</span>
+                        <span className="font-medium">{formatCurrency(matComputation.matCess)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-t border-gray-200 font-medium bg-purple-50 px-2 rounded">
+                        <span>Total MAT</span>
+                        <span className="text-purple-800">{formatCurrency(matComputation.totalMat)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MAT Credit Status */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium text-gray-700 mb-4 flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-green-600" />
+                      MAT Credit (Section 115JAA)
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-600">Available from Prior Years</span>
+                        <span className="font-medium text-green-600">{formatCurrency(matComputation.matCreditAvailable)}</span>
+                      </div>
+                      {matComputation.matCreditToUtilize > 0 && (
+                        <div className="flex justify-between py-1 bg-green-50 px-2 rounded">
+                          <span className="text-green-700">Credit Utilized This Year</span>
+                          <span className="font-medium text-green-700">({formatCurrency(matComputation.matCreditToUtilize)})</span>
+                        </div>
+                      )}
+                      {matComputation.matCreditCreatedThisYear > 0 && (
+                        <div className="flex justify-between py-1 bg-blue-50 px-2 rounded">
+                          <span className="text-blue-700">Credit Created This Year</span>
+                          <span className="font-medium text-blue-700">+{formatCurrency(matComputation.matCreditCreatedThisYear)}</span>
+                        </div>
+                      )}
+                      {matCreditSummary && matCreditSummary.expiringSoonAmount > 0 && (
+                        <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                          <AlertTriangle className="h-3 w-3 inline mr-1" />
+                          {formatCurrency(matCreditSummary.expiringSoonAmount)} credit expiring within 2 years
+                        </div>
+                      )}
+                    </div>
+                    {matCreditSummary && matCreditSummary.yearsWithCredit > 0 && (
+                      <div className="mt-4 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500">
+                          Total available: {formatCurrency(matCreditSummary.totalCreditAvailable)} across {matCreditSummary.yearsWithCredit} year(s)
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Credits carry forward for 15 years and utilized in FIFO order
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Visual Comparison Bar */}
+                {matComputation && (
+                  <div className="mt-6 pt-6 border-t border-gray-100">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Tax Comparison Visualization</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 text-sm text-gray-600">Normal Tax</div>
+                        <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
+                          <div
+                            className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-2"
+                            style={{
+                              width: `${Math.min(100, (matComputation.normalTax / Math.max(matComputation.normalTax, matComputation.totalMat)) * 100)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-medium">{formatCurrency(matComputation.normalTax)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 text-sm text-gray-600">MAT</div>
+                        <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
+                          <div
+                            className={cn(
+                              'h-full rounded-full flex items-center justify-end pr-2',
+                              assessment.isMatApplicable ? 'bg-amber-500' : 'bg-gray-400'
+                            )}
+                            style={{
+                              width: `${Math.min(100, (matComputation.totalMat / Math.max(matComputation.normalTax, matComputation.totalMat)) * 100)}%`
+                            }}
+                          >
+                            <span className="text-xs text-white font-medium">{formatCurrency(matComputation.totalMat)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-gray-500 flex items-center gap-1">
+                      <ArrowRight className="h-3 w-3" />
+                      You pay the <strong className={assessment.isMatApplicable ? 'text-amber-700' : 'text-blue-700'}>
+                        {assessment.isMatApplicable ? 'higher (MAT)' : 'normal tax'}
+                      </strong> amount
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Quarterly Payment Schedule */}
           <div className="bg-white rounded-lg shadow">

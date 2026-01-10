@@ -678,5 +678,159 @@ namespace Infrastructure.Data.Tax
                 "SELECT COUNT(*) FROM advance_tax_revisions WHERE assessment_id = @assessmentId",
                 new { assessmentId });
         }
+
+        // ==================== MAT Credit Operations ====================
+
+        public async Task<MatCreditRegister?> GetMatCreditByIdAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<MatCreditRegister>(
+                "SELECT * FROM mat_credit_register WHERE id = @id",
+                new { id });
+        }
+
+        public async Task<MatCreditRegister?> GetMatCreditByCompanyAndFYAsync(Guid companyId, string financialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<MatCreditRegister>(
+                "SELECT * FROM mat_credit_register WHERE company_id = @companyId AND financial_year = @financialYear",
+                new { companyId, financialYear });
+        }
+
+        public async Task<IEnumerable<MatCreditRegister>> GetMatCreditsByCompanyAsync(Guid companyId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<MatCreditRegister>(
+                "SELECT * FROM mat_credit_register WHERE company_id = @companyId ORDER BY financial_year DESC",
+                new { companyId });
+        }
+
+        public async Task<IEnumerable<MatCreditRegister>> GetAvailableMatCreditsAsync(Guid companyId, string currentFinancialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            // Get non-expired, not fully utilized credits
+            // Credits expire 15 years after creation
+            return await connection.QueryAsync<MatCreditRegister>(@"
+                SELECT * FROM mat_credit_register
+                WHERE company_id = @companyId
+                    AND status = 'active'
+                    AND is_expired = FALSE
+                    AND mat_credit_balance > 0
+                    AND expiry_year >= @currentFinancialYear
+                ORDER BY financial_year ASC",
+                new { companyId, currentFinancialYear });
+        }
+
+        public async Task<decimal> GetTotalAvailableMatCreditAsync(Guid companyId, string currentFinancialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<decimal>(@"
+                SELECT COALESCE(SUM(mat_credit_balance), 0)
+                FROM mat_credit_register
+                WHERE company_id = @companyId
+                    AND status = 'active'
+                    AND is_expired = FALSE
+                    AND mat_credit_balance > 0
+                    AND expiry_year >= @currentFinancialYear",
+                new { companyId, currentFinancialYear });
+        }
+
+        public async Task<MatCreditRegister> CreateMatCreditAsync(MatCreditRegister matCredit)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            matCredit.Id = Guid.NewGuid();
+            matCredit.CreatedAt = DateTime.UtcNow;
+            matCredit.UpdatedAt = DateTime.UtcNow;
+
+            const string sql = @"
+                INSERT INTO mat_credit_register (
+                    id, company_id, financial_year, assessment_year,
+                    book_profit, mat_rate, mat_on_book_profit, mat_surcharge, mat_cess, total_mat,
+                    normal_tax, mat_credit_created, mat_credit_utilized, mat_credit_balance,
+                    expiry_year, is_expired, status, notes,
+                    created_by, created_at, updated_at
+                ) VALUES (
+                    @Id, @CompanyId, @FinancialYear, @AssessmentYear,
+                    @BookProfit, @MatRate, @MatOnBookProfit, @MatSurcharge, @MatCess, @TotalMat,
+                    @NormalTax, @MatCreditCreated, @MatCreditUtilized, @MatCreditBalance,
+                    @ExpiryYear, @IsExpired, @Status, @Notes,
+                    @CreatedBy, @CreatedAt, @UpdatedAt
+                )
+                RETURNING *";
+
+            return await connection.QuerySingleAsync<MatCreditRegister>(sql, matCredit);
+        }
+
+        public async Task UpdateMatCreditAsync(MatCreditRegister matCredit)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            matCredit.UpdatedAt = DateTime.UtcNow;
+
+            const string sql = @"
+                UPDATE mat_credit_register SET
+                    book_profit = @BookProfit,
+                    mat_rate = @MatRate,
+                    mat_on_book_profit = @MatOnBookProfit,
+                    mat_surcharge = @MatSurcharge,
+                    mat_cess = @MatCess,
+                    total_mat = @TotalMat,
+                    normal_tax = @NormalTax,
+                    mat_credit_created = @MatCreditCreated,
+                    mat_credit_utilized = @MatCreditUtilized,
+                    mat_credit_balance = @MatCreditBalance,
+                    is_expired = @IsExpired,
+                    status = @Status,
+                    notes = @Notes,
+                    updated_at = @UpdatedAt
+                WHERE id = @Id";
+
+            await connection.ExecuteAsync(sql, matCredit);
+        }
+
+        public async Task<IEnumerable<MatCreditUtilization>> GetMatCreditUtilizationsAsync(Guid matCreditId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<MatCreditUtilization>(
+                "SELECT * FROM mat_credit_utilizations WHERE mat_credit_id = @matCreditId ORDER BY created_at",
+                new { matCreditId });
+        }
+
+        public async Task<MatCreditUtilization> CreateMatCreditUtilizationAsync(MatCreditUtilization utilization)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            utilization.Id = Guid.NewGuid();
+            utilization.CreatedAt = DateTime.UtcNow;
+
+            const string sql = @"
+                INSERT INTO mat_credit_utilizations (
+                    id, mat_credit_id, utilization_year, assessment_id,
+                    amount_utilized, balance_after, notes, created_at
+                ) VALUES (
+                    @Id, @MatCreditId, @UtilizationYear, @AssessmentId,
+                    @AmountUtilized, @BalanceAfter, @Notes, @CreatedAt
+                )
+                RETURNING *";
+
+            return await connection.QuerySingleAsync<MatCreditUtilization>(sql, utilization);
+        }
+
+        public async Task<int> MarkExpiredMatCreditsAsync(string currentFinancialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            const string sql = @"
+                UPDATE mat_credit_register SET
+                    is_expired = TRUE,
+                    status = 'expired',
+                    updated_at = NOW()
+                WHERE is_expired = FALSE
+                    AND status = 'active'
+                    AND expiry_year < @currentFinancialYear";
+
+            return await connection.ExecuteAsync(sql, new { currentFinancialYear });
+        }
     }
 }

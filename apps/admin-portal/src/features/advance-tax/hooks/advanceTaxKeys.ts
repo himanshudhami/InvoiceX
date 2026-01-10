@@ -81,4 +81,17 @@ export const advanceTaxKeys = {
     status: (assessmentId: string) =>
       [...advanceTaxKeys.revisions.all(), 'status', assessmentId] as const,
   },
+
+  // MAT Credit
+  matCredit: {
+    all: () => [...advanceTaxKeys.all, 'mat-credit'] as const,
+    computation: (assessmentId: string) =>
+      [...advanceTaxKeys.matCredit.all(), 'computation', assessmentId] as const,
+    summary: (companyId: string, financialYear: string) =>
+      [...advanceTaxKeys.matCredit.all(), 'summary', companyId, financialYear] as const,
+    byCompany: (companyId: string) =>
+      [...advanceTaxKeys.matCredit.all(), 'company', companyId] as const,
+    utilizations: (matCreditId: string) =>
+      [...advanceTaxKeys.matCredit.all(), 'utilizations', matCreditId] as const,
+  },
 };

@@ -85,6 +85,19 @@ export interface AdvanceTaxAssessment {
   lastRevisionDate?: string;
   lastRevisionQuarter?: number;
 
+  // MAT (Minimum Alternate Tax)
+  isMatApplicable: boolean;
+  matBookProfit: number;
+  matRate: number;
+  matOnBookProfit: number;
+  matSurcharge: number;
+  matCess: number;
+  totalMat: number;
+  matCreditAvailable: number;
+  matCreditToUtilize: number;
+  matCreditCreatedThisYear: number;
+  taxPayableAfterMat: number;
+
   // Audit
   createdBy?: string;
   createdAt: string;
@@ -428,4 +441,100 @@ export interface RevisionStatus {
   totalRevisions: number;
   actualVsProjectedVariance: number;
   variancePercentage: number;
+}
+
+// ==================== MAT Credit Types ====================
+
+export interface MatCreditRegister {
+  id: string;
+  companyId: string;
+  financialYear: string;
+  assessmentYear: string;
+
+  // MAT computation
+  bookProfit: number;
+  matRate: number;
+  matOnBookProfit: number;
+  matSurcharge: number;
+  matCess: number;
+  totalMat: number;
+
+  // Normal tax comparison
+  normalTax: number;
+
+  // Credit tracking
+  matCreditCreated: number;
+  matCreditUtilized: number;
+  matCreditBalance: number;
+
+  // Expiry
+  expiryYear: string;
+  isExpired: boolean;
+  status: string;
+
+  notes?: string;
+
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatCreditUtilization {
+  id: string;
+  matCreditId: string;
+  utilizationYear: string;
+  assessmentId?: string;
+  amountUtilized: number;
+  balanceAfter: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MatComputation {
+  assessmentId: string;
+  financialYear: string;
+
+  // Book profit for MAT
+  bookProfit: number;
+
+  // MAT calculation
+  matRate: number;
+  matOnBookProfit: number;
+  matSurcharge: number;
+  matSurchargeRate: number;
+  matCess: number;
+  matCessRate: number;
+  totalMat: number;
+
+  // Normal tax
+  normalTax: number;
+
+  // Comparison
+  isMatApplicable: boolean;
+  taxDifference: number;
+
+  // Credit implications
+  matCreditCreatedThisYear: number;
+  matCreditAvailable: number;
+  matCreditToUtilize: number;
+
+  // Final tax
+  finalTaxPayable: number;
+
+  // Explanation
+  matApplicabilityReason: string;
+}
+
+export interface MatCreditSummary {
+  companyId: string;
+  currentFinancialYear: string;
+
+  totalCreditAvailable: number;
+  yearsWithCredit: number;
+
+  availableCredits: MatCreditRegister[];
+
+  // Expiring soon (within 2 years)
+  expiringSoonAmount: number;
+  expiringSoonCount: number;
 }

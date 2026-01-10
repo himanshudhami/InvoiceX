@@ -486,3 +486,57 @@ export const useCreateRevision = () => {
     },
   });
 };
+
+// ==================== MAT Credit Hooks ====================
+
+/**
+ * Fetch MAT computation for an assessment
+ */
+export const useMatComputation = (assessmentId: string, enabled = true) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.matCredit.computation(assessmentId),
+    queryFn: () => advanceTaxService.getMatComputation(assessmentId),
+    enabled: enabled && !!assessmentId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch available MAT credits summary
+ */
+export const useMatCreditSummary = (
+  companyId: string,
+  financialYear: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.matCredit.summary(companyId, financialYear),
+    queryFn: () => advanceTaxService.getMatCreditSummary(companyId, financialYear),
+    enabled: enabled && !!companyId && !!financialYear,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch all MAT credits for a company
+ */
+export const useMatCredits = (companyId: string, enabled = true) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.matCredit.byCompany(companyId),
+    queryFn: () => advanceTaxService.getMatCredits(companyId),
+    enabled: enabled && !!companyId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch MAT credit utilization history
+ */
+export const useMatCreditUtilizations = (matCreditId: string, enabled = true) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.matCredit.utilizations(matCreditId),
+    queryFn: () => advanceTaxService.getMatCreditUtilizations(matCreditId),
+    enabled: enabled && !!matCreditId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
