@@ -19,6 +19,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] **YTD vs Projection split** (Phase 2 complete)
 - [x] **Book Profit → Taxable Income reconciliation** (Phase 3 complete)
 - [x] **TDS/TCS Integration** (Phase 5 complete)
+- [x] **Quarterly Re-estimation Workflow** (Phase 4 complete)
 
 ---
 
@@ -201,38 +202,94 @@ advance_tax_assessments:
 
 ---
 
-## Phase 4: Quarterly Re-estimation Workflow
+## Phase 4: Quarterly Re-estimation Workflow (COMPLETED)
 
 ### Goal
 CAs revise estimates each quarter as actuals become clearer.
 
+### Implementation (Done)
+1. **Database Migration**: `151_add_advance_tax_revisions.sql`
+   - Created `advance_tax_revisions` table with variance tracking
+   - Added `revision_count`, `last_revision_date`, `last_revision_quarter` to `advance_tax_assessments`
+
+2. **Backend Changes**:
+   - Created `AdvanceTaxRevision` entity with full variance tracking
+   - Added revision methods to repository interface and implementation
+   - Added `AdvanceTaxRevisionDto`, `CreateRevisionDto`, `RevisionStatusDto`
+   - Added service methods: `CreateRevisionAsync`, `GetRevisionsAsync`, `GetRevisionStatusAsync`
+   - Added API endpoints: `POST /revision`, `GET /revisions/{id}`, `GET /revision-status/{id}`
+
+3. **Frontend Changes**:
+   - Added TypeScript types for revisions
+   - Added API service methods and React Query hooks
+   - Added Revision Status Alert (when revision is recommended)
+   - Added Revision History section with DataTable
+   - Added Create Revision modal with full form
+
 ### Features
 1. **Revision History**
-   - Track each quarterly revision
-   - Show variance from previous estimate
-   - Audit trail for compliance
+   - Track each quarterly revision with before/after values
+   - Show variance (revenue, expenses, taxable income, tax liability)
+   - Full audit trail for compliance
 
 2. **Auto-Prompt for Revision**
-   - After Q1 due date (Jun 15), prompt to revise for Q2
-   - Show actual vs estimated variance
+   - `RevisionStatus` API checks if revision is recommended
+   - Recommends revision when variance > 10% or past quarter due date
+   - Shows alert with "Create Revision" button
 
 3. **Revised Schedule Computation**
-   - If Q1 was underpaid, catch up in Q2-Q4
-   - Recalculate interest implications
+   - Creating a revision updates the assessment with new projections
+   - Schedules are automatically recalculated
 
 ### Data Model
 ```
 advance_tax_revisions:
   id UUID PRIMARY KEY
   assessment_id UUID REFERENCES advance_tax_assessments
+  revision_number INT
   revision_quarter INT (1-4)
   revision_date DATE
+  -- Before values
+  previous_projected_revenue DECIMAL
+  previous_projected_expenses DECIMAL
   previous_taxable_income DECIMAL
+  previous_total_tax_liability DECIMAL
+  previous_net_tax_payable DECIMAL
+  -- After values
+  revised_projected_revenue DECIMAL
+  revised_projected_expenses DECIMAL
   revised_taxable_income DECIMAL
-  variance DECIMAL
-  reason TEXT
+  revised_total_tax_liability DECIMAL
+  revised_net_tax_payable DECIMAL
+  -- Variance (computed)
+  revenue_variance DECIMAL
+  expense_variance DECIMAL
+  taxable_income_variance DECIMAL
+  tax_liability_variance DECIMAL
+  net_payable_variance DECIMAL
+  -- Metadata
+  revision_reason TEXT
+  notes TEXT
   revised_by UUID
   created_at TIMESTAMPTZ
+
+advance_tax_assessments:
+  + revision_count INT
+  + last_revision_date DATE
+  + last_revision_quarter INT
+```
+
+### UI: Revision History
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  REVISION HISTORY                                               │
+│  Quarterly re-estimation audit trail • 3 revisions recorded    │
+├─────────────────────────────────────────────────────────────────┤
+│  Date          │ Tax Variance    │ Revised Net │ Reason         │
+│  15 Sep 2024   │ +₹50,000 ↑      │ ₹2,00,000   │ Q2 actuals...  │
+│  15 Dec 2024   │ -₹30,000 ↓      │ ₹1,70,000   │ Tax saving...  │
+│  15 Mar 2025   │ +₹20,000 ↑      │ ₹1,90,000   │ Final review   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -351,7 +408,7 @@ Bird's-eye view of advance tax status across all companies.
 2. ~~**Phase 2** - YTD vs Projection split~~ ✅ DONE
 3. ~~**Phase 3** - Book → Taxable reconciliation~~ ✅ DONE
 4. ~~**Phase 5** - TDS/TCS integration~~ ✅ DONE
-5. **Phase 4** - Quarterly re-estimation ← NEXT
-6. **Phase 6** - MAT computation
+5. ~~**Phase 4** - Quarterly re-estimation~~ ✅ DONE
+6. **Phase 6** - MAT computation ← NEXT
 7. **Phase 7** - Form 280 generation
 8. **Phase 8** - Compliance dashboard

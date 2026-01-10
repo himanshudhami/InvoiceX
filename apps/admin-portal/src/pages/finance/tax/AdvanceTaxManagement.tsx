@@ -7,6 +7,8 @@ import {
   useAdvanceTaxPayments,
   useAdvanceTaxInterest,
   useAdvanceTaxScenarios,
+  useAdvanceTaxRevisions,
+  useRevisionStatus,
   useComputeAdvanceTax,
   useUpdateAdvanceTaxAssessment,
   useActivateAdvanceTax,
@@ -17,15 +19,18 @@ import {
   useDeleteAdvanceTaxScenario,
   useRefreshYtd,
   useRefreshTdsTcs,
+  useCreateRevision,
 } from '@/features/advance-tax/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import type {
   AdvanceTaxSchedule,
   AdvanceTaxPayment,
   AdvanceTaxScenario,
+  AdvanceTaxRevision,
   CreateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
   RunScenarioRequest,
+  CreateRevisionRequest,
   TaxRegime,
 } from '@/services/api/types';
 import { DataTable } from '@/components/ui/DataTable';
@@ -50,6 +55,9 @@ import {
   RefreshCcw,
   Lock,
   Pencil,
+  History,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -94,6 +102,7 @@ const AdvanceTaxManagement = () => {
   const [showComputeModal, setShowComputeModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showScenarioModal, setShowScenarioModal] = useState(false);
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<AdvanceTaxSchedule | null>(null);
   const [deletingScenario, setDeletingScenario] = useState<AdvanceTaxScenario | null>(null);
 
@@ -121,6 +130,29 @@ const AdvanceTaxManagement = () => {
     capexImpact: 0,
     payrollChange: 0,
     otherAdjustments: 0,
+  });
+
+  const [revisionForm, setRevisionForm] = useState<CreateRevisionRequest>({
+    assessmentId: '',
+    revisionQuarter: 1,
+    projectedAdditionalRevenue: 0,
+    projectedAdditionalExpenses: 0,
+    projectedDepreciation: 0,
+    projectedOtherIncome: 0,
+    addBookDepreciation: 0,
+    addDisallowed40A3: 0,
+    addDisallowed40A7: 0,
+    addDisallowed43B: 0,
+    addOtherDisallowances: 0,
+    lessItDepreciation: 0,
+    lessDeductions80C: 0,
+    lessDeductions80D: 0,
+    lessOtherDeductions: 0,
+    taxRegime: 'normal',
+    tdsReceivable: 0,
+    tcsCredit: 0,
+    matCredit: 0,
+    revisionReason: '',
   });
 
   const { data: companies = [] } = useCompanies();
@@ -163,6 +195,18 @@ const AdvanceTaxManagement = () => {
     !!assessment?.id
   );
 
+  // Fetch revisions
+  const { data: revisions = [] } = useAdvanceTaxRevisions(
+    assessment?.id || '',
+    !!assessment?.id
+  );
+
+  // Fetch revision status
+  const { data: revisionStatus } = useRevisionStatus(
+    assessment?.id || '',
+    !!assessment?.id && assessment?.status === 'active'
+  );
+
   // Mutations
   const computeTax = useComputeAdvanceTax();
   const activateTax = useActivateAdvanceTax();
@@ -173,6 +217,7 @@ const AdvanceTaxManagement = () => {
   const deleteScenario = useDeleteAdvanceTaxScenario();
   const refreshYtd = useRefreshYtd();
   const refreshTdsTcs = useRefreshTdsTcs();
+  const createRevision = useCreateRevision();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -293,6 +338,50 @@ const AdvanceTaxManagement = () => {
       setDeletingScenario(null);
     } catch (error) {
       console.error('Failed to delete scenario:', error);
+    }
+  };
+
+  const handleOpenRevisionModal = () => {
+    if (!assessment) return;
+    // Determine current quarter (1-4)
+    const currentMonth = new Date().getMonth();
+    let currentQuarter = 1;
+    if (currentMonth >= 3 && currentMonth <= 5) currentQuarter = 1;
+    else if (currentMonth >= 6 && currentMonth <= 8) currentQuarter = 2;
+    else if (currentMonth >= 9 && currentMonth <= 11) currentQuarter = 3;
+    else currentQuarter = 4;
+
+    setRevisionForm({
+      assessmentId: assessment.id,
+      revisionQuarter: currentQuarter,
+      projectedAdditionalRevenue: assessment.projectedAdditionalRevenue,
+      projectedAdditionalExpenses: assessment.projectedAdditionalExpenses,
+      projectedDepreciation: assessment.projectedDepreciation,
+      projectedOtherIncome: assessment.projectedOtherIncome,
+      addBookDepreciation: assessment.addBookDepreciation,
+      addDisallowed40A3: assessment.addDisallowed40A3,
+      addDisallowed40A7: assessment.addDisallowed40A7,
+      addDisallowed43B: assessment.addDisallowed43B,
+      addOtherDisallowances: assessment.addOtherDisallowances,
+      lessItDepreciation: assessment.lessItDepreciation,
+      lessDeductions80C: assessment.lessDeductions80C,
+      lessDeductions80D: assessment.lessDeductions80D,
+      lessOtherDeductions: assessment.lessOtherDeductions,
+      taxRegime: assessment.taxRegime,
+      tdsReceivable: assessment.tdsReceivable,
+      tcsCredit: assessment.tcsCredit,
+      matCredit: assessment.matCredit,
+      revisionReason: '',
+    });
+    setShowRevisionModal(true);
+  };
+
+  const handleCreateRevision = async () => {
+    try {
+      await createRevision.mutateAsync(revisionForm);
+      setShowRevisionModal(false);
+    } catch (error) {
+      console.error('Failed to create revision:', error);
     }
   };
 
@@ -509,6 +598,70 @@ const AdvanceTaxManagement = () => {
         >
           <Trash2 size={16} />
         </button>
+      ),
+    },
+  ];
+
+  // Revision columns
+  const revisionColumns: ColumnDef<AdvanceTaxRevision>[] = [
+    {
+      accessorKey: 'revisionDate',
+      header: 'Date',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-indigo-100 rounded-lg">
+            <History className="h-4 w-4 text-indigo-600" />
+          </div>
+          <div>
+            <div className="font-medium">
+              {new Date(row.original.revisionDate).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </div>
+            <div className="text-xs text-gray-500">
+              Revision #{row.original.revisionNumber} - Q{row.original.revisionQuarter}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'taxLiabilityVariance',
+      header: 'Tax Variance',
+      cell: ({ row }) => {
+        const variance = row.original.taxLiabilityVariance;
+        const isIncrease = variance > 0;
+        return (
+          <div className={cn(
+            'flex items-center gap-1 font-medium',
+            isIncrease ? 'text-red-600' : variance < 0 ? 'text-green-600' : 'text-gray-500'
+          )}>
+            {variance !== 0 && (
+              isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />
+            )}
+            {isIncrease ? '+' : ''}{formatCurrency(variance)}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'revisedNetTaxPayable',
+      header: 'Revised Net Payable',
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-purple-600">
+          {formatCurrency(row.original.revisedNetTaxPayable)}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'revisionReason',
+      header: 'Reason',
+      cell: ({ row }) => (
+        <div className="max-w-xs truncate text-sm text-gray-600">
+          {row.original.revisionReason || '-'}
+        </div>
       ),
     },
   ];
@@ -1055,6 +1208,66 @@ const AdvanceTaxManagement = () => {
               )}
             </div>
           </div>
+
+          {/* Revision Status Alert */}
+          {revisionStatus?.revisionRecommended && (
+            <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 rounded-full">
+                  <History className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-indigo-800">Quarterly Revision Recommended</p>
+                  <p className="text-sm text-indigo-700">
+                    {revisionStatus.revisionPrompt || `Variance of ${revisionStatus.variancePercentage.toFixed(1)}% detected. Consider updating projections for Q${revisionStatus.currentQuarter}.`}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleOpenRevisionModal}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                <RefreshCcw size={16} />
+                Create Revision
+              </button>
+            </div>
+          )}
+
+          {/* Revision History */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Revision History</h2>
+                <p className="text-sm text-gray-500">
+                  Quarterly re-estimation audit trail • {assessment.revisionCount} revision{assessment.revisionCount !== 1 ? 's' : ''} recorded
+                </p>
+              </div>
+              {assessment.status === 'active' && (
+                <button
+                  onClick={handleOpenRevisionModal}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  <Plus size={16} />
+                  New Revision
+                </button>
+              )}
+            </div>
+            <div className="p-6">
+              {revisions.length > 0 ? (
+                <DataTable
+                  columns={revisionColumns}
+                  data={revisions}
+                  searchPlaceholder="Search revisions..."
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <History className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                  <p>No revisions recorded yet.</p>
+                  <p className="text-sm mt-1">Create a revision when projections change materially during the quarter.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </>
       )}
 
@@ -1379,6 +1592,164 @@ const AdvanceTaxManagement = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Create Revision Modal */}
+      <Modal
+        isOpen={showRevisionModal}
+        onClose={() => setShowRevisionModal(false)}
+        title={`Create Quarterly Revision - Q${revisionForm.revisionQuarter}`}
+        size="lg"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-sm text-indigo-700">
+            <strong>Note:</strong> This will create a new revision record capturing the changes in projections.
+            The assessment will be updated with the new values and schedules will be recalculated.
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Revision Quarter *</label>
+              <select
+                value={revisionForm.revisionQuarter}
+                onChange={(e) => setRevisionForm({ ...revisionForm, revisionQuarter: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value={1}>Q1 (Apr-Jun)</option>
+                <option value={2}>Q2 (Jul-Sep)</option>
+                <option value={3}>Q3 (Oct-Dec)</option>
+                <option value={4}>Q4 (Jan-Mar)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tax Regime</label>
+              <select
+                value={revisionForm.taxRegime}
+                onChange={(e) => setRevisionForm({ ...revisionForm, taxRegime: e.target.value as TaxRegime })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {TAX_REGIMES.map((regime) => (
+                  <option key={regime.value} value={regime.value}>
+                    {regime.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-gray-700 mb-3">Revised Projections (Remaining FY)</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Revenue</label>
+                <input
+                  type="number"
+                  value={revisionForm.projectedAdditionalRevenue}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, projectedAdditionalRevenue: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Expenses</label>
+                <input
+                  type="number"
+                  value={revisionForm.projectedAdditionalExpenses}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, projectedAdditionalExpenses: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Depreciation</label>
+                <input
+                  type="number"
+                  value={revisionForm.projectedDepreciation}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, projectedDepreciation: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Other Income</label>
+                <input
+                  type="number"
+                  value={revisionForm.projectedOtherIncome}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, projectedOtherIncome: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-gray-700 mb-3">Credits</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">TDS Receivable</label>
+                <input
+                  type="number"
+                  value={revisionForm.tdsReceivable}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, tdsReceivable: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">TCS Credit</label>
+                <input
+                  type="number"
+                  value={revisionForm.tcsCredit}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, tcsCredit: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">MAT Credit</label>
+                <input
+                  type="number"
+                  value={revisionForm.matCredit}
+                  onChange={(e) => setRevisionForm({ ...revisionForm, matCredit: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Revision Reason *</label>
+            <textarea
+              value={revisionForm.revisionReason || ''}
+              onChange={(e) => setRevisionForm({ ...revisionForm, revisionReason: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Describe the reason for this revision (e.g., major contract signed, unexpected expense)..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+            <textarea
+              value={revisionForm.notes || ''}
+              onChange={(e) => setRevisionForm({ ...revisionForm, notes: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Additional notes..."
+            />
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <button
+              onClick={() => setShowRevisionModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateRevision}
+              disabled={createRevision.isPending || !revisionForm.revisionReason}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {createRevision.isPending ? 'Creating...' : 'Create Revision'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

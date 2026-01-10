@@ -35,7 +35,21 @@ namespace Infrastructure.Data.Tax
             "tds_receivable", "tcs_credit", "advance_tax_already_paid", "mat_credit", "net_tax_payable",
             "interest_234b", "interest_234c", "total_interest",
             "computation_details", "assumptions", "notes",
+            // Revision tracking
+            "revision_count", "last_revision_date", "last_revision_quarter",
             "created_by", "created_at", "updated_at"
+        };
+
+        private static readonly string[] RevisionColumns = new[]
+        {
+            "id", "assessment_id", "revision_number", "revision_quarter", "revision_date",
+            "previous_projected_revenue", "previous_projected_expenses",
+            "previous_taxable_income", "previous_total_tax_liability", "previous_net_tax_payable",
+            "revised_projected_revenue", "revised_projected_expenses",
+            "revised_taxable_income", "revised_total_tax_liability", "revised_net_tax_payable",
+            "revenue_variance", "expense_variance", "taxable_income_variance",
+            "tax_liability_variance", "net_payable_variance",
+            "revision_reason", "notes", "revised_by", "created_at"
         };
 
         private static readonly string[] ScheduleColumns = new[]
@@ -597,6 +611,72 @@ namespace Infrastructure.Data.Tax
                     AND status NOT IN ('cancelled')";
 
             return await connection.QuerySingleOrDefaultAsync<decimal>(sql, new { companyId, financialYear });
+        }
+
+        // ==================== Revision Operations ====================
+
+        public async Task<IEnumerable<AdvanceTaxRevision>> GetRevisionsByAssessmentAsync(Guid assessmentId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<AdvanceTaxRevision>(
+                "SELECT * FROM advance_tax_revisions WHERE assessment_id = @assessmentId ORDER BY revision_number DESC",
+                new { assessmentId });
+        }
+
+        public async Task<AdvanceTaxRevision?> GetRevisionByIdAsync(Guid id)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<AdvanceTaxRevision>(
+                "SELECT * FROM advance_tax_revisions WHERE id = @id",
+                new { id });
+        }
+
+        public async Task<AdvanceTaxRevision?> GetLatestRevisionAsync(Guid assessmentId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryFirstOrDefaultAsync<AdvanceTaxRevision>(
+                "SELECT * FROM advance_tax_revisions WHERE assessment_id = @assessmentId ORDER BY revision_number DESC LIMIT 1",
+                new { assessmentId });
+        }
+
+        public async Task<AdvanceTaxRevision> CreateRevisionAsync(AdvanceTaxRevision revision)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            revision.Id = Guid.NewGuid();
+            revision.CreatedAt = DateTime.UtcNow;
+
+            // Get next revision number
+            var currentCount = await GetRevisionCountAsync(revision.AssessmentId);
+            revision.RevisionNumber = currentCount + 1;
+
+            const string sql = @"
+                INSERT INTO advance_tax_revisions (
+                    id, assessment_id, revision_number, revision_quarter, revision_date,
+                    previous_projected_revenue, previous_projected_expenses,
+                    previous_taxable_income, previous_total_tax_liability, previous_net_tax_payable,
+                    revised_projected_revenue, revised_projected_expenses,
+                    revised_taxable_income, revised_total_tax_liability, revised_net_tax_payable,
+                    revision_reason, notes, revised_by, created_at
+                ) VALUES (
+                    @Id, @AssessmentId, @RevisionNumber, @RevisionQuarter, @RevisionDate,
+                    @PreviousProjectedRevenue, @PreviousProjectedExpenses,
+                    @PreviousTaxableIncome, @PreviousTotalTaxLiability, @PreviousNetTaxPayable,
+                    @RevisedProjectedRevenue, @RevisedProjectedExpenses,
+                    @RevisedTaxableIncome, @RevisedTotalTaxLiability, @RevisedNetTaxPayable,
+                    @RevisionReason, @Notes, @RevisedBy, @CreatedAt
+                )
+                RETURNING *";
+
+            return await connection.QuerySingleAsync<AdvanceTaxRevision>(sql, revision);
+        }
+
+        public async Task<int> GetRevisionCountAsync(Guid assessmentId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QuerySingleOrDefaultAsync<int>(
+                "SELECT COUNT(*) FROM advance_tax_revisions WHERE assessment_id = @assessmentId",
+                new { assessmentId });
         }
     }
 }

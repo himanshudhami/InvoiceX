@@ -188,6 +188,12 @@ namespace Core.Entities.Tax
         public string? Assumptions { get; set; } // JSON
         public string? Notes { get; set; }
 
+        // ==================== Revision Tracking ====================
+
+        public int RevisionCount { get; set; }
+        public DateOnly? LastRevisionDate { get; set; }
+        public int? LastRevisionQuarter { get; set; }
+
         // ==================== Audit ====================
 
         public Guid? CreatedBy { get; set; }

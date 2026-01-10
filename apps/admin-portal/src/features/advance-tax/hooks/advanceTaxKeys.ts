@@ -72,4 +72,13 @@ export const advanceTaxKeys = {
     byCompanyFy: (companyId: string, financialYear: string) =>
       [...advanceTaxKeys.tdsTcsPreview.all(), companyId, financialYear] as const,
   },
+
+  // Revisions
+  revisions: {
+    all: () => [...advanceTaxKeys.all, 'revision'] as const,
+    byAssessment: (assessmentId: string) =>
+      [...advanceTaxKeys.revisions.all(), assessmentId] as const,
+    status: (assessmentId: string) =>
+      [...advanceTaxKeys.revisions.all(), 'status', assessmentId] as const,
+  },
 };

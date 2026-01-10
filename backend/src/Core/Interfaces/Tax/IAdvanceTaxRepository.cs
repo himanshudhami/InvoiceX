@@ -91,5 +91,32 @@ namespace Core.Interfaces.Tax
         /// Queries tcs_transactions where transaction_type = 'paid'.
         /// </summary>
         Task<decimal> GetTcsCreditAsync(Guid companyId, string financialYear);
+
+        // ==================== Revision Operations ====================
+
+        /// <summary>
+        /// Get all revisions for an assessment
+        /// </summary>
+        Task<IEnumerable<AdvanceTaxRevision>> GetRevisionsByAssessmentAsync(Guid assessmentId);
+
+        /// <summary>
+        /// Get revision by ID
+        /// </summary>
+        Task<AdvanceTaxRevision?> GetRevisionByIdAsync(Guid id);
+
+        /// <summary>
+        /// Get latest revision for an assessment
+        /// </summary>
+        Task<AdvanceTaxRevision?> GetLatestRevisionAsync(Guid assessmentId);
+
+        /// <summary>
+        /// Create a new revision record
+        /// </summary>
+        Task<AdvanceTaxRevision> CreateRevisionAsync(AdvanceTaxRevision revision);
+
+        /// <summary>
+        /// Get revision count for an assessment
+        /// </summary>
+        Task<int> GetRevisionCountAsync(Guid assessmentId);
     }
 }

@@ -80,6 +80,11 @@ export interface AdvanceTaxAssessment {
   schedules: AdvanceTaxSchedule[];
   payments: AdvanceTaxPayment[];
 
+  // Revision tracking
+  revisionCount: number;
+  lastRevisionDate?: string;
+  lastRevisionQuarter?: number;
+
   // Audit
   createdBy?: string;
   createdAt: string;
@@ -347,4 +352,80 @@ export interface TdsTcsPreview {
   currentTcsInAssessment: number;
   tdsDifference: number;
   tcsDifference: number;
+}
+
+// ==================== Revision Types ====================
+
+export interface AdvanceTaxRevision {
+  id: string;
+  assessmentId: string;
+  revisionNumber: number;
+  revisionQuarter: number;
+  revisionDate: string;
+
+  // Before values
+  previousProjectedRevenue: number;
+  previousProjectedExpenses: number;
+  previousTaxableIncome: number;
+  previousTotalTaxLiability: number;
+  previousNetTaxPayable: number;
+
+  // After values
+  revisedProjectedRevenue: number;
+  revisedProjectedExpenses: number;
+  revisedTaxableIncome: number;
+  revisedTotalTaxLiability: number;
+  revisedNetTaxPayable: number;
+
+  // Variance
+  revenueVariance: number;
+  expenseVariance: number;
+  taxableIncomeVariance: number;
+  taxLiabilityVariance: number;
+  netPayableVariance: number;
+
+  revisionReason?: string;
+  notes?: string;
+  revisedBy?: string;
+  createdAt: string;
+}
+
+export interface CreateRevisionRequest {
+  assessmentId: string;
+  revisionQuarter: number;
+
+  // New projections
+  projectedAdditionalRevenue: number;
+  projectedAdditionalExpenses: number;
+  projectedDepreciation: number;
+  projectedOtherIncome: number;
+
+  // Reconciliation adjustments
+  addBookDepreciation: number;
+  addDisallowed40A3: number;
+  addDisallowed40A7: number;
+  addDisallowed43B: number;
+  addOtherDisallowances: number;
+  lessItDepreciation: number;
+  lessDeductions80C: number;
+  lessDeductions80D: number;
+  lessOtherDeductions: number;
+
+  taxRegime: TaxRegime;
+  tdsReceivable: number;
+  tcsCredit: number;
+  matCredit: number;
+
+  revisionReason?: string;
+  notes?: string;
+}
+
+export interface RevisionStatus {
+  currentQuarter: number;
+  revisionRecommended: boolean;
+  revisionPrompt?: string;
+  lastRevisionDate?: string;
+  totalRevisions: number;
+  actualVsProjectedVariance: number;
+  variancePercentage: number;
 }

@@ -1096,6 +1096,10 @@ namespace Application.Services.Tax
                 Schedules = schedules.Select(MapScheduleToDto).ToList(),
                 Payments = payments.Select(MapPaymentToDto).ToList(),
 
+                RevisionCount = entity.RevisionCount,
+                LastRevisionDate = entity.LastRevisionDate,
+                LastRevisionQuarter = entity.LastRevisionQuarter,
+
                 CreatedBy = entity.CreatedBy,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt
@@ -1165,6 +1169,174 @@ namespace Application.Services.Tax
                 Notes = entity.Notes,
                 CreatedBy = entity.CreatedBy,
                 CreatedAt = entity.CreatedAt
+            };
+        }
+
+        private static AdvanceTaxRevisionDto MapRevisionToDto(AdvanceTaxRevision entity)
+        {
+            return new AdvanceTaxRevisionDto
+            {
+                Id = entity.Id,
+                AssessmentId = entity.AssessmentId,
+                RevisionNumber = entity.RevisionNumber,
+                RevisionQuarter = entity.RevisionQuarter,
+                RevisionDate = entity.RevisionDate,
+                PreviousProjectedRevenue = entity.PreviousProjectedRevenue,
+                PreviousProjectedExpenses = entity.PreviousProjectedExpenses,
+                PreviousTaxableIncome = entity.PreviousTaxableIncome,
+                PreviousTotalTaxLiability = entity.PreviousTotalTaxLiability,
+                PreviousNetTaxPayable = entity.PreviousNetTaxPayable,
+                RevisedProjectedRevenue = entity.RevisedProjectedRevenue,
+                RevisedProjectedExpenses = entity.RevisedProjectedExpenses,
+                RevisedTaxableIncome = entity.RevisedTaxableIncome,
+                RevisedTotalTaxLiability = entity.RevisedTotalTaxLiability,
+                RevisedNetTaxPayable = entity.RevisedNetTaxPayable,
+                RevenueVariance = entity.RevenueVariance,
+                ExpenseVariance = entity.ExpenseVariance,
+                TaxableIncomeVariance = entity.TaxableIncomeVariance,
+                TaxLiabilityVariance = entity.TaxLiabilityVariance,
+                NetPayableVariance = entity.NetPayableVariance,
+                RevisionReason = entity.RevisionReason,
+                Notes = entity.Notes,
+                RevisedBy = entity.RevisedBy,
+                CreatedAt = entity.CreatedAt
+            };
+        }
+
+        // ==================== Revision Operations ====================
+
+        public async Task<Result<AdvanceTaxRevisionDto>> CreateRevisionAsync(CreateRevisionDto request, Guid userId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(request.AssessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {request.AssessmentId} not found");
+
+            if (assessment.Status == "finalized")
+                return Error.Validation("Cannot revise a finalized assessment");
+
+            // Capture previous state
+            var revision = new AdvanceTaxRevision
+            {
+                AssessmentId = assessment.Id,
+                RevisionQuarter = request.RevisionQuarter,
+                RevisionDate = DateOnly.FromDateTime(DateTime.Today),
+                PreviousProjectedRevenue = assessment.ProjectedRevenue,
+                PreviousProjectedExpenses = assessment.ProjectedExpenses,
+                PreviousTaxableIncome = assessment.TaxableIncome,
+                PreviousTotalTaxLiability = assessment.TotalTaxLiability,
+                PreviousNetTaxPayable = assessment.NetTaxPayable,
+                RevisionReason = request.RevisionReason,
+                Notes = request.Notes,
+                RevisedBy = userId
+            };
+
+            // Apply the update using existing UpdateAssessmentAsync logic
+            var updateRequest = new UpdateAdvanceTaxAssessmentDto
+            {
+                ProjectedAdditionalRevenue = request.ProjectedAdditionalRevenue,
+                ProjectedAdditionalExpenses = request.ProjectedAdditionalExpenses,
+                ProjectedDepreciation = request.ProjectedDepreciation,
+                ProjectedOtherIncome = request.ProjectedOtherIncome,
+                AddBookDepreciation = request.AddBookDepreciation,
+                AddDisallowed40A3 = request.AddDisallowed40A3,
+                AddDisallowed40A7 = request.AddDisallowed40A7,
+                AddDisallowed43B = request.AddDisallowed43B,
+                AddOtherDisallowances = request.AddOtherDisallowances,
+                LessItDepreciation = request.LessItDepreciation,
+                LessDeductions80C = request.LessDeductions80C,
+                LessDeductions80D = request.LessDeductions80D,
+                LessOtherDeductions = request.LessOtherDeductions,
+                TaxRegime = request.TaxRegime,
+                TdsReceivable = request.TdsReceivable,
+                TcsCredit = request.TcsCredit,
+                MatCredit = request.MatCredit,
+                Notes = request.Notes
+            };
+
+            var updateResult = await UpdateAssessmentAsync(assessment.Id, updateRequest, userId);
+            if (updateResult.IsFailure)
+                return Error.Internal(updateResult.Error!.Message);
+
+            // Get updated assessment to capture new state
+            var updatedAssessment = await _repository.GetAssessmentByIdAsync(assessment.Id);
+
+            // Set revised values in revision
+            revision.RevisedProjectedRevenue = updatedAssessment!.ProjectedRevenue;
+            revision.RevisedProjectedExpenses = updatedAssessment.ProjectedExpenses;
+            revision.RevisedTaxableIncome = updatedAssessment.TaxableIncome;
+            revision.RevisedTotalTaxLiability = updatedAssessment.TotalTaxLiability;
+            revision.RevisedNetTaxPayable = updatedAssessment.NetTaxPayable;
+
+            // Create revision record
+            var createdRevision = await _repository.CreateRevisionAsync(revision);
+
+            // Update assessment revision tracking
+            updatedAssessment.RevisionCount = await _repository.GetRevisionCountAsync(assessment.Id);
+            updatedAssessment.LastRevisionDate = DateOnly.FromDateTime(DateTime.Today);
+            updatedAssessment.LastRevisionQuarter = request.RevisionQuarter;
+            await _repository.UpdateAssessmentAsync(updatedAssessment);
+
+            return MapRevisionToDto(createdRevision);
+        }
+
+        public async Task<Result<IEnumerable<AdvanceTaxRevisionDto>>> GetRevisionsAsync(Guid assessmentId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(assessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {assessmentId} not found");
+
+            var revisions = await _repository.GetRevisionsByAssessmentAsync(assessmentId);
+            return revisions.Select(MapRevisionToDto).ToList();
+        }
+
+        public async Task<Result<RevisionStatusDto>> GetRevisionStatusAsync(Guid assessmentId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(assessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {assessmentId} not found");
+
+            var currentQuarter = GetCurrentQuarter();
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var (fyStart, fyEnd) = GetFYDateRange(assessment.FinancialYear);
+
+            // Get YTD actuals to compare with projections
+            var ytdActual = assessment.YtdRevenue - assessment.YtdExpenses;
+            var projectedToDate = assessment.ProjectedProfitBeforeTax *
+                (GetMonthsBetween(fyStart, today) / 12m);
+
+            var variance = ytdActual - projectedToDate;
+            var variancePercentage = projectedToDate != 0 ? (variance / projectedToDate) * 100m : 0;
+
+            // Determine if revision is recommended
+            var revisionRecommended = false;
+            string? revisionPrompt = null;
+
+            // Recommend revision if:
+            // 1. Variance exceeds 10%
+            // 2. We're past a quarter due date and haven't revised in that quarter
+            if (Math.Abs(variancePercentage) > 10)
+            {
+                revisionRecommended = true;
+                revisionPrompt = $"Actual profit variance of {variancePercentage:F1}% from projections. Consider revising estimates.";
+            }
+            else if (assessment.LastRevisionQuarter == null || assessment.LastRevisionQuarter < currentQuarter)
+            {
+                if (currentQuarter > 1) // After Q1
+                {
+                    revisionRecommended = true;
+                    revisionPrompt = $"Q{currentQuarter} due date approaching. Review and revise projections if needed.";
+                }
+            }
+
+            return new RevisionStatusDto
+            {
+                CurrentQuarter = currentQuarter,
+                RevisionRecommended = revisionRecommended,
+                RevisionPrompt = revisionPrompt,
+                LastRevisionDate = assessment.LastRevisionDate,
+                TotalRevisions = assessment.RevisionCount,
+                ActualVsProjectedVariance = variance,
+                VariancePercentage = variancePercentage
             };
         }
     }

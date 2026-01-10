@@ -149,5 +149,22 @@ namespace Application.Interfaces.Tax
         /// Get assessments with pending payments
         /// </summary>
         Task<Result<IEnumerable<AdvanceTaxAssessmentDto>>> GetPendingPaymentsAsync(Guid? companyId = null);
+
+        // ==================== Revision Operations ====================
+
+        /// <summary>
+        /// Create a revision with updated projections
+        /// </summary>
+        Task<Result<AdvanceTaxRevisionDto>> CreateRevisionAsync(CreateRevisionDto request, Guid userId);
+
+        /// <summary>
+        /// Get all revisions for an assessment
+        /// </summary>
+        Task<Result<IEnumerable<AdvanceTaxRevisionDto>>> GetRevisionsAsync(Guid assessmentId);
+
+        /// <summary>
+        /// Get revision status (prompt for dashboard)
+        /// </summary>
+        Task<Result<RevisionStatusDto>> GetRevisionStatusAsync(Guid assessmentId);
     }
 }

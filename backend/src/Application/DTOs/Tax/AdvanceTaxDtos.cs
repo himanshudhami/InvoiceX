@@ -82,6 +82,11 @@ namespace Application.DTOs.Tax
         public List<AdvanceTaxScheduleDto> Schedules { get; set; } = new();
         public List<AdvanceTaxPaymentDto> Payments { get; set; } = new();
 
+        // Revision tracking
+        public int RevisionCount { get; set; }
+        public DateOnly? LastRevisionDate { get; set; }
+        public int? LastRevisionQuarter { get; set; }
+
         // Audit
         public Guid? CreatedBy { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -432,5 +437,97 @@ namespace Application.DTOs.Tax
         /// Difference between fetched and current TCS
         /// </summary>
         public decimal TcsDifference { get; set; }
+    }
+
+    // ==================== Revision DTOs ====================
+
+    /// <summary>
+    /// Revision record for audit trail
+    /// </summary>
+    public class AdvanceTaxRevisionDto
+    {
+        public Guid Id { get; set; }
+        public Guid AssessmentId { get; set; }
+
+        public int RevisionNumber { get; set; }
+        public int RevisionQuarter { get; set; }
+        public DateOnly RevisionDate { get; set; }
+
+        // Before values
+        public decimal PreviousProjectedRevenue { get; set; }
+        public decimal PreviousProjectedExpenses { get; set; }
+        public decimal PreviousTaxableIncome { get; set; }
+        public decimal PreviousTotalTaxLiability { get; set; }
+        public decimal PreviousNetTaxPayable { get; set; }
+
+        // After values
+        public decimal RevisedProjectedRevenue { get; set; }
+        public decimal RevisedProjectedExpenses { get; set; }
+        public decimal RevisedTaxableIncome { get; set; }
+        public decimal RevisedTotalTaxLiability { get; set; }
+        public decimal RevisedNetTaxPayable { get; set; }
+
+        // Variance
+        public decimal RevenueVariance { get; set; }
+        public decimal ExpenseVariance { get; set; }
+        public decimal TaxableIncomeVariance { get; set; }
+        public decimal TaxLiabilityVariance { get; set; }
+        public decimal NetPayableVariance { get; set; }
+
+        public string? RevisionReason { get; set; }
+        public string? Notes { get; set; }
+
+        public Guid? RevisedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Request to create a revision (with new projections)
+    /// </summary>
+    public class CreateRevisionDto
+    {
+        public Guid AssessmentId { get; set; }
+        public int RevisionQuarter { get; set; }
+
+        // New projections
+        public decimal ProjectedAdditionalRevenue { get; set; }
+        public decimal ProjectedAdditionalExpenses { get; set; }
+        public decimal ProjectedDepreciation { get; set; }
+        public decimal ProjectedOtherIncome { get; set; }
+
+        // Reconciliation adjustments
+        public decimal AddBookDepreciation { get; set; }
+        public decimal AddDisallowed40A3 { get; set; }
+        public decimal AddDisallowed40A7 { get; set; }
+        public decimal AddDisallowed43B { get; set; }
+        public decimal AddOtherDisallowances { get; set; }
+        public decimal LessItDepreciation { get; set; }
+        public decimal LessDeductions80C { get; set; }
+        public decimal LessDeductions80D { get; set; }
+        public decimal LessOtherDeductions { get; set; }
+
+        public string TaxRegime { get; set; } = "normal";
+        public decimal TdsReceivable { get; set; }
+        public decimal TcsCredit { get; set; }
+        public decimal MatCredit { get; set; }
+
+        public string? RevisionReason { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// Revision status/prompt for dashboard
+    /// </summary>
+    public class RevisionStatusDto
+    {
+        public int CurrentQuarter { get; set; }
+        public bool RevisionRecommended { get; set; }
+        public string? RevisionPrompt { get; set; }
+        public DateOnly? LastRevisionDate { get; set; }
+        public int TotalRevisions { get; set; }
+
+        // Variance analysis if actuals differ from projections
+        public decimal ActualVsProjectedVariance { get; set; }
+        public decimal VariancePercentage { get; set; }
     }
 }

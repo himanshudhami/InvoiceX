@@ -8,11 +8,14 @@ import type {
   InterestCalculation,
   TaxComputation,
   TdsTcsPreview,
+  AdvanceTaxRevision,
+  RevisionStatus,
   CreateAdvanceTaxAssessmentRequest,
   UpdateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
   RunScenarioRequest,
   RefreshYtdRequest,
+  CreateRevisionRequest,
   YtdFinancials,
 } from '../../types';
 
@@ -221,6 +224,29 @@ export class AdvanceTaxService {
   async getPendingPayments(companyId?: string): Promise<AdvanceTaxAssessment[]> {
     const query = companyId ? `?companyId=${companyId}` : '';
     return apiClient.get<AdvanceTaxAssessment[]>(`${this.endpoint}/pending${query}`);
+  }
+
+  // ==================== Revision Operations ====================
+
+  /**
+   * Create a revision with updated projections
+   */
+  async createRevision(request: CreateRevisionRequest): Promise<AdvanceTaxRevision> {
+    return apiClient.post<AdvanceTaxRevision>(`${this.endpoint}/revision`, request);
+  }
+
+  /**
+   * Get all revisions for an assessment
+   */
+  async getRevisions(assessmentId: string): Promise<AdvanceTaxRevision[]> {
+    return apiClient.get<AdvanceTaxRevision[]>(`${this.endpoint}/revisions/${assessmentId}`);
+  }
+
+  /**
+   * Get revision status (for dashboard prompt)
+   */
+  async getRevisionStatus(assessmentId: string): Promise<RevisionStatus> {
+    return apiClient.get<RevisionStatus>(`${this.endpoint}/revision-status/${assessmentId}`);
   }
 }
 

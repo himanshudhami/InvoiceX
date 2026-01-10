@@ -8,6 +8,7 @@ import type {
   RecordAdvanceTaxPaymentRequest,
   RunScenarioRequest,
   RefreshYtdRequest,
+  CreateRevisionRequest,
 } from '@/services/api/types';
 import { advanceTaxKeys } from './advanceTaxKeys';
 
@@ -435,6 +436,53 @@ export const useDeleteAdvanceTaxScenario = () => {
     },
     onError: (error: any) => {
       toast.error(error?.message || 'Failed to delete scenario');
+    },
+  });
+};
+
+// ==================== Revision Hooks ====================
+
+/**
+ * Get revisions for an assessment
+ */
+export const useAdvanceTaxRevisions = (assessmentId: string, enabled = true) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.revisions.byAssessment(assessmentId),
+    queryFn: () => advanceTaxService.getRevisions(assessmentId),
+    enabled: enabled && !!assessmentId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Get revision status (for dashboard prompt)
+ */
+export const useRevisionStatus = (assessmentId: string, enabled = true) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.revisions.status(assessmentId),
+    queryFn: () => advanceTaxService.getRevisionStatus(assessmentId),
+    enabled: enabled && !!assessmentId,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+/**
+ * Create a revision
+ */
+export const useCreateRevision = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: CreateRevisionRequest) => advanceTaxService.createRevision(request),
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: advanceTaxKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: advanceTaxKeys.revisions.byAssessment(variables.assessmentId),
+      });
+      toast.success(`Revision Q${variables.revisionQuarter} created successfully`);
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to create revision');
     },
   });
 };

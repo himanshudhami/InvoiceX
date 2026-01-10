@@ -487,5 +487,62 @@ namespace WebApi.Controllers.Tax
 
             return Ok(result.Value);
         }
+
+        // ==================== Revision Endpoints ====================
+
+        /// <summary>
+        /// Create a revision with updated projections
+        /// </summary>
+        [HttpPost("revision")]
+        [ProducesResponseType(typeof(AdvanceTaxRevisionDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> CreateRevision([FromBody] CreateRevisionDto request)
+        {
+            var result = await _service.CreateRevisionAsync(request, CurrentUserId);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get all revisions for an assessment
+        /// </summary>
+        [HttpGet("revisions/{assessmentId:guid}")]
+        [ProducesResponseType(typeof(IEnumerable<AdvanceTaxRevisionDto>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetRevisions(Guid assessmentId)
+        {
+            var result = await _service.GetRevisionsAsync(assessmentId);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Get revision status (for dashboard prompt)
+        /// </summary>
+        [HttpGet("revision-status/{assessmentId:guid}")]
+        [ProducesResponseType(typeof(RevisionStatusDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetRevisionStatus(Guid assessmentId)
+        {
+            var result = await _service.GetRevisionStatusAsync(assessmentId);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
     }
 }
