@@ -1,12 +1,12 @@
-# Advance Tax Engine - Full Implementation Roadmap
+# Advance Tax Engine (Section 207)
 
 ## Overview
 
-Advance Tax (Section 207) is a forward-looking tax estimation for corporates. This document outlines the complete CA-grade implementation plan.
+Advance Tax is a forward-looking tax estimation module for corporates as per Section 207 of the Income Tax Act. This module handles quarterly advance tax assessments, payment schedules, interest calculations, and compliance tracking.
 
 ---
 
-## Current State (MVP)
+## Features
 
 - [x] Database schema (assessments, schedules, payments, scenarios)
 - [x] Basic CRUD operations
@@ -680,27 +680,17 @@ YearOnYearComparisonDto:
 
 ---
 
-## Priority Order
+## Summary
 
-1. ~~**Phase 1** - Auto-fetch YTD~~ ✅ DONE
-2. ~~**Phase 2** - YTD vs Projection split~~ ✅ DONE
-3. ~~**Phase 3** - Book → Taxable reconciliation~~ ✅ DONE
-4. ~~**Phase 5** - TDS/TCS integration~~ ✅ DONE
-5. ~~**Phase 4** - Quarterly re-estimation~~ ✅ DONE
-6. ~~**Phase 6** - MAT computation~~ ✅ DONE
-7. ~~**Phase 7** - Form 280 generation~~ ✅ DONE
-8. ~~**Phase 8** - Compliance dashboard~~ ✅ DONE
+The Advance Tax Engine provides complete CA-grade functionality:
 
----
-
-## All Phases Complete!
-
-The Advance Tax Engine is now fully implemented with:
-- Auto-fetch YTD actuals from ledger
-- YTD vs Projection split (editable projections, locked actuals)
-- Book Profit to Taxable Income reconciliation
-- TDS/TCS integration from existing modules
-- Quarterly re-estimation workflow with audit trail
-- MAT (Minimum Alternate Tax) computation with credit register
-- Form 280 (ITNS 280) challan generation as PDF
-- Multi-company compliance dashboard with YoY comparison
+| Capability | Description |
+|------------|-------------|
+| YTD Auto-fetch | Pulls actuals from General Ledger |
+| Projection Split | Editable projections, locked actuals |
+| Book → Taxable | Full reconciliation with 40A/43B adjustments |
+| TDS/TCS Integration | Auto-fetch from TDS Receivables & TCS modules |
+| Quarterly Re-estimation | Revision workflow with audit trail |
+| MAT Computation | Section 115JB with 15-year credit register |
+| Form 280 Generation | ITNS 280 challan as PDF |
+| Compliance Dashboard | Multi-company view with alerts & YoY comparison |
