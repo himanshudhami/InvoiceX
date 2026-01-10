@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.VendorPayments;
 using Core.Entities;
 using Core.Interfaces;
@@ -20,6 +21,7 @@ namespace Application.Services
         private readonly IVendorPaymentsRepository _repository;
         private readonly IVendorsRepository _vendorsRepository;
         private readonly IVendorInvoicesRepository _invoicesRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateVendorPaymentDto> _createValidator;
         private readonly IValidator<UpdateVendorPaymentDto> _updateValidator;
@@ -28,6 +30,7 @@ namespace Application.Services
             IVendorPaymentsRepository repository,
             IVendorsRepository vendorsRepository,
             IVendorInvoicesRepository invoicesRepository,
+            IAuditService auditService,
             IMapper mapper,
             IValidator<CreateVendorPaymentDto> createValidator,
             IValidator<UpdateVendorPaymentDto> updateValidator)
@@ -35,6 +38,7 @@ namespace Application.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _vendorsRepository = vendorsRepository ?? throw new ArgumentNullException(nameof(vendorsRepository));
             _invoicesRepository = invoicesRepository ?? throw new ArgumentNullException(nameof(invoicesRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -217,6 +221,12 @@ namespace Application.Services
                 }
             }
 
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.ReferenceNumber);
+            }
+
             return Result<VendorPayment>.Success(createdEntity);
         }
 
@@ -243,11 +253,21 @@ namespace Application.Services
             if (existingEntity.IsReconciled)
                 return Error.Conflict("Cannot update a reconciled payment");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<VendorPayment>(existingEntity);
+
             // Map DTO to existing entity
             _mapper.Map(dto, existingEntity);
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.ReferenceNumber);
+            }
+
             return Result.Success();
         }
 
@@ -269,6 +289,12 @@ namespace Application.Services
             // Cannot delete reconciled payments
             if (existingEntity.IsReconciled)
                 return Error.Conflict("Cannot delete a reconciled payment");
+
+            // Audit trail before delete
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.ReferenceNumber);
+            }
 
             // Delete allocations first
             await _repository.DeleteAllocationsByPaymentIdAsync(id);

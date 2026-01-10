@@ -62,6 +62,7 @@ import {
   Factory,
   Hash,
   DatabaseZap,
+  History,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -266,6 +267,7 @@ export const navigationGroups: NavigationItem[] = [
     icon: Shield,
     items: [
       { name: 'Users', href: '/users', icon: UserCog },
+      { name: 'Audit Trail', href: '/admin/audit', icon: History },
       { name: 'Organization Chart', href: '/org-chart', icon: Network },
       { name: 'Approval Workflows', href: '/workflows', icon: GitBranch },
       { name: 'E-Invoice Settings', href: '/einvoice/settings', icon: FileCheck },

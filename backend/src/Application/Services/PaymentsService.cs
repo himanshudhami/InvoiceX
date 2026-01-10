@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.Interfaces.Forex;
 using Application.Interfaces.Ledger;
 using Application.DTOs.Payments;
@@ -30,6 +31,7 @@ namespace Application.Services
         private readonly IAutoPostingService _autoPostingService;
         private readonly ITdsReceivableRepository _tdsReceivableRepository;
         private readonly ICustomersRepository _customersRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreatePaymentsDto> _createValidator;
         private readonly IValidator<UpdatePaymentsDto> _updateValidator;
@@ -43,6 +45,7 @@ namespace Application.Services
             IAutoPostingService autoPostingService,
             ITdsReceivableRepository tdsReceivableRepository,
             ICustomersRepository customersRepository,
+            IAuditService auditService,
             IMapper mapper,
             IValidator<CreatePaymentsDto> createValidator,
             IValidator<UpdatePaymentsDto> updateValidator)
@@ -55,6 +58,7 @@ namespace Application.Services
             _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
             _tdsReceivableRepository = tdsReceivableRepository ?? throw new ArgumentNullException(nameof(tdsReceivableRepository));
             _customersRepository = customersRepository ?? throw new ArgumentNullException(nameof(customersRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -235,6 +239,12 @@ namespace Application.Services
                 await CreateTdsReceivableAsync(createdEntity);
             }
 
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.ReferenceNumber);
+            }
+
             return Result<Payments>.Success(createdEntity);
         }
 
@@ -384,6 +394,9 @@ namespace Application.Services
             if (existingEntity == null)
                 return Error.NotFound($"Payment with ID {id} not found");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<Payments>(existingEntity);
+
             // Map DTO to existing entity
             _mapper.Map(dto, existingEntity);
 
@@ -400,6 +413,13 @@ namespace Application.Services
             }
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.ReferenceNumber);
+            }
+
             return Result.Success();
         }
 
@@ -413,6 +433,12 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Payment with ID {id} not found");
+
+            // Audit trail before delete
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.ReferenceNumber);
+            }
 
             await _repository.DeleteAsync(id);
             return Result.Success();

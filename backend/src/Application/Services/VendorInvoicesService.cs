@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.VendorInvoices;
 using Core.Entities;
 using Core.Interfaces;
@@ -19,6 +20,7 @@ namespace Application.Services
     {
         private readonly IVendorInvoicesRepository _repository;
         private readonly IVendorsRepository _vendorsRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateVendorInvoiceDto> _createValidator;
         private readonly IValidator<UpdateVendorInvoiceDto> _updateValidator;
@@ -26,12 +28,14 @@ namespace Application.Services
         public VendorInvoicesService(
             IVendorInvoicesRepository repository,
             IVendorsRepository vendorsRepository,
+            IAuditService auditService,
             IMapper mapper,
             IValidator<CreateVendorInvoiceDto> createValidator,
             IValidator<UpdateVendorInvoiceDto> updateValidator)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _vendorsRepository = vendorsRepository ?? throw new ArgumentNullException(nameof(vendorsRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -191,6 +195,12 @@ namespace Application.Services
                 }
             }
 
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.InvoiceNumber);
+            }
+
             return Result<VendorInvoice>.Success(createdEntity);
         }
 
@@ -217,11 +227,21 @@ namespace Application.Services
             if (existingEntity.Status == "paid")
                 return Error.Conflict("Cannot update a paid invoice");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<VendorInvoice>(existingEntity);
+
             // Map DTO to existing entity
             _mapper.Map(dto, existingEntity);
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.InvoiceNumber);
+            }
+
             return Result.Success();
         }
 
@@ -243,6 +263,12 @@ namespace Application.Services
             // Cannot delete paid invoices
             if (existingEntity.PaidAmount > 0)
                 return Error.Conflict("Cannot delete an invoice with payments");
+
+            // Audit trail before delete
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.InvoiceNumber);
+            }
 
             // Delete items first
             await _repository.DeleteItemsByInvoiceIdAsync(id);

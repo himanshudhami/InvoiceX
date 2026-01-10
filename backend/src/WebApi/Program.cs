@@ -92,6 +92,10 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddApplication();
 
+    // Register WebApi-specific services (depends on ASP.NET Core)
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<Core.Interfaces.Audit.IAuditContext, WebApi.Services.Audit.HttpAuditContext>();
+
     // Add framework services
     builder.Services.AddControllers()
         .AddJsonOptions(options =>

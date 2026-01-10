@@ -88,6 +88,7 @@ const ExpenseClaimsManagement = lazy(() => import('./pages/finance/expenses/Expe
 
 // Administration
 const Users = lazy(() => import('./pages/admin/users/Users'))
+const AuditTrailViewer = lazy(() => import('./pages/admin/audit/AuditTrailViewer'))
 
 // General Ledger
 const ChartOfAccountsManagement = lazy(() => import('./pages/finance/ledger/ChartOfAccountsManagement'))
@@ -364,6 +365,7 @@ function AppRoutes() {
 
               {/* Administration Routes */}
               <Route path="/users" element={<Users />} />
+              <Route path="/admin/audit" element={<AuditTrailViewer />} />
 
               {/* Approval Workflow Routes */}
               <Route path="/workflows" element={<WorkflowTemplatesManagement />} />

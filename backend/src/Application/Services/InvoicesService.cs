@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.Interfaces.Forex;
 using Application.Interfaces.Ledger;
 using Application.DTOs.Invoices;
@@ -32,6 +33,7 @@ namespace Application.Services
         private readonly IForexService _forexService;
         private readonly IAutoPostingService _autoPostingService;
         private readonly ILutRegisterRepository _lutRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateInvoicesDto> _createValidator;
         private readonly IValidator<UpdateInvoicesDto> _updateValidator;
@@ -47,6 +49,7 @@ namespace Application.Services
             IForexService forexService,
             IAutoPostingService autoPostingService,
             ILutRegisterRepository lutRepository,
+            IAuditService auditService,
             IMapper mapper,
             IValidator<CreateInvoicesDto> createValidator,
             IValidator<UpdateInvoicesDto> updateValidator)
@@ -58,6 +61,7 @@ namespace Application.Services
             _forexService = forexService ?? throw new ArgumentNullException(nameof(forexService));
             _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
             _lutRepository = lutRepository ?? throw new ArgumentNullException(nameof(lutRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -142,6 +146,12 @@ namespace Application.Services
                 !createdEntity.Status.Equals("draft", StringComparison.OrdinalIgnoreCase))
             {
                 await _autoPostingService.PostInvoiceAsync(createdEntity.Id);
+            }
+
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.InvoiceNumber);
             }
 
             return Result<Invoices>.Success(createdEntity);
@@ -253,6 +263,9 @@ namespace Application.Services
             if (existingEntity == null)
                 return Error.NotFound($"Invoices with ID {id} not found");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<Invoices>(existingEntity);
+
             // Track if status is changing from draft to finalized
             var wasNotPosted = string.IsNullOrEmpty(existingEntity.Status) ||
                                existingEntity.Status.Equals("draft", StringComparison.OrdinalIgnoreCase);
@@ -276,6 +289,12 @@ namespace Application.Services
             if (wasNotPosted && isNowFinalized)
             {
                 await _autoPostingService.PostInvoiceAsync(existingEntity.Id);
+            }
+
+            // Audit trail
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.InvoiceNumber);
             }
 
             return Result.Success();
@@ -308,6 +327,12 @@ namespace Application.Services
             foreach (var payment in payments)
             {
                 await _paymentsRepository.DeleteAsync(payment.Id);
+            }
+
+            // Audit trail before delete
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.InvoiceNumber);
             }
 
             // Finally delete the invoice

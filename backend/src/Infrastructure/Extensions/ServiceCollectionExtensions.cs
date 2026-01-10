@@ -185,6 +185,12 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.FileStorage.IDocumentAuditLogRepository>(sp =>
                 new Infrastructure.Data.FileStorage.DocumentAuditLogRepository(connectionString));
 
+            // Generic Audit Trail (MCA-compliant)
+            services.AddScoped<Core.Interfaces.Audit.IAuditTrailRepository>(sp =>
+                new Infrastructure.Data.Audit.AuditTrailRepository(connectionString));
+            // Note: IAuditContext is registered in WebApi/Program.cs since HttpAuditContext depends on ASP.NET Core
+            services.AddScoped<Application.Interfaces.Audit.IAuditService, Application.Services.Audit.AuditService>();
+
             // File storage service (local implementation - will be replaced with S3 in production)
             services.AddScoped<Core.Interfaces.FileStorage.IFileStorageService, Infrastructure.FileStorage.LocalFileStorageService>();
 
