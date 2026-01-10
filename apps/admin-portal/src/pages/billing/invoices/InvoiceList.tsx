@@ -13,6 +13,7 @@ import { Eye, Edit, Trash2, Copy } from 'lucide-react'
 import { useQueryStates, parseAsString, parseAsInteger } from 'nuqs'
 import { EInvoiceStatusBadge } from '@/components/invoice/EInvoiceStatusBadge'
 import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell'
+import { InvoicePaymentStatus } from '@/components/payments/InvoicePaymentStatus'
 import { formatINR } from '@/lib/financialUtils'
 
 const InvoiceList = () => {
@@ -192,6 +193,16 @@ const InvoiceList = () => {
           </div>
         )
       },
+    },
+    {
+      id: 'paymentStatus',
+      header: 'Payment',
+      cell: ({ row }) => (
+        <InvoicePaymentStatus
+          invoiceId={row.original.id}
+          currency={row.original.currency}
+        />
+      ),
     },
     {
       accessorKey: 'eInvoiceStatus',
@@ -422,7 +433,7 @@ const InvoiceList = () => {
                   <td className="px-6 py-4">
                     Page Totals ({invoices.length} invoices)
                   </td>
-                  <td className="px-6 py-4" colSpan={4}></td>
+                  <td className="px-6 py-4" colSpan={5}></td>
                   <td className="px-6 py-4"></td>
                   <td className="px-6 py-4 text-right">
                     <div className="text-gray-900">{formatINR(totals.totalAmount)}</div>

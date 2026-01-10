@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react'
-import { Invoice, Customer, Company, Product } from '@/services/api/types'
+import { Customer, Company, Product } from '@/services/api/types'
 
 interface InvoiceFormData {
   invoiceNumber: string
@@ -67,6 +67,9 @@ interface InvoiceFormContextType {
   isLoading: boolean
   errors: Record<string, string>
   setErrors: (errors: Record<string, string>) => void
+  // Lock state for paid/reconciled invoices
+  isLocked?: boolean
+  isTallyImport?: boolean
 }
 
 const InvoiceFormContext = createContext<InvoiceFormContextType | undefined>(undefined)

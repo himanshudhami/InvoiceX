@@ -18,7 +18,7 @@ const COMMON_HSN_SAC_CODES = [
 ]
 
 export const LineItems = () => {
-  const { formData, addLineItem, removeLineItem, updateLineItem, products, errors } = useInvoiceForm()
+  const { formData, addLineItem, removeLineItem, updateLineItem, products, errors, isLocked, isTallyImport } = useInvoiceForm()
   const { lineItems } = formData
 
   const handleProductSelect = (itemId: string, productId: string) => {
@@ -64,14 +64,16 @@ export const LineItems = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-gray-900">Line Items</h3>
-        <button
-          type="button"
-          onClick={addLineItem}
-          className="flex items-center px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-md hover:bg-primary/5 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Item
-        </button>
+        {!isLocked && (
+          <button
+            type="button"
+            onClick={addLineItem}
+            className="flex items-center px-3 py-1.5 text-sm font-medium text-primary border border-primary/30 rounded-md hover:bg-primary/5 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Item
+          </button>
+        )}
       </div>
 
       {errors.lineItems && (
@@ -81,14 +83,22 @@ export const LineItems = () => {
       <div className="space-y-3">
         {lineItems.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <p className="text-gray-500">No line items added yet</p>
-            <button
-              type="button"
-              onClick={addLineItem}
-              className="mt-2 text-primary hover:text-primary/80 font-medium"
-            >
-              Add your first item
-            </button>
+            {isTallyImport ? (
+              <p className="text-gray-500">This invoice was imported from Tally without line item details</p>
+            ) : (
+              <>
+                <p className="text-gray-500">No line items added yet</p>
+                {!isLocked && (
+                  <button
+                    type="button"
+                    onClick={addLineItem}
+                    className="mt-2 text-primary hover:text-primary/80 font-medium"
+                  >
+                    Add your first item
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -128,13 +138,15 @@ export const LineItems = () => {
                       onChange={(productId) => handleProductSelect(item.id, productId)}
                       placeholder="Select product..."
                       className="w-full"
+                      disabled={isLocked}
                     />
                     <input
                       type="text"
                       value={item.description}
                       onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-100 disabled:cursor-not-allowed"
                       placeholder="Item description"
+                      disabled={isLocked}
                     />
                   </div>
 
@@ -158,7 +170,8 @@ export const LineItems = () => {
                       min="0"
                       value={item.quantity}
                       onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      disabled={isLocked}
                     />
                   </div>
 
@@ -170,7 +183,8 @@ export const LineItems = () => {
                       min="0"
                       value={item.unitPrice}
                       onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      disabled={isLocked}
                     />
                   </div>
 
@@ -183,7 +197,8 @@ export const LineItems = () => {
                       step="0.01"
                       value={item.taxRate}
                       onChange={(e) => updateLineItem(item.id, 'taxRate', parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      disabled={isLocked}
                     />
                   </div>
 
@@ -192,7 +207,7 @@ export const LineItems = () => {
                     <span className="text-sm font-medium">
                       {formatCurrency(item.lineTotal, formData.currency)}
                     </span>
-                    {lineItems.length > 1 && (
+                    {!isLocked && lineItems.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeLineItem(item.id)}

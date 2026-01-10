@@ -35,6 +35,8 @@ namespace Application.Services.Migration
         private readonly ITallyContractorPaymentMapper _contractorPaymentMapper;
         private readonly ITallyStatutoryPaymentMapper _statutoryPaymentMapper;
         private readonly ITallyBankTransactionMapper _bankTransactionMapper;
+        private readonly IPaymentAllocationRepository _paymentAllocationRepository;
+        private readonly IVendorPaymentAllocationRepository _vendorPaymentAllocationRepository;
 
         public TallyVoucherMappingService(
             ILogger<TallyVoucherMappingService> logger,
@@ -53,7 +55,9 @@ namespace Application.Services.Migration
             ITallyPaymentClassifier paymentClassifier,
             ITallyContractorPaymentMapper contractorPaymentMapper,
             ITallyStatutoryPaymentMapper statutoryPaymentMapper,
-            ITallyBankTransactionMapper bankTransactionMapper)
+            ITallyBankTransactionMapper bankTransactionMapper,
+            IPaymentAllocationRepository paymentAllocationRepository,
+            IVendorPaymentAllocationRepository vendorPaymentAllocationRepository)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _logRepository = logRepository ?? throw new ArgumentNullException(nameof(logRepository));
@@ -72,6 +76,8 @@ namespace Application.Services.Migration
             _contractorPaymentMapper = contractorPaymentMapper ?? throw new ArgumentNullException(nameof(contractorPaymentMapper));
             _statutoryPaymentMapper = statutoryPaymentMapper ?? throw new ArgumentNullException(nameof(statutoryPaymentMapper));
             _bankTransactionMapper = bankTransactionMapper ?? throw new ArgumentNullException(nameof(bankTransactionMapper));
+            _paymentAllocationRepository = paymentAllocationRepository ?? throw new ArgumentNullException(nameof(paymentAllocationRepository));
+            _vendorPaymentAllocationRepository = vendorPaymentAllocationRepository ?? throw new ArgumentNullException(nameof(vendorPaymentAllocationRepository));
         }
 
         public async Task<Result<TallyVoucherImportResultDto>> ImportVouchersAsync(
@@ -425,7 +431,9 @@ namespace Application.Services.Migration
                         Amount = voucher.Amount,
                         PaymentMethod = paymentMethod,
                         ReferenceNumber = voucher.ReferenceNumber ?? voucher.VoucherNumber,
+                        Description = BuildReceiptDescription(voucher),
                         Notes = voucher.Narration,
+                        PaymentType = DetermineReceiptPaymentType(voucher),
                         TallyVoucherGuid = voucher.Guid,
                         TallyVoucherNumber = voucher.VoucherNumber,
                         TallyMigrationBatchId = batchId,
@@ -433,7 +441,7 @@ namespace Application.Services.Migration
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    await _paymentsRepository.AddAsync(payment);
+                    payment = await _paymentsRepository.AddAsync(payment);
                     voucher.TargetId = payment.Id;
                     voucher.TargetEntity = "payments";
 
@@ -1049,31 +1057,89 @@ namespace Application.Services.Migration
                 allBillAllocations.AddRange(entry.BillAllocations);
             }
 
-            foreach (var allocation in allBillAllocations.Where(a => a.BillType == "Agst Ref" || a.BillType == "Against Reference"))
+            // Track invoices to update status
+            var invoicesToUpdate = new List<Guid>();
+            var vendorInvoicesToUpdate = new List<Guid>();
+
+            foreach (var allocation in allBillAllocations)
             {
                 try
                 {
-                    // Find the referenced invoice by voucher number
+                    // Skip empty or zero-amount allocations
+                    var amount = Math.Abs(allocation.Amount);
+                    if (amount <= 0 || string.IsNullOrWhiteSpace(allocation.Name))
+                    {
+                        _logger.LogDebug("Skipping empty bill allocation: BillType={BillType}, Name={Name}, Amount={Amount}",
+                            allocation.BillType, allocation.Name, allocation.Amount);
+                        continue;
+                    }
+
+                    // Determine allocation type from Tally bill type
+                    var allocationType = MapTallyBillTypeToAllocationType(allocation.BillType);
+                    var isInvoiceSettlement = allocation.BillType == "Agst Ref" || allocation.BillType == "Against Reference";
+
                     if (type == "receipt")
                     {
-                        var invoice = await _invoicesRepository.GetByNumberAsync(companyId, allocation.Name);
-                        if (invoice != null)
+                        // For receipts (customer payments)
+                        Guid? invoiceId = null;
+
+                        if (isInvoiceSettlement)
                         {
-                            // Create payment allocation
-                            // This would need a PaymentAllocation entity/repository
-                            _logger.LogDebug("Would allocate payment {PaymentId} to invoice {InvoiceId} for amount {Amount}",
-                                paymentId, invoice.Id, allocation.Amount);
+                            var invoice = await _invoicesRepository.GetByNumberAsync(companyId, allocation.Name);
+                            invoiceId = invoice?.Id;
+                            if (invoiceId.HasValue)
+                                invoicesToUpdate.Add(invoiceId.Value);
                         }
+
+                        var paymentAllocation = new PaymentAllocation
+                        {
+                            Id = Guid.NewGuid(),
+                            CompanyId = companyId,
+                            PaymentId = paymentId,
+                            InvoiceId = invoiceId,
+                            AllocatedAmount = amount,
+                            AllocationDate = voucher.Date,
+                            AllocationType = allocationType,
+                            Notes = $"Tally: {allocation.BillType} - {allocation.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        await _paymentAllocationRepository.AddAsync(paymentAllocation);
+                        _logger.LogDebug("Created payment allocation: {PaymentId} -> {InvoiceId} for {Amount}",
+                            paymentId, invoiceId, allocation.Amount);
                     }
                     else if (type == "payment")
                     {
-                        var vendorInvoice = await _vendorInvoiceRepository.GetByNumberAsync(companyId, allocation.Name);
-                        if (vendorInvoice != null)
+                        // For payments (vendor payments)
+                        Guid? vendorInvoiceId = null;
+
+                        if (isInvoiceSettlement)
                         {
-                            // Create payment allocation
-                            _logger.LogDebug("Would allocate vendor payment {PaymentId} to invoice {InvoiceId} for amount {Amount}",
-                                paymentId, vendorInvoice.Id, allocation.Amount);
+                            var vendorInvoice = await _vendorInvoiceRepository.GetByNumberAsync(companyId, allocation.Name);
+                            vendorInvoiceId = vendorInvoice?.Id;
+                            if (vendorInvoiceId.HasValue)
+                                vendorInvoicesToUpdate.Add(vendorInvoiceId.Value);
                         }
+
+                        var vendorPaymentAllocation = new VendorPaymentAllocation
+                        {
+                            Id = Guid.NewGuid(),
+                            CompanyId = companyId,
+                            VendorPaymentId = paymentId,
+                            VendorInvoiceId = vendorInvoiceId,
+                            AllocatedAmount = amount,
+                            AllocationDate = voucher.Date,
+                            AllocationType = allocationType,
+                            TallyBillRef = allocation.Name,
+                            Notes = $"Tally: {allocation.BillType} - {allocation.Name}",
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        await _vendorPaymentAllocationRepository.AddAsync(vendorPaymentAllocation);
+                        _logger.LogDebug("Created vendor payment allocation: {PaymentId} -> {InvoiceId} for {Amount}",
+                            paymentId, vendorInvoiceId, allocation.Amount);
                     }
                 }
                 catch (Exception ex)
@@ -1081,6 +1147,116 @@ namespace Application.Services.Migration
                     _logger.LogWarning(ex, "Failed to handle bill allocation for {BillName}", allocation.Name);
                 }
             }
+
+            // Update invoice statuses based on allocations
+            foreach (var invoiceId in invoicesToUpdate.Distinct())
+            {
+                await UpdateInvoiceStatusFromAllocations(invoiceId);
+            }
+
+            foreach (var vendorInvoiceId in vendorInvoicesToUpdate.Distinct())
+            {
+                await UpdateVendorInvoiceStatusFromAllocations(vendorInvoiceId);
+            }
+        }
+
+        /// <summary>
+        /// Maps Tally bill type to our allocation type
+        /// </summary>
+        private static string MapTallyBillTypeToAllocationType(string tallyBillType)
+        {
+            return tallyBillType?.ToLower() switch
+            {
+                "agst ref" or "against reference" => "invoice_settlement",
+                "new ref" => "advance",
+                "advance" => "advance",
+                "on account" => "on_account",
+                _ => "invoice_settlement"
+            };
+        }
+
+        /// <summary>
+        /// Update invoice status based on total allocations
+        /// </summary>
+        private async Task UpdateInvoiceStatusFromAllocations(Guid invoiceId)
+        {
+            try
+            {
+                var invoice = await _invoicesRepository.GetByIdAsync(invoiceId);
+                if (invoice == null) return;
+
+                var totalAllocated = await _paymentAllocationRepository.GetTotalAllocatedForInvoiceAsync(invoiceId);
+                var newStatus = DetermineInvoiceStatus(invoice.TotalAmount, totalAllocated, invoice.Status);
+
+                if (newStatus != invoice.Status)
+                {
+                    invoice.Status = newStatus;
+                    invoice.UpdatedAt = DateTime.UtcNow;
+                    await _invoicesRepository.UpdateAsync(invoice);
+                    _logger.LogDebug("Updated invoice {InvoiceId} status to {Status} (paid: {Paid}/{Total})",
+                        invoiceId, newStatus, totalAllocated, invoice.TotalAmount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update invoice status for {InvoiceId}", invoiceId);
+            }
+        }
+
+        /// <summary>
+        /// Update vendor invoice status based on total allocations
+        /// </summary>
+        private async Task UpdateVendorInvoiceStatusFromAllocations(Guid vendorInvoiceId)
+        {
+            try
+            {
+                var invoice = await _vendorInvoiceRepository.GetByIdAsync(vendorInvoiceId);
+                if (invoice == null) return;
+
+                var totalAllocated = await _vendorPaymentAllocationRepository.GetTotalAllocatedForInvoiceAsync(vendorInvoiceId);
+                var newStatus = DetermineVendorInvoiceStatus(invoice.TotalAmount, totalAllocated, invoice.Status);
+
+                if (newStatus != invoice.Status)
+                {
+                    invoice.Status = newStatus;
+                    invoice.UpdatedAt = DateTime.UtcNow;
+                    await _vendorInvoiceRepository.UpdateAsync(invoice);
+                    _logger.LogDebug("Updated vendor invoice {InvoiceId} status to {Status} (paid: {Paid}/{Total})",
+                        vendorInvoiceId, newStatus, totalAllocated, invoice.TotalAmount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update vendor invoice status for {InvoiceId}", vendorInvoiceId);
+            }
+        }
+
+        /// <summary>
+        /// Determine invoice status based on payment allocation
+        /// Valid statuses: draft, sent, viewed, partially_paid, paid, overdue, cancelled
+        /// </summary>
+        private static string DetermineInvoiceStatus(decimal totalAmount, decimal totalPaid, string? currentStatus)
+        {
+            // Don't change cancelled invoices
+            if (currentStatus == "cancelled") return "cancelled";
+
+            if (totalPaid <= 0) return currentStatus ?? "sent";
+            if (totalPaid >= totalAmount) return "paid";
+            return "partially_paid";
+        }
+
+        /// <summary>
+        /// Determine vendor invoice status based on payment allocation
+        /// Valid statuses: draft, pending_approval, approved, partially_paid, paid, cancelled
+        /// </summary>
+        private static string DetermineVendorInvoiceStatus(decimal totalAmount, decimal totalPaid, string? currentStatus)
+        {
+            // Don't change cancelled invoices
+            if (currentStatus == "cancelled") return "cancelled";
+
+            if (totalPaid <= 0) return currentStatus ?? "approved";
+            if (totalPaid >= totalAmount) return "paid";
+            return "partially_paid";
         }
 
         private static string NormalizeVoucherType(string voucherType)
@@ -1212,6 +1388,56 @@ namespace Application.Services.Migration
                     return "upi";
             }
             return "bank_transfer";
+        }
+
+        private static string DetermineReceiptPaymentType(TallyVoucherDto voucher)
+        {
+            var billTypes = new List<string>();
+
+            if (voucher.BillAllocations.Any())
+            {
+                billTypes.AddRange(voucher.BillAllocations.Select(b => b.BillType));
+            }
+
+            foreach (var entry in voucher.LedgerEntries)
+            {
+                if (entry.BillAllocations.Any())
+                {
+                    billTypes.AddRange(entry.BillAllocations.Select(b => b.BillType));
+                }
+            }
+
+            var normalized = billTypes
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim().ToLowerInvariant())
+                .ToList();
+
+            if (normalized.Any(t => t == "agst ref" || t == "against reference"))
+            {
+                return "invoice_payment";
+            }
+
+            if (normalized.Any(t => t.Contains("advance") || t.Contains("on account") || t == "new ref"))
+            {
+                return "advance_received";
+            }
+
+            return "direct_income";
+        }
+
+        private static string? BuildReceiptDescription(TallyVoucherDto voucher)
+        {
+            if (!string.IsNullOrWhiteSpace(voucher.Narration))
+            {
+                return voucher.Narration.Replace("\r", " ").Replace("\n", " ").Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(voucher.PartyLedgerName))
+            {
+                return $"Receipt from {voucher.PartyLedgerName}";
+            }
+
+            return null;
         }
 
         private static DateOnly CalculateDueDate(TallyVoucherDto voucher)

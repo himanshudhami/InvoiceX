@@ -36,6 +36,7 @@ import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
 import { cn } from '@/lib/utils';
 import { CustomerSelect } from '@/components/ui/CustomerSelect';
 import { PaymentAllocationDialog } from '@/components/payments/PaymentAllocationDialog';
+import { PaymentAllocationStatus } from '@/components/payments/PaymentAllocationStatus';
 import { TransactionTagsCell } from '@/components/ui/TransactionTagsCell';
 import { ReconcilePaymentDialog } from '@/components/banking/ReconcilePaymentDialog';
 import { useUnreconcileTransaction } from '@/hooks/api/useBankTransactions';
@@ -336,6 +337,16 @@ const PaymentsManagement = () => {
         }
         return <span className="text-gray-400">—</span>;
       },
+    },
+    {
+      id: 'allocation',
+      header: 'Allocation',
+      cell: ({ row }) => (
+        <PaymentAllocationStatus
+          payment={row.original}
+          onAllocationSuccess={() => refetch()}
+        />
+      ),
     },
     {
       accessorKey: 'paymentMethod',
@@ -646,6 +657,7 @@ const PaymentsManagement = () => {
                       <td className="px-6 py-4 text-sm text-purple-600">
                         <div className="font-bold">{formatINR(totals.amountInInr)}</div>
                       </td>
+                      <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>
                       <td className="px-6 py-4 text-sm text-gray-900"></td>

@@ -71,7 +71,7 @@ const InvoiceView = () => {
   }
 
   const handleMarkAsPaid = () => {
-    if (!invoice) return
+    if (!invoice || !invoice.companyId) return
     const entity = createInvoicePaymentEntity({
       id: invoice.id,
       companyId: invoice.companyId,
@@ -285,7 +285,17 @@ const InvoiceView = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  {/* Credit Note option - shown for paid or partially paid invoices */}
+                  {(invoice.status === 'paid' || (invoice.paidAmount && invoice.paidAmount > 0)) && (
+                    <DropdownMenuItem
+                      onClick={() => alert('Credit Note functionality coming soon. This will allow you to issue corrections for paid invoices.')}
+                      className="text-amber-600 focus:text-amber-600"
+                    >
+                      <FileCheck className="mr-2 h-4 w-4" />
+                      Issue Credit Note
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
                     onClick={handleVoid}
                     className="text-red-600 focus:text-red-600"
                   >

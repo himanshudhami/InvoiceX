@@ -10,6 +10,7 @@ import { Drawer } from '@/components/ui/Drawer'
 import { InvoiceForm } from '@/components/forms/InvoiceForm'
 import { Eye, Edit, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { InvoicePaymentStatus } from '@/components/payments/InvoicePaymentStatus'
 
 const InvoicesManagement = () => {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false)
@@ -91,12 +92,6 @@ const InvoicesManagement = () => {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const getPaymentStatus = (totalAmount: number, paidAmount?: number) => {
-    if (!paidAmount || paidAmount === 0) return 'Unpaid'
-    if (paidAmount >= totalAmount) return 'Fully Paid'
-    return 'Partially Paid'
-  }
-
   const columns: ColumnDef<Invoice>[] = [
     {
       accessorKey: 'invoiceNumber',
@@ -133,16 +128,21 @@ const InvoicesManagement = () => {
         const invoice = row.original
         const status = invoice.status || 'draft'
         return (
-          <div>
-            <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(status)}`}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {getPaymentStatus(invoice.totalAmount, invoice.paidAmount)}
-            </div>
+          <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColor(status)}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
           </div>
         )
       },
+    },
+    {
+      id: 'paymentStatus',
+      header: 'Payment',
+      cell: ({ row }) => (
+        <InvoicePaymentStatus
+          invoiceId={row.original.id}
+          currency={row.original.currency}
+        />
+      ),
     },
     {
       accessorKey: 'dueDate',

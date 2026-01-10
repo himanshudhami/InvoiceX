@@ -66,6 +66,32 @@ interface InvoiceFormProps {
   onCancel: () => void
 }
 
+// Helper to check if invoice is from Tally import (no line items but has totals)
+const isTallyImported = (invoice: Invoice | undefined, itemCount: number): boolean => {
+  if (!invoice) return false
+  return itemCount === 0 && (invoice.totalAmount > 0 || !!invoice.tallyVoucherGuid)
+}
+
+// Helper to check if invoice should be read-only (paid, reconciled, or has IRN)
+const isInvoiceLocked = (invoice: Invoice | undefined): { locked: boolean; reason: string } => {
+  if (!invoice) return { locked: false, reason: '' }
+
+  if (invoice.irn) {
+    return { locked: true, reason: 'This invoice has an IRN generated and cannot be edited. Issue a Credit Note for corrections.' }
+  }
+  if (invoice.isReconciled) {
+    return { locked: true, reason: 'This invoice is reconciled with bank transactions and cannot be edited. Issue a Credit Note for corrections.' }
+  }
+  if (invoice.status === 'paid') {
+    return { locked: true, reason: 'This invoice is fully paid and cannot be edited. Issue a Credit Note for corrections.' }
+  }
+  if (invoice.paidAmount && invoice.paidAmount > 0) {
+    return { locked: true, reason: 'This invoice has partial payments and financial fields cannot be edited. Issue a Credit Note for corrections.' }
+  }
+
+  return { locked: false, reason: '' }
+}
+
 export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) => {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<InvoiceFormState>({
@@ -99,7 +125,14 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
+
+  // Check if invoice is locked (paid/reconciled/IRN)
+  const lockStatus = isInvoiceLocked(invoice)
+  const isLocked = lockStatus.locked
+
+  // Track if this is a Tally import (will be set after items load)
+  const [isTallyImport, setIsTallyImport] = useState(false)
+
   const createInvoice = useCreateInvoice()
   const updateInvoice = useUpdateInvoice()
   // Scope customers to the selected company so "Bill To" updates when company changes
@@ -178,53 +211,60 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     }
   }, [invoice])
 
-  // Clear customer immediately when company changes to avoid cross-company selections
-  const handleCompanyChange = (companyId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      companyId,
-      partyId: '',
-    }))
-    if (errors.partyId) {
-      setErrors(prev => ({ ...prev, partyId: '' }))
-    }
-  }
-
-  // Populate line items for editing
+  // Populate line items for editing and detect Tally imports
   useEffect(() => {
-    if (invoice && existingItems.length > 0) {
-      const lineItems = existingItems
-        .slice()
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-        .map((item, index) => ({
-          id: item.id,
-          productId: item.productId || '',
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxRate: item.taxRate || 0,
-          discountRate: item.discountRate || 0,
-          lineTotal: item.lineTotal,
-          sortOrder: item.sortOrder ?? index,
-          // GST fields
-          hsnSacCode: item.hsnSacCode || '',
-          isService: item.isService ?? true,
-          cgstRate: item.cgstRate || 0,
-          cgstAmount: item.cgstAmount || 0,
-          sgstRate: item.sgstRate || 0,
-          sgstAmount: item.sgstAmount || 0,
-          igstRate: item.igstRate || 0,
-          igstAmount: item.igstAmount || 0,
-          cessRate: item.cessRate || 0,
-          cessAmount: item.cessAmount || 0,
-        }))
+    if (invoice) {
+      if (existingItems.length > 0) {
+        // Has line items - not a Tally import (or Tally import with items)
+        setIsTallyImport(false)
+        const lineItems = existingItems
+          .slice()
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map((item, index) => ({
+            id: item.id,
+            productId: item.productId || '',
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: item.taxRate || 0,
+            discountRate: item.discountRate || 0,
+            lineTotal: item.lineTotal,
+            sortOrder: item.sortOrder ?? index,
+            // GST fields
+            hsnSacCode: item.hsnSacCode || '',
+            isService: item.isService ?? true,
+            cgstRate: item.cgstRate || 0,
+            cgstAmount: item.cgstAmount || 0,
+            sgstRate: item.sgstRate || 0,
+            sgstAmount: item.sgstAmount || 0,
+            igstRate: item.igstRate || 0,
+            igstAmount: item.igstAmount || 0,
+            cessRate: item.cessRate || 0,
+            cessAmount: item.cessAmount || 0,
+          }))
 
-      setFormData(prev => ({ ...prev, lineItems }))
+        setFormData(prev => ({ ...prev, lineItems }))
+      } else {
+        // No line items - check if this is a Tally import with stored totals
+        const tallyImport = isTallyImported(invoice, 0)
+        setIsTallyImport(tallyImport)
+      }
     }
   }, [invoice, existingItems])
 
   // Recalculate totals when line items or invoice type change
+  // BUT preserve stored totals for Tally imports without line items
   useEffect(() => {
+    // If this is a Tally import with no line items, preserve the stored totals
+    // Check both the state AND the invoice directly (to handle race conditions)
+    const shouldPreserveTotals = formData.lineItems.length === 0 && invoice &&
+      (isTallyImport || isTallyImported(invoice, existingItems.length))
+
+    if (shouldPreserveTotals) {
+      // Keep the stored totals from the invoice, don't recalculate to 0
+      return
+    }
+
     const subtotal = formData.lineItems.reduce((sum, item) => sum + item.lineTotal, 0)
 
     // Calculate GST based on supply type
@@ -260,7 +300,7 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       totalIgst,
       totalCess,
     }))
-  }, [formData.lineItems, formData.discountAmount, formData.invoiceType])
+  }, [formData.lineItems, formData.discountAmount, formData.invoiceType, isTallyImport, invoice, existingItems])
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -358,19 +398,22 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
       newErrors.exchangeRate = 'Exchange rate is required for foreign currency invoices'
     }
 
-    if (formData.lineItems.length === 0) {
-      newErrors.lineItems = 'At least one line item is required'
-    }
+    // For Tally imports without line items, skip line item validation if totals exist
+    if (!isTallyImport) {
+      if (formData.lineItems.length === 0) {
+        newErrors.lineItems = 'At least one line item is required'
+      }
 
-    const hasInvalidLineItem = formData.lineItems.some(item => {
-      const hasDescription = item.description?.trim().length > 0
-      const quantityValid = Number(item.quantity) > 0
-      const priceValid = Number(item.unitPrice) >= 0
-      return !(hasDescription && quantityValid && priceValid)
-    })
+      const hasInvalidLineItem = formData.lineItems.some(item => {
+        const hasDescription = item.description?.trim().length > 0
+        const quantityValid = Number(item.quantity) > 0
+        const priceValid = Number(item.unitPrice) >= 0
+        return !(hasDescription && quantityValid && priceValid)
+      })
 
-    if (hasInvalidLineItem) {
-      newErrors.lineItems = 'Each line item requires a description, quantity greater than zero, and a non-negative price'
+      if (hasInvalidLineItem) {
+        newErrors.lineItems = 'Each line item requires a description, quantity greater than zero, and a non-negative price'
+      }
     }
 
     setErrors(newErrors)
@@ -608,11 +651,47 @@ export const InvoiceForm = ({ invoice, onSuccess, onCancel }: InvoiceFormProps) 
     isLoading,
     errors,
     setErrors,
+    isLocked,
+    isTallyImport,
   }
 
   return (
     <InvoiceFormProvider value={contextValue}>
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Locked Invoice Warning */}
+        {isLocked && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m11-7a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Invoice Locked</h3>
+                <p className="text-sm text-red-700 mt-1">{lockStatus.reason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tally Import Warning */}
+        {isTallyImport && !isLocked && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-medium text-amber-800">Imported from Tally</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  This invoice was imported from Tally without line item details.
+                  The totals shown are from the original Tally voucher.
+                  Adding line items will recalculate the totals.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <InvoiceNumber />

@@ -92,6 +92,13 @@ export interface Invoice {
   ewayBillNumber?: string;       // E-way bill number
   // INR conversion for exports
   invoiceAmountInr?: number;     // Total amount in INR for exports
+  // Tally import fields
+  tallyVoucherGuid?: string;     // Tally voucher GUID for imported invoices
+  tallyVoucherNumber?: string;   // Tally voucher number
+  tallyMigrationBatchId?: string; // Migration batch ID
+  // Reconciliation
+  isReconciled?: boolean;        // Whether invoice is reconciled with bank
+  reconciledAt?: string;         // When reconciliation happened
 }
 
 export interface CreateInvoiceDto {

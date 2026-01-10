@@ -77,6 +77,10 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
             services.AddScoped<Core.Interfaces.IPaymentAllocationRepository>(sp =>
                 new Infrastructure.Data.PaymentAllocationRepository(connectionString));
 
+            // Vendor payment allocation repository
+            services.AddScoped<Core.Interfaces.IVendorPaymentAllocationRepository>(sp =>
+                new Infrastructure.Data.VendorPaymentAllocationRepository(connectionString));
+
             // Bank transaction match repository
             services.AddScoped<Core.Interfaces.IBankTransactionMatchRepository>(sp =>
                 new Infrastructure.Data.BankTransactionMatchRepository(connectionString));
