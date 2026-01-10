@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.Party;
 using Core.Entities;
 using Core.Interfaces;
@@ -16,15 +17,18 @@ namespace Application.Services
     {
         private readonly IPartyRepository _repository;
         private readonly ITdsTagRuleRepository _tdsTagRuleRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
 
         public PartyService(
             IPartyRepository repository,
             ITdsTagRuleRepository tdsTagRuleRepository,
+            IAuditService auditService,
             IMapper mapper)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _tdsTagRuleRepository = tdsTagRuleRepository ?? throw new ArgumentNullException(nameof(tdsTagRuleRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -84,6 +88,9 @@ namespace Application.Services
             entity.UpdatedAt = DateTime.UtcNow;
 
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Audit trail
+            await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, dto.CompanyId, createdEntity.Name);
 
             // Create vendor profile if provided and party is a vendor
             if (dto.IsVendor && dto.VendorProfile != null)
@@ -147,11 +154,17 @@ namespace Application.Services
             if (existingEntity == null)
                 return Error.NotFound($"Party with ID {id} not found");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<Party>(existingEntity);
+
             // Map DTO to existing entity
             _mapper.Map(dto, existingEntity);
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail
+            await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId, existingEntity.Name);
 
             // Handle role changes - create/delete profiles as needed
             if (dto.IsVendor && await _repository.GetVendorProfileAsync(id) == null)
@@ -196,6 +209,9 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Party with ID {id} not found");
+
+            // Audit trail before delete
+            await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId, existingEntity.Name);
 
             await _repository.DeleteAsync(id);
             return Result.Success();

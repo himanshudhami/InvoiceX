@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs.Assets;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.Services.Assets;
 using Application.Validators.Assets;
 using AutoMapper;
@@ -19,6 +20,7 @@ namespace Application.Services;
 public class AssetsService : IAssetsService
 {
     private readonly IAssetsRepository _repository;
+    private readonly IAuditService _auditService;
     private readonly IMapper _mapper;
     private readonly IValidator<CreateAssetDto> _createValidator;
     private readonly IValidator<UpdateAssetDto> _updateValidator;
@@ -31,6 +33,7 @@ public class AssetsService : IAssetsService
 
     public AssetsService(
         IAssetsRepository repository,
+        IAuditService auditService,
         IMapper mapper,
         IValidator<CreateAssetDto> createValidator,
         IValidator<UpdateAssetDto> updateValidator,
@@ -42,6 +45,7 @@ public class AssetsService : IAssetsService
         AssetBulkService bulkService)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
         _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -88,6 +92,13 @@ public class AssetsService : IAssetsService
         entity.UpdatedAt = DateTime.UtcNow;
 
         var created = await _repository.AddAsync(entity);
+
+        // Audit trail
+        if (created.CompanyId != Guid.Empty)
+        {
+            await _auditService.AuditCreateAsync(created, created.Id, created.CompanyId, created.Name);
+        }
+
         return Result<AssetsEntity>.Success(created);
     }
 
@@ -105,9 +116,19 @@ public class AssetsService : IAssetsService
         if (existing == null)
             return Error.NotFound($"Asset {id} not found");
 
+        // Capture state before update for audit trail
+        var oldEntity = _mapper.Map<AssetsEntity>(existing);
+
         _mapper.Map(dto, existing);
         existing.UpdatedAt = DateTime.UtcNow;
         await _repository.UpdateAsync(existing);
+
+        // Audit trail
+        if (existing.CompanyId != Guid.Empty)
+        {
+            await _auditService.AuditUpdateAsync(oldEntity, existing, existing.Id, existing.CompanyId, existing.Name);
+        }
+
         return Result.Success();
     }
 
@@ -120,6 +141,12 @@ public class AssetsService : IAssetsService
         var existing = await _repository.GetByIdAsync(id);
         if (existing == null)
             return Error.NotFound("Asset not found");
+
+        // Audit trail before delete
+        if (existing.CompanyId != Guid.Empty)
+        {
+            await _auditService.AuditDeleteAsync(existing, existing.Id, existing.CompanyId, existing.Name);
+        }
 
         await _repository.DeleteAsync(id);
         return Result.Success();

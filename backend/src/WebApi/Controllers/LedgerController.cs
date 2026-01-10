@@ -1,3 +1,4 @@
+using Application.Interfaces.Audit;
 using Application.Interfaces.Ledger;
 using Core.Entities.Ledger;
 using Core.Interfaces.Ledger;
@@ -18,6 +19,7 @@ namespace WebApi.Controllers
         private readonly IPostingRuleRepository _ruleRepository;
         private readonly IAutoPostingService _autoPostingService;
         private readonly ITrialBalanceService _trialBalanceService;
+        private readonly IAuditService _auditService;
         private readonly ILogger<LedgerController> _logger;
 
         public LedgerController(
@@ -26,6 +28,7 @@ namespace WebApi.Controllers
             IPostingRuleRepository ruleRepository,
             IAutoPostingService autoPostingService,
             ITrialBalanceService trialBalanceService,
+            IAuditService auditService,
             ILogger<LedgerController> logger)
         {
             _accountRepository = accountRepository;
@@ -33,6 +36,7 @@ namespace WebApi.Controllers
             _ruleRepository = ruleRepository;
             _autoPostingService = autoPostingService;
             _trialBalanceService = trialBalanceService;
+            _auditService = auditService;
             _logger = logger;
         }
 
@@ -132,6 +136,13 @@ namespace WebApi.Controllers
             }
 
             var created = await _accountRepository.AddAsync(account);
+
+            // Audit trail
+            if (created.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(created, created.Id, created.CompanyId.Value, $"{created.AccountCode} - {created.AccountName}");
+            }
+
             return CreatedAtAction(nameof(GetAccount), new { id = created.Id }, created);
         }
 
@@ -154,8 +165,26 @@ namespace WebApi.Controllers
                 return BadRequest("Cannot modify system account");
             }
 
+            // Capture old state for audit
+            var oldAccount = new ChartOfAccount
+            {
+                Id = existing.Id,
+                CompanyId = existing.CompanyId,
+                AccountCode = existing.AccountCode,
+                AccountName = existing.AccountName,
+                AccountType = existing.AccountType,
+                IsActive = existing.IsActive
+            };
+
             account.Id = id;
             await _accountRepository.UpdateAsync(account);
+
+            // Audit trail
+            if (existing.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldAccount, account, id, existing.CompanyId.Value, $"{account.AccountCode} - {account.AccountName}");
+            }
+
             return Ok(new { message = "Account updated successfully" });
         }
 
@@ -227,6 +256,13 @@ namespace WebApi.Controllers
             entry.Status = "draft";
 
             var created = await _journalRepository.AddAsync(entry);
+
+            // Audit trail
+            if (created.CompanyId != Guid.Empty)
+            {
+                await _auditService.AuditCreateAsync(created, created.Id, created.CompanyId, created.JournalNumber ?? $"JE-{created.Id}");
+            }
+
             return CreatedAtAction(nameof(GetJournal), new { id = created.Id }, created);
         }
 

@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.BankTransactions;
 using Core.Entities;
 using Core.Interfaces;
@@ -22,15 +23,18 @@ namespace Application.Services
     {
         private readonly IBankTransactionRepository _repository;
         private readonly IBankAccountRepository _bankAccountRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
 
         public BankTransactionService(
             IBankTransactionRepository repository,
             IBankAccountRepository bankAccountRepository,
+            IAuditService auditService,
             IMapper mapper)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _bankAccountRepository = bankAccountRepository ?? throw new ArgumentNullException(nameof(bankAccountRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -100,6 +104,13 @@ namespace Application.Services
             entity.UpdatedAt = DateTime.UtcNow;
 
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Audit trail - use bank account's company ID
+            if (bankAccount.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, bankAccount.CompanyId.Value, createdEntity.ReferenceNumber ?? createdEntity.Description);
+            }
+
             return Result<BankTransaction>.Success(createdEntity);
         }
 
@@ -116,6 +127,9 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Bank transaction with ID {id} not found");
+
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<BankTransaction>(existingEntity);
 
             if (dto.TransactionDate.HasValue)
                 existingEntity.TransactionDate = dto.TransactionDate.Value;
@@ -146,6 +160,14 @@ namespace Application.Services
                 existingEntity.TransactionDate, existingEntity.Amount, existingEntity.Description);
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail - get company ID from bank account
+            var bankAccount = await _bankAccountRepository.GetByIdAsync(existingEntity.BankAccountId);
+            if (bankAccount?.CompanyId.HasValue == true)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, bankAccount.CompanyId.Value, existingEntity.ReferenceNumber ?? existingEntity.Description);
+            }
+
             return Result.Success();
         }
 
@@ -159,6 +181,13 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Bank transaction with ID {id} not found");
+
+            // Audit trail before delete - get company ID from bank account
+            var bankAccount = await _bankAccountRepository.GetByIdAsync(existingEntity.BankAccountId);
+            if (bankAccount?.CompanyId.HasValue == true)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, bankAccount.CompanyId.Value, existingEntity.ReferenceNumber ?? existingEntity.Description);
+            }
 
             await _repository.DeleteAsync(id);
             return Result.Success();

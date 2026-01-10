@@ -652,6 +652,7 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                 new Application.Services.PartyService(
                     sp.GetRequiredService<Core.Interfaces.IPartyRepository>(),
                     sp.GetRequiredService<Core.Interfaces.ITdsTagRuleRepository>(),
+                    sp.GetRequiredService<Application.Interfaces.Audit.IAuditService>(),
                     sp.GetRequiredService<AutoMapper.IMapper>()
                 ));
 

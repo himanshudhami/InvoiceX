@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.Employees;
 using Core.Entities;
 using Core.Interfaces;
@@ -18,11 +19,16 @@ namespace Application.Services
     public class EmployeesService : IEmployeesService
     {
         private readonly IEmployeesRepository _repository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
 
-        public EmployeesService(IEmployeesRepository repository, IMapper mapper)
+        public EmployeesService(
+            IEmployeesRepository repository,
+            IAuditService auditService,
+            IMapper mapper)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -115,7 +121,13 @@ namespace Application.Services
 
                 var entity = _mapper.Map<Employees>(dto);
                 var createdEntity = await _repository.AddAsync(entity);
-                
+
+                // Audit trail
+                if (createdEntity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.EmployeeName ?? createdEntity.EmployeeId);
+                }
+
                 return Result<Employees>.Success(createdEntity);
             }
             catch (Exception ex)
@@ -136,6 +148,9 @@ namespace Application.Services
                 if (existingEntity == null)
                     return Error.NotFound($"Employee with ID {id} not found");
 
+                // Capture state before update for audit trail
+                var oldEntity = _mapper.Map<Employees>(existingEntity);
+
                 // Validate Employee ID uniqueness if provided and changed (scoped to company)
                 if (!string.IsNullOrWhiteSpace(dto.EmployeeId) && dto.EmployeeId != existingEntity.EmployeeId)
                 {
@@ -154,6 +169,12 @@ namespace Application.Services
 
                 _mapper.Map(dto, existingEntity);
                 await _repository.UpdateAsync(existingEntity);
+
+                // Audit trail
+                if (existingEntity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.EmployeeName ?? existingEntity.EmployeeId);
+                }
 
                 return Result.Success();
             }
@@ -174,6 +195,12 @@ namespace Application.Services
                 var existingEntity = await _repository.GetByIdAsync(id);
                 if (existingEntity == null)
                     return Error.NotFound($"Employee with ID {id} not found");
+
+                // Audit trail before delete
+                if (existingEntity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.EmployeeName ?? existingEntity.EmployeeId);
+                }
 
                 await _repository.DeleteAsync(id);
                 return Result.Success();

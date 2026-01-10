@@ -1,4 +1,5 @@
 using Application.DTOs.Payroll;
+using Application.Interfaces.Audit;
 using Application.Services.Payroll;
 using Core.Entities.Payroll;
 using Core.Interfaces;
@@ -33,6 +34,7 @@ public class PayrollController : ControllerBase
     private readonly ISalaryComponentRepository _salaryComponentRepository;
     private readonly PayrollCalculationService _calculationService;
     private readonly IPayrollPostingService _postingService;
+    private readonly IAuditService _auditService;
     private readonly IMapper _mapper;
     private readonly ILogger<PayrollController> _logger;
 
@@ -49,6 +51,7 @@ public class PayrollController : ControllerBase
         ISalaryComponentRepository salaryComponentRepository,
         PayrollCalculationService calculationService,
         IPayrollPostingService postingService,
+        IAuditService auditService,
         IMapper mapper,
         ILogger<PayrollController> logger)
     {
@@ -64,6 +67,7 @@ public class PayrollController : ControllerBase
         _salaryComponentRepository = salaryComponentRepository;
         _calculationService = calculationService;
         _postingService = postingService;
+        _auditService = auditService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -190,6 +194,9 @@ public class PayrollController : ControllerBase
 
         var entity = _mapper.Map<PayrollRun>(dto);
         var created = await _payrollRunRepository.AddAsync(entity);
+
+        // Audit trail
+        await _auditService.AuditCreateAsync(created, created.Id, created.CompanyId, $"Payroll {created.PayrollMonth}/{created.PayrollYear}");
 
         return CreatedAtAction(nameof(GetPayrollRunById), new { id = created.Id }, _mapper.Map<PayrollRunDto>(created));
     }

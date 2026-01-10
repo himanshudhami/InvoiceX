@@ -1,5 +1,6 @@
 using Application.Common;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.BankAccounts;
 using Core.Entities;
 using Core.Interfaces;
@@ -14,13 +15,16 @@ namespace Application.Services
     public class BankAccountService : IBankAccountService
     {
         private readonly IBankAccountRepository _repository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
 
         public BankAccountService(
             IBankAccountRepository repository,
+            IAuditService auditService,
             IMapper mapper)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -104,6 +108,13 @@ namespace Application.Services
             }
 
             var createdEntity = await _repository.AddAsync(entity);
+
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.AccountName);
+            }
+
             return Result<BankAccount>.Success(createdEntity);
         }
 
@@ -121,6 +132,9 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Bank account with ID {id} not found");
+
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<BankAccount>(existingEntity);
 
             // Map DTO to existing entity (only update non-null values)
             if (!string.IsNullOrWhiteSpace(dto.AccountName))
@@ -153,6 +167,13 @@ namespace Application.Services
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Audit trail
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.AccountName);
+            }
+
             return Result.Success();
         }
 
@@ -166,6 +187,12 @@ namespace Application.Services
             var existingEntity = await _repository.GetByIdAsync(id);
             if (existingEntity == null)
                 return Error.NotFound($"Bank account with ID {id} not found");
+
+            // Audit trail before delete
+            if (existingEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.AccountName);
+            }
 
             await _repository.DeleteAsync(id);
             return Result.Success();

@@ -96,21 +96,40 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 
 ### 4. Audit Trail Activation
 **Module**: [16-ADMINISTRATION](../modules/16-ADMINISTRATION.md)
-**Status**: ⚠️ Partial (schema exists, logging not active)
+**Status**: ✅ Complete (fully operational)
 
 **Description**: MCA-compliant audit trail for all document changes with before/after values.
 
 **Implementation Status**:
-- [x] Audit log table design - `document_audit_log`, `einvoice_audit_log`
-- [x] Audit log repositories exist
-- [ ] Change tracking triggers/middleware - **NOT ACTIVE**
-- [ ] Audit log viewer UI - Domain-specific only
-- [ ] Export for audit purposes
-- [ ] Generic before/after value tracking
+- [x] Audit log table design - `audit_trail`, `document_audit_log`, `einvoice_audit_log`
+- [x] Audit log repositories exist - `AuditTrailRepository`
+- [x] Generic AuditService with Create/Update/Delete tracking
+- [x] Change tracking active in all major services
+- [x] Audit log viewer UI - Full-featured admin viewer with filtering, search, diff view
+- [x] CSV export for audit purposes
+- [x] Generic before/after value tracking with JSON snapshots
+- [x] SHA256 checksums for tamper detection
+- [x] Correlation ID tracking for request tracing
 
-**Production Data**: 0 audit entries (logging not enabled)
+**Services with Active Audit Logging**:
+- Invoices, Payments, VendorInvoices, VendorPayments (original)
+- BankAccount, BankTransaction
+- Employees
+- Assets
+- Party (Customers/Vendors)
+- CreditNotes
+- Quotes
+- Products
+- ExpenseClaims
+- JournalEntry (via LedgerController)
+- ChartOfAccount (via LedgerController)
+- PayrollRun (via PayrollController)
+- E-Invoice API calls
+- Document operations
 
-**Next Steps**: Enable audit middleware, build unified viewer UI
+**Production Data**: Active logging enabled
+
+**Coverage**: All major financial entities now have audit logging enabled
 
 ---
 
@@ -299,14 +318,14 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 Based on gap analysis (Jan 2026):
 
 ### Tier 1: Enable Already-Built Features (Quick Wins)
-1. **Audit Trail Activation** - Schema exists, add middleware
+1. ~~**Audit Trail Activation**~~ - ✅ COMPLETE (Jan 2026) - Full audit logging active across all major services
 2. **GSTR-2B/3B Production Enablement** - Configure GSP, train users
 3. **Bank Reconciliation Matching** - Fix workflow gap
 
 ### Tier 2: Complete Partial Implementations
 4. **E-Way Bill Workflow** - API integration + UI actions
 5. **MSME 45-Day Compliance** - Aging report + alerts
-6. **Generic Audit Trail Viewer** - Unified UI
+6. ~~**Generic Audit Trail Viewer**~~ - ✅ COMPLETE - Full UI at `/admin/audit`
 
 ### Tier 3: New Development
 7. **Year-End Close Checklist**

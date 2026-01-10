@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs.CreditNotes;
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.Validators;
 using Core.Common;
 using AutoMapper;
@@ -16,6 +17,7 @@ namespace Application.Services
         private readonly ICreditNoteItemsRepository _itemsRepository;
         private readonly IInvoicesRepository _invoicesRepository;
         private readonly IInvoiceItemsRepository _invoiceItemsRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateCreditNotesDto> _createValidator;
         private readonly IValidator<UpdateCreditNotesDto> _updateValidator;
@@ -25,6 +27,7 @@ namespace Application.Services
             ICreditNoteItemsRepository itemsRepository,
             IInvoicesRepository invoicesRepository,
             IInvoiceItemsRepository invoiceItemsRepository,
+            IAuditService auditService,
             IMapper mapper,
             IValidator<CreateCreditNotesDto> createValidator,
             IValidator<UpdateCreditNotesDto> updateValidator)
@@ -33,6 +36,7 @@ namespace Application.Services
             _itemsRepository = itemsRepository ?? throw new ArgumentNullException(nameof(itemsRepository));
             _invoicesRepository = invoicesRepository ?? throw new ArgumentNullException(nameof(invoicesRepository));
             _invoiceItemsRepository = invoiceItemsRepository ?? throw new ArgumentNullException(nameof(invoiceItemsRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -109,6 +113,12 @@ namespace Application.Services
             // Create credit note
             var createdEntity = await _repository.AddAsync(entity);
 
+            // Audit trail
+            if (createdEntity.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.CreditNoteNumber);
+            }
+
             // Create items if provided
             if (items != null && items.Any())
             {
@@ -160,6 +170,12 @@ namespace Application.Services
             // Save credit note and items
             var createdCreditNote = await _repository.AddAsync(creditNote);
             await SaveCreditNoteItemsAsync(creditNoteItems, createdCreditNote.Id);
+
+            // Audit trail
+            if (createdCreditNote.CompanyId.HasValue)
+            {
+                await _auditService.AuditCreateAsync(createdCreditNote, createdCreditNote.Id, createdCreditNote.CompanyId.Value, createdCreditNote.CreditNoteNumber);
+            }
 
             return Result<CreditNotes>.Success(createdCreditNote);
         }
@@ -377,11 +393,21 @@ namespace Application.Services
             if (existing.Status != "draft")
                 return Error.Validation("Only draft credit notes can be updated");
 
+            // Capture state before update for audit trail
+            var oldEntity = _mapper.Map<CreditNotes>(existing);
+
             // Update entity
             _mapper.Map(dto, existing);
             existing.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existing);
+
+            // Audit trail
+            if (existing.CompanyId.HasValue)
+            {
+                await _auditService.AuditUpdateAsync(oldEntity, existing, existing.Id, existing.CompanyId.Value, existing.CreditNoteNumber);
+            }
+
             return Result.Success();
         }
 
@@ -394,6 +420,12 @@ namespace Application.Services
             // Can only delete draft credit notes
             if (existing.Status != "draft")
                 return Error.Validation("Only draft credit notes can be deleted");
+
+            // Audit trail before delete
+            if (existing.CompanyId.HasValue)
+            {
+                await _auditService.AuditDeleteAsync(existing, existing.Id, existing.CompanyId.Value, existing.CreditNoteNumber);
+            }
 
             // Delete items first
             await _itemsRepository.DeleteByCreditNoteIdAsync(id);

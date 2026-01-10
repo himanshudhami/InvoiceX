@@ -1,5 +1,6 @@
 using Application.DTOs.Expense;
 using Application.Interfaces.Approval;
+using Application.Interfaces.Audit;
 using Application.Interfaces.Expense;
 using Core.Common;
 using Core.Entities.Expense;
@@ -22,6 +23,7 @@ namespace Application.Services.Expense
         private readonly IApprovalWorkflowService _workflowService;
         private readonly IGstInputCreditRepository _gstInputCreditRepository;
         private readonly IExpensePostingService _expensePostingService;
+        private readonly IAuditService _auditService;
         private readonly ILogger<ExpenseClaimService> _logger;
 
         public ExpenseClaimService(
@@ -31,6 +33,7 @@ namespace Application.Services.Expense
             IApprovalWorkflowService workflowService,
             IGstInputCreditRepository gstInputCreditRepository,
             IExpensePostingService expensePostingService,
+            IAuditService auditService,
             ILogger<ExpenseClaimService> logger)
         {
             _claimRepository = claimRepository ?? throw new ArgumentNullException(nameof(claimRepository));
@@ -39,6 +42,7 @@ namespace Application.Services.Expense
             _workflowService = workflowService ?? throw new ArgumentNullException(nameof(workflowService));
             _gstInputCreditRepository = gstInputCreditRepository ?? throw new ArgumentNullException(nameof(gstInputCreditRepository));
             _expensePostingService = expensePostingService ?? throw new ArgumentNullException(nameof(expensePostingService));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -213,6 +217,9 @@ namespace Application.Services.Expense
 
             var created = await _claimRepository.AddAsync(claim);
 
+            // Audit trail
+            await _auditService.AuditCreateAsync(created, created.Id, companyId, created.ClaimNumber);
+
             _logger.LogInformation(
                 "Expense claim created: {ClaimNumber} by employee {EmployeeId}",
                 claimNumber, employeeId);
@@ -248,6 +255,22 @@ namespace Application.Services.Expense
             {
                 return Error.Validation("Amount must be greater than zero");
             }
+
+            // Capture state before update for audit trail
+            var oldClaim = new ExpenseClaim
+            {
+                Id = claim.Id,
+                CompanyId = claim.CompanyId,
+                EmployeeId = claim.EmployeeId,
+                ClaimNumber = claim.ClaimNumber,
+                Title = claim.Title,
+                Description = claim.Description,
+                CategoryId = claim.CategoryId,
+                ExpenseDate = claim.ExpenseDate,
+                Amount = claim.Amount,
+                Currency = claim.Currency,
+                Status = claim.Status
+            };
 
             // Validate category if changed
             if (dto.CategoryId != claim.CategoryId)
@@ -296,6 +319,9 @@ namespace Application.Services.Expense
             claim.TotalGstAmount = totalGst;
 
             await _claimRepository.UpdateAsync(claim);
+
+            // Audit trail
+            await _auditService.AuditUpdateAsync(oldClaim, claim, claim.Id, claim.CompanyId, claim.ClaimNumber);
 
             // Re-fetch to get updated navigation properties
             var updated = await _claimRepository.GetByIdAsync(id);
@@ -652,6 +678,9 @@ namespace Application.Services.Expense
             {
                 return Error.Validation("Only draft claims can be deleted");
             }
+
+            // Audit trail before delete
+            await _auditService.AuditDeleteAsync(claim, claim.Id, claim.CompanyId, claim.ClaimNumber);
 
             await _claimRepository.DeleteAsync(id);
 

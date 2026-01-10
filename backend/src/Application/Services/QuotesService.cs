@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Interfaces.Audit;
 using Application.DTOs.Quotes;
 using Core.Entities;
 using Core.Interfaces;
@@ -20,6 +21,7 @@ namespace Application.Services
         private readonly IQuoteItemsRepository _quoteItemsRepository;
         private readonly IInvoicesRepository _invoicesRepository;
         private readonly IInvoiceItemsRepository _invoiceItemsRepository;
+        private readonly IAuditService _auditService;
         private readonly IMapper _mapper;
 
         public QuotesService(
@@ -27,12 +29,14 @@ namespace Application.Services
             IQuoteItemsRepository quoteItemsRepository,
             IInvoicesRepository invoicesRepository,
             IInvoiceItemsRepository invoiceItemsRepository,
+            IAuditService auditService,
             IMapper mapper)
         {
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _quoteItemsRepository = quoteItemsRepository ?? throw new ArgumentNullException(nameof(quoteItemsRepository));
             _invoicesRepository = invoicesRepository ?? throw new ArgumentNullException(nameof(invoicesRepository));
             _invoiceItemsRepository = invoiceItemsRepository ?? throw new ArgumentNullException(nameof(invoiceItemsRepository));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
@@ -94,6 +98,13 @@ namespace Application.Services
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 var createdEntity = await _repository.AddAsync(entity);
+
+                // Audit trail
+                if (createdEntity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditCreateAsync(createdEntity, createdEntity.Id, createdEntity.CompanyId.Value, createdEntity.QuoteNumber);
+                }
+
                 return Result<Quotes>.Success(createdEntity);
             }
             catch (Exception ex)
@@ -114,10 +125,20 @@ namespace Application.Services
                 if (existingEntity == null)
                     return Error.NotFound($"Quote with ID {id} not found");
 
+                // Capture state before update for audit trail
+                var oldEntity = _mapper.Map<Quotes>(existingEntity);
+
                 _mapper.Map(dto, existingEntity);
                 existingEntity.UpdatedAt = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(existingEntity);
+
+                // Audit trail
+                if (existingEntity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditUpdateAsync(oldEntity, existingEntity, existingEntity.Id, existingEntity.CompanyId.Value, existingEntity.QuoteNumber);
+                }
+
                 return Result.Success();
             }
             catch (Exception ex)
@@ -137,6 +158,12 @@ namespace Application.Services
                 var entity = await _repository.GetByIdAsync(id);
                 if (entity == null)
                     return Error.NotFound($"Quote with ID {id} not found");
+
+                // Audit trail before delete
+                if (entity.CompanyId.HasValue)
+                {
+                    await _auditService.AuditDeleteAsync(entity, entity.Id, entity.CompanyId.Value, entity.QuoteNumber);
+                }
 
                 await _repository.DeleteAsync(id);
                 return Result.Success();
