@@ -793,8 +793,8 @@ const AdvanceTaxManagement = () => {
                       <span className="font-medium text-green-600">{formatCurrency(assessment.projectedOtherIncome)}</span>
                     </div>
                     <div className="flex justify-between py-2 bg-gray-50 px-2 rounded font-medium">
-                      <span>Taxable Income</span>
-                      <span>{formatCurrency(assessment.taxableIncome)}</span>
+                      <span>Profit Before Tax</span>
+                      <span>{formatCurrency(assessment.projectedProfitBeforeTax)}</span>
                     </div>
                   </div>
                 </div>
@@ -832,6 +832,88 @@ const AdvanceTaxManagement = () => {
                       <span>{formatCurrency(assessment.netTaxPayable)}</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Book Profit to Taxable Income Reconciliation */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Book Profit to Taxable Income Reconciliation</h2>
+              <p className="text-sm text-gray-500 mt-1">As per Income Tax Act provisions</p>
+            </div>
+            <div className="p-6">
+              <div className="max-w-2xl mx-auto space-y-1">
+                {/* Book Profit */}
+                <div className="flex justify-between py-3 border-b border-gray-200 bg-gray-50 px-4 rounded-t-lg">
+                  <span className="font-medium text-gray-800">Book Profit (as per P&L)</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(assessment.bookProfit)}</span>
+                </div>
+
+                {/* Additions Section */}
+                <div className="pt-4 pb-2">
+                  <h4 className="text-sm font-semibold text-red-700 uppercase tracking-wide">ADD: Expenses Disallowed</h4>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Depreciation as per books</span>
+                  <span className="font-medium text-red-600">{formatCurrency(assessment.addBookDepreciation)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Cash payments {'>'} ₹10,000 (Sec 40A(3))</span>
+                  <span className="font-medium text-red-600">{formatCurrency(assessment.addDisallowed40A3)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Provision for gratuity (Sec 40A(7))</span>
+                  <span className="font-medium text-red-600">{formatCurrency(assessment.addDisallowed40A7)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Unpaid statutory dues (Sec 43B)</span>
+                  <span className="font-medium text-red-600">{formatCurrency(assessment.addDisallowed43B)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Other disallowances</span>
+                  <span className="font-medium text-red-600">{formatCurrency(assessment.addOtherDisallowances)}</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 bg-red-50 rounded">
+                  <span className="font-medium text-red-800">Total Additions</span>
+                  <span className="font-semibold text-red-800">{formatCurrency(assessment.totalAdditions)}</span>
+                </div>
+
+                {/* Deductions Section */}
+                <div className="pt-4 pb-2">
+                  <h4 className="text-sm font-semibold text-green-700 uppercase tracking-wide">LESS: Deductions Allowed</h4>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Depreciation as per IT Act</span>
+                  <span className="font-medium text-green-600">({formatCurrency(assessment.lessItDepreciation)})</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Deduction u/s 80C</span>
+                  <span className="font-medium text-green-600">({formatCurrency(assessment.lessDeductions80C)})</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Deduction u/s 80D</span>
+                  <span className="font-medium text-green-600">({formatCurrency(assessment.lessDeductions80D)})</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 text-sm">
+                  <span className="text-gray-600">Other deductions</span>
+                  <span className="font-medium text-green-600">({formatCurrency(assessment.lessOtherDeductions)})</span>
+                </div>
+                <div className="flex justify-between py-2 px-4 bg-green-50 rounded">
+                  <span className="font-medium text-green-800">Total Deductions</span>
+                  <span className="font-semibold text-green-800">({formatCurrency(assessment.totalDeductions)})</span>
+                </div>
+
+                {/* Taxable Income */}
+                <div className="flex justify-between py-3 mt-4 border-t-2 border-gray-300 bg-blue-50 px-4 rounded-b-lg">
+                  <span className="font-bold text-blue-900">TAXABLE INCOME</span>
+                  <span className="font-bold text-blue-900">{formatCurrency(assessment.taxableIncome)}</span>
+                </div>
+
+                {/* Formula Note */}
+                <div className="mt-4 text-xs text-gray-500 text-center">
+                  Taxable Income = Book Profit + Total Additions - Total Deductions
                 </div>
               </div>
             </div>

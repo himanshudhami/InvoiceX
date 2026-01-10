@@ -93,7 +93,13 @@ namespace Application.Services.Tax
             var projectedOtherIncome = request.ProjectedOtherIncome ?? 0m;
 
             var profitBeforeTax = projectedRevenue + projectedOtherIncome - projectedExpenses - projectedDepreciation;
-            var taxableIncome = Math.Max(0, profitBeforeTax); // Simplified - no adjustments
+
+            // Book to Taxable Reconciliation
+            // Initially, book profit = profit before tax, adjustments are 0
+            var bookProfit = profitBeforeTax;
+            var totalAdditions = 0m; // User will add disallowances later
+            var totalDeductions = 0m; // User will add deductions later
+            var taxableIncome = Math.Max(0, bookProfit + totalAdditions - totalDeductions);
 
             // Get tax rates for regime
             var (taxRate, surchargeRate) = TaxRegimes.GetValueOrDefault(request.TaxRegime, TaxRegimes["normal"]);
@@ -134,6 +140,11 @@ namespace Application.Services.Tax
                 ProjectedDepreciation = projectedDepreciation,
                 ProjectedOtherIncome = projectedOtherIncome,
                 ProjectedProfitBeforeTax = profitBeforeTax,
+
+                // Book to Taxable Reconciliation
+                BookProfit = bookProfit,
+                TotalAdditions = totalAdditions,
+                TotalDeductions = totalDeductions,
 
                 TaxableIncome = taxableIncome,
                 TaxRegime = request.TaxRegime,
@@ -224,7 +235,32 @@ namespace Application.Services.Tax
 
             var profitBeforeTax = projectedRevenue + request.ProjectedOtherIncome
                                 - projectedExpenses - request.ProjectedDepreciation;
-            var taxableIncome = Math.Max(0, profitBeforeTax);
+
+            // Book to Taxable Reconciliation
+            var bookProfit = profitBeforeTax;
+
+            // Additions (expenses disallowed)
+            assessment.AddBookDepreciation = request.AddBookDepreciation;
+            assessment.AddDisallowed40A3 = request.AddDisallowed40A3;
+            assessment.AddDisallowed40A7 = request.AddDisallowed40A7;
+            assessment.AddDisallowed43B = request.AddDisallowed43B;
+            assessment.AddOtherDisallowances = request.AddOtherDisallowances;
+            var totalAdditions = request.AddBookDepreciation + request.AddDisallowed40A3
+                               + request.AddDisallowed40A7 + request.AddDisallowed43B
+                               + request.AddOtherDisallowances;
+            assessment.TotalAdditions = totalAdditions;
+
+            // Deductions
+            assessment.LessItDepreciation = request.LessItDepreciation;
+            assessment.LessDeductions80C = request.LessDeductions80C;
+            assessment.LessDeductions80D = request.LessDeductions80D;
+            assessment.LessOtherDeductions = request.LessOtherDeductions;
+            var totalDeductions = request.LessItDepreciation + request.LessDeductions80C
+                                + request.LessDeductions80D + request.LessOtherDeductions;
+            assessment.TotalDeductions = totalDeductions;
+
+            // Taxable Income = Book Profit + Additions - Deductions
+            var taxableIncome = Math.Max(0, bookProfit + totalAdditions - totalDeductions);
 
             var (taxRate, surchargeRate) = TaxRegimes.GetValueOrDefault(request.TaxRegime, TaxRegimes["normal"]);
 
@@ -241,6 +277,7 @@ namespace Application.Services.Tax
             assessment.ProjectedDepreciation = request.ProjectedDepreciation;
             assessment.ProjectedOtherIncome = request.ProjectedOtherIncome;
             assessment.ProjectedProfitBeforeTax = profitBeforeTax;
+            assessment.BookProfit = bookProfit;
 
             assessment.TaxableIncome = taxableIncome;
             assessment.TaxRegime = request.TaxRegime;
@@ -958,6 +995,20 @@ namespace Application.Services.Tax
                 ProjectedDepreciation = entity.ProjectedDepreciation,
                 ProjectedOtherIncome = entity.ProjectedOtherIncome,
                 ProjectedProfitBeforeTax = entity.ProjectedProfitBeforeTax,
+
+                // Book to Taxable Reconciliation
+                BookProfit = entity.BookProfit,
+                AddBookDepreciation = entity.AddBookDepreciation,
+                AddDisallowed40A3 = entity.AddDisallowed40A3,
+                AddDisallowed40A7 = entity.AddDisallowed40A7,
+                AddDisallowed43B = entity.AddDisallowed43B,
+                AddOtherDisallowances = entity.AddOtherDisallowances,
+                TotalAdditions = entity.TotalAdditions,
+                LessItDepreciation = entity.LessItDepreciation,
+                LessDeductions80C = entity.LessDeductions80C,
+                LessDeductions80D = entity.LessDeductions80D,
+                LessOtherDeductions = entity.LessOtherDeductions,
+                TotalDeductions = entity.TotalDeductions,
 
                 TaxableIncome = entity.TaxableIncome,
                 TaxRegime = entity.TaxRegime,

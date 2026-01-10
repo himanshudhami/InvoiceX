@@ -17,6 +17,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] Frontend dashboard
 - [x] **Auto-fetch YTD actuals from ledger** (Phase 1 complete)
 - [x] **YTD vs Projection split** (Phase 2 complete)
+- [x] **Book Profit → Taxable Income reconciliation** (Phase 3 complete)
 
 ---
 
@@ -130,32 +131,46 @@ advance_tax_assessments:
 
 ---
 
-## Phase 3: Book Profit → Taxable Income Reconciliation
+## Phase 3: Book Profit → Taxable Income Reconciliation (COMPLETED)
 
 ### Goal
 Proper tax computation requires adjustments between book profit and taxable income.
+
+### Implementation (Done)
+1. **Database Migration**: `150_add_book_taxable_reconciliation.sql`
+   - Added all reconciliation columns to `advance_tax_assessments`
+
+2. **Backend Changes**:
+   - Updated `AdvanceTaxAssessment` entity with reconciliation fields
+   - Updated `AdvanceTaxAssessmentDto` and `UpdateAdvanceTaxAssessmentDto`
+   - Updated repository INSERT/UPDATE statements
+   - Modified `ComputeAssessmentAsync` to set `bookProfit = projectedProfitBeforeTax`
+   - Modified `UpdateAssessmentAsync` to calculate totals and taxable income
+
+3. **Frontend Changes**:
+   - Updated TypeScript types for reconciliation fields
+   - Added "Book Profit to Taxable Income Reconciliation" section in UI
+   - Shows additions (expenses disallowed) and deductions
+   - Formula: `Taxable Income = Book Profit + Total Additions - Total Deductions`
 
 ### Data Model Changes
 ```
 advance_tax_assessments:
   -- Additions to book profit
+  + book_profit DECIMAL(18,2)
   + add_book_depreciation DECIMAL(18,2)
   + add_disallowed_40a3 DECIMAL(18,2)      -- Cash payments > 10K
   + add_disallowed_40a7 DECIMAL(18,2)      -- Gratuity provision
   + add_disallowed_43b DECIMAL(18,2)       -- Unpaid statutory dues
   + add_other_disallowances DECIMAL(18,2)
+  + total_additions DECIMAL(18,2)
 
   -- Deductions from book profit
   + less_it_depreciation DECIMAL(18,2)     -- As per IT Act rates
   + less_deductions_80c DECIMAL(18,2)
   + less_deductions_80d DECIMAL(18,2)
   + less_other_deductions DECIMAL(18,2)
-
-  -- Computed
-  + book_profit DECIMAL(18,2)
-  + total_additions DECIMAL(18,2)
   + total_deductions DECIMAL(18,2)
-  -- taxable_income = book_profit + additions - deductions
 ```
 
 ### UI: Reconciliation Statement
@@ -314,8 +329,8 @@ Bird's-eye view of advance tax status across all companies.
 
 1. ~~**Phase 1** - Auto-fetch YTD~~ ✅ DONE
 2. ~~**Phase 2** - YTD vs Projection split~~ ✅ DONE
-3. **Phase 3** - Book → Taxable reconciliation ← NEXT
-4. **Phase 5** - TDS/TCS integration
+3. ~~**Phase 3** - Book → Taxable reconciliation~~ ✅ DONE
+4. **Phase 5** - TDS/TCS integration ← NEXT
 5. **Phase 4** - Quarterly re-estimation
 6. **Phase 6** - MAT computation
 7. **Phase 7** - Form 280 generation

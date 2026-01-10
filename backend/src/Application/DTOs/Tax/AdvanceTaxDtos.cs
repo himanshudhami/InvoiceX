@@ -30,6 +30,24 @@ namespace Application.DTOs.Tax
         public decimal ProjectedOtherIncome { get; set; }
         public decimal ProjectedProfitBeforeTax { get; set; }
 
+        // Book to Taxable Reconciliation
+        public decimal BookProfit { get; set; }
+
+        // Additions (expenses disallowed)
+        public decimal AddBookDepreciation { get; set; }
+        public decimal AddDisallowed40A3 { get; set; }
+        public decimal AddDisallowed40A7 { get; set; }
+        public decimal AddDisallowed43B { get; set; }
+        public decimal AddOtherDisallowances { get; set; }
+        public decimal TotalAdditions { get; set; }
+
+        // Deductions
+        public decimal LessItDepreciation { get; set; }
+        public decimal LessDeductions80C { get; set; }
+        public decimal LessDeductions80D { get; set; }
+        public decimal LessOtherDeductions { get; set; }
+        public decimal TotalDeductions { get; set; }
+
         // Tax Calculation
         public decimal TaxableIncome { get; set; }
         public string TaxRegime { get; set; } = "normal";
@@ -105,6 +123,19 @@ namespace Application.DTOs.Tax
         public decimal ProjectedAdditionalExpenses { get; set; }
         public decimal ProjectedDepreciation { get; set; }
         public decimal ProjectedOtherIncome { get; set; }
+
+        // Book to Taxable Reconciliation - Additions
+        public decimal AddBookDepreciation { get; set; }
+        public decimal AddDisallowed40A3 { get; set; }
+        public decimal AddDisallowed40A7 { get; set; }
+        public decimal AddDisallowed43B { get; set; }
+        public decimal AddOtherDisallowances { get; set; }
+
+        // Book to Taxable Reconciliation - Deductions
+        public decimal LessItDepreciation { get; set; }
+        public decimal LessDeductions80C { get; set; }
+        public decimal LessDeductions80D { get; set; }
+        public decimal LessOtherDeductions { get; set; }
 
         public string TaxRegime { get; set; } = "normal";
 

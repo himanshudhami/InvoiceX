@@ -71,8 +71,77 @@ namespace Core.Entities.Tax
         public decimal ProjectedOtherIncome { get; set; }
         public decimal ProjectedProfitBeforeTax { get; set; }
 
+        // ==================== Book to Taxable Reconciliation ====================
+
+        /// <summary>
+        /// Book profit as per P&L (same as ProjectedProfitBeforeTax)
+        /// </summary>
+        public decimal BookProfit { get; set; }
+
+        // Additions to book profit (expenses disallowed)
+
+        /// <summary>
+        /// Add back: Depreciation as per books
+        /// </summary>
+        public decimal AddBookDepreciation { get; set; }
+
+        /// <summary>
+        /// Add back: Cash payments exceeding Rs 10,000 (Section 40A(3))
+        /// </summary>
+        public decimal AddDisallowed40A3 { get; set; }
+
+        /// <summary>
+        /// Add back: Provision for gratuity (Section 40A(7))
+        /// </summary>
+        public decimal AddDisallowed40A7 { get; set; }
+
+        /// <summary>
+        /// Add back: Unpaid statutory dues (Section 43B)
+        /// </summary>
+        public decimal AddDisallowed43B { get; set; }
+
+        /// <summary>
+        /// Add back: Other disallowed expenses
+        /// </summary>
+        public decimal AddOtherDisallowances { get; set; }
+
+        /// <summary>
+        /// Total additions to book profit
+        /// </summary>
+        public decimal TotalAdditions { get; set; }
+
+        // Deductions from book profit
+
+        /// <summary>
+        /// Less: Depreciation as per Income Tax Act rates
+        /// </summary>
+        public decimal LessItDepreciation { get; set; }
+
+        /// <summary>
+        /// Less: Deductions under Section 80C
+        /// </summary>
+        public decimal LessDeductions80C { get; set; }
+
+        /// <summary>
+        /// Less: Deductions under Section 80D
+        /// </summary>
+        public decimal LessDeductions80D { get; set; }
+
+        /// <summary>
+        /// Less: Other deductions
+        /// </summary>
+        public decimal LessOtherDeductions { get; set; }
+
+        /// <summary>
+        /// Total deductions from book profit
+        /// </summary>
+        public decimal TotalDeductions { get; set; }
+
         // ==================== Tax Calculation ====================
 
+        /// <summary>
+        /// Taxable Income = BookProfit + TotalAdditions - TotalDeductions
+        /// </summary>
         public decimal TaxableIncome { get; set; }
 
         /// <summary>

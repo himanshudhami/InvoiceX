@@ -30,6 +30,22 @@ export interface AdvanceTaxAssessment {
   projectedOtherIncome: number;
   projectedProfitBeforeTax: number;
 
+  // Book to Taxable Reconciliation
+  bookProfit: number;
+  // Additions (expenses disallowed)
+  addBookDepreciation: number;
+  addDisallowed40A3: number;
+  addDisallowed40A7: number;
+  addDisallowed43B: number;
+  addOtherDisallowances: number;
+  totalAdditions: number;
+  // Deductions
+  lessItDepreciation: number;
+  lessDeductions80C: number;
+  lessDeductions80D: number;
+  lessOtherDeductions: number;
+  totalDeductions: number;
+
   // Tax Calculation
   taxableIncome: number;
   taxRegime: TaxRegime;
@@ -97,6 +113,19 @@ export interface UpdateAdvanceTaxAssessmentRequest {
   projectedAdditionalExpenses: number;
   projectedDepreciation: number;
   projectedOtherIncome: number;
+
+  // Book to Taxable Reconciliation - Additions
+  addBookDepreciation: number;
+  addDisallowed40A3: number;
+  addDisallowed40A7: number;
+  addDisallowed43B: number;
+  addOtherDisallowances: number;
+
+  // Book to Taxable Reconciliation - Deductions
+  lessItDepreciation: number;
+  lessDeductions80C: number;
+  lessDeductions80D: number;
+  lessOtherDeductions: number;
 
   taxRegime: TaxRegime;
 
