@@ -397,4 +397,40 @@ namespace Application.DTOs.Tax
 
         public decimal NetTaxPayable { get; set; }
     }
+
+    /// <summary>
+    /// Preview of TDS/TCS values from modules (before applying to assessment)
+    /// </summary>
+    public class TdsTcsPreviewDto
+    {
+        /// <summary>
+        /// Total TDS receivable from tds_receivable table
+        /// </summary>
+        public decimal TdsReceivable { get; set; }
+
+        /// <summary>
+        /// Total TCS credit (TCS paid by company) from tcs_transactions
+        /// </summary>
+        public decimal TcsCredit { get; set; }
+
+        /// <summary>
+        /// Current value in assessment (for comparison)
+        /// </summary>
+        public decimal CurrentTdsInAssessment { get; set; }
+
+        /// <summary>
+        /// Current TCS in assessment (for comparison)
+        /// </summary>
+        public decimal CurrentTcsInAssessment { get; set; }
+
+        /// <summary>
+        /// Difference between fetched and current TDS
+        /// </summary>
+        public decimal TdsDifference { get; set; }
+
+        /// <summary>
+        /// Difference between fetched and current TCS
+        /// </summary>
+        public decimal TcsDifference { get; set; }
+    }
 }

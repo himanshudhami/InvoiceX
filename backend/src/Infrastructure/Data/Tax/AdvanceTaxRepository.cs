@@ -563,5 +563,40 @@ namespace Infrastructure.Data.Tax
 
             return result;
         }
+
+        // ==================== TDS/TCS Integration ====================
+
+        public async Task<decimal> GetTdsReceivableAsync(Guid companyId, string financialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            // Sum all TDS receivable amounts for the company in the given FY
+            // Only include entries that haven't been written off
+            const string sql = @"
+                SELECT COALESCE(SUM(tds_amount), 0)
+                FROM tds_receivable
+                WHERE company_id = @companyId
+                    AND financial_year = @financialYear
+                    AND status NOT IN ('written_off', 'cancelled')";
+
+            return await connection.QuerySingleOrDefaultAsync<decimal>(sql, new { companyId, financialYear });
+        }
+
+        public async Task<decimal> GetTcsCreditAsync(Guid companyId, string financialYear)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            // Sum TCS amounts where transaction_type = 'paid' (TCS we paid = credit we can claim)
+            // Only include completed/remitted transactions
+            const string sql = @"
+                SELECT COALESCE(SUM(tcs_amount), 0)
+                FROM tcs_transactions
+                WHERE company_id = @companyId
+                    AND financial_year = @financialYear
+                    AND transaction_type = 'paid'
+                    AND status NOT IN ('cancelled')";
+
+            return await connection.QuerySingleOrDefaultAsync<decimal>(sql, new { companyId, financialYear });
+        }
     }
 }

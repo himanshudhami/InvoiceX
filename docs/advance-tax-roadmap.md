@@ -18,6 +18,7 @@ Advance Tax (Section 207) is a forward-looking tax estimation for corporates. Th
 - [x] **Auto-fetch YTD actuals from ledger** (Phase 1 complete)
 - [x] **YTD vs Projection split** (Phase 2 complete)
 - [x] **Book Profit → Taxable Income reconciliation** (Phase 3 complete)
+- [x] **TDS/TCS Integration** (Phase 5 complete)
 
 ---
 
@@ -236,15 +237,34 @@ advance_tax_revisions:
 
 ---
 
-## Phase 5: Integration with TDS/TCS Modules
+## Phase 5: Integration with TDS/TCS Modules (COMPLETED)
 
 ### Goal
 Auto-fetch TDS receivable and TCS credit from existing modules.
 
-### Implementation
-1. Query `tds_receivables` for company/FY → Sum as TDS credit
-2. Query TCS credits if applicable
-3. Auto-populate in assessment, allow manual override
+### Implementation (Done)
+1. **Repository Layer**:
+   - Added `GetTdsReceivableAsync(companyId, financialYear)` - queries `tds_receivable` table
+   - Added `GetTcsCreditAsync(companyId, financialYear)` - queries `tcs_transactions` where `transaction_type = 'paid'`
+
+2. **Service Layer**:
+   - `ComputeAssessmentAsync` now auto-fetches TDS/TCS when not provided in request
+   - Added `RefreshTdsTcsAsync` - refresh TDS/TCS from modules for existing assessment
+   - Added `GetTdsTcsPreviewAsync` - preview values before refresh
+
+3. **API Endpoints**:
+   - `POST /api/tax/advance-tax/assessment/{id}/refresh-tds-tcs` - refresh TDS/TCS
+   - `GET /api/tax/advance-tax/tds-tcs-preview/{companyId}/{financialYear}` - preview
+
+4. **Frontend**:
+   - Added `TdsTcsPreview` type
+   - Added `useRefreshTdsTcs` and `useTdsTcsPreview` hooks
+   - Added "Refresh TDS/TCS from modules" button in Tax Calculation section
+
+### Behavior
+- When creating assessment: Auto-fetches TDS/TCS if not manually provided
+- After creation: User can click "Refresh TDS/TCS from modules" to sync latest values
+- Manual override: User can still enter custom values in the update form
 
 ---
 
@@ -330,8 +350,8 @@ Bird's-eye view of advance tax status across all companies.
 1. ~~**Phase 1** - Auto-fetch YTD~~ ✅ DONE
 2. ~~**Phase 2** - YTD vs Projection split~~ ✅ DONE
 3. ~~**Phase 3** - Book → Taxable reconciliation~~ ✅ DONE
-4. **Phase 5** - TDS/TCS integration ← NEXT
-5. **Phase 4** - Quarterly re-estimation
+4. ~~**Phase 5** - TDS/TCS integration~~ ✅ DONE
+5. **Phase 4** - Quarterly re-estimation ← NEXT
 6. **Phase 6** - MAT computation
 7. **Phase 7** - Form 280 generation
 8. **Phase 8** - Compliance dashboard

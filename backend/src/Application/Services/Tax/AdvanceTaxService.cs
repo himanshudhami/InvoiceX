@@ -111,9 +111,11 @@ namespace Application.Services.Tax
             var cess = taxPlusSurcharge * CessRate / 100m;
             var totalTaxLiability = baseTax + surcharge + cess;
 
-            // Apply credits
-            var tdsReceivable = request.TdsReceivable ?? 0m;
-            var tcsCredit = request.TcsCredit ?? 0m;
+            // Apply credits - auto-fetch from TDS/TCS modules if not provided
+            var tdsReceivable = request.TdsReceivable ??
+                await _repository.GetTdsReceivableAsync(request.CompanyId, request.FinancialYear);
+            var tcsCredit = request.TcsCredit ??
+                await _repository.GetTcsCreditAsync(request.CompanyId, request.FinancialYear);
             var matCredit = request.MatCredit ?? 0m;
             var netTaxPayable = Math.Max(0, totalTaxLiability - tdsReceivable - tcsCredit - matCredit);
 
@@ -457,6 +459,62 @@ namespace Application.Services.Tax
                 RemainingMonths = remainingMonths,
                 SuggestedAdditionalRevenue = avgMonthlyRevenue * remainingMonths,
                 SuggestedAdditionalExpenses = avgMonthlyExpenses * remainingMonths
+            };
+        }
+
+        public async Task<Result<AdvanceTaxAssessmentDto>> RefreshTdsTcsAsync(Guid assessmentId, Guid userId)
+        {
+            var assessment = await _repository.GetAssessmentByIdAsync(assessmentId);
+            if (assessment == null)
+                return Error.NotFound($"Assessment {assessmentId} not found");
+
+            if (assessment.Status == "finalized")
+                return Error.Validation("Cannot refresh TDS/TCS for a finalized assessment");
+
+            // Fetch fresh values from TDS/TCS modules
+            var tdsReceivable = await _repository.GetTdsReceivableAsync(assessment.CompanyId, assessment.FinancialYear);
+            var tcsCredit = await _repository.GetTcsCreditAsync(assessment.CompanyId, assessment.FinancialYear);
+
+            // Update assessment
+            assessment.TdsReceivable = tdsReceivable;
+            assessment.TcsCredit = tcsCredit;
+
+            // Recalculate net tax payable
+            assessment.NetTaxPayable = Math.Max(0,
+                assessment.TotalTaxLiability - tdsReceivable - tcsCredit
+                - assessment.MatCredit - assessment.AdvanceTaxAlreadyPaid);
+
+            await _repository.UpdateAssessmentAsync(assessment);
+
+            // Recalculate schedules with new net payable
+            await RecalculateSchedulesInternalAsync(assessment);
+
+            return await GetAssessmentByIdAsync(assessmentId);
+        }
+
+        public async Task<Result<TdsTcsPreviewDto>> GetTdsTcsPreviewAsync(Guid companyId, string financialYear)
+        {
+            var company = await _companiesRepository.GetByIdAsync(companyId);
+            if (company == null)
+                return Error.NotFound($"Company {companyId} not found");
+
+            // Fetch values from modules
+            var tdsReceivable = await _repository.GetTdsReceivableAsync(companyId, financialYear);
+            var tcsCredit = await _repository.GetTcsCreditAsync(companyId, financialYear);
+
+            // Get current assessment values if exists
+            var assessment = await _repository.GetAssessmentByCompanyAndFYAsync(companyId, financialYear);
+            var currentTds = assessment?.TdsReceivable ?? 0m;
+            var currentTcs = assessment?.TcsCredit ?? 0m;
+
+            return new TdsTcsPreviewDto
+            {
+                TdsReceivable = tdsReceivable,
+                TcsCredit = tcsCredit,
+                CurrentTdsInAssessment = currentTds,
+                CurrentTcsInAssessment = currentTcs,
+                TdsDifference = tdsReceivable - currentTds,
+                TcsDifference = tcsCredit - currentTcs
             };
         }
 

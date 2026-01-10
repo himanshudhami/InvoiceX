@@ -237,6 +237,45 @@ namespace WebApi.Controllers.Tax
             return Ok(result.Value);
         }
 
+        /// <summary>
+        /// Refresh TDS receivable and TCS credit from modules
+        /// </summary>
+        [HttpPost("assessment/{id:guid}/refresh-tds-tcs")]
+        [ProducesResponseType(typeof(AdvanceTaxAssessmentDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> RefreshTdsTcs(Guid id)
+        {
+            var result = await _service.RefreshTdsTcsAsync(id, CurrentUserId);
+
+            if (result.IsFailure)
+            {
+                return result.Error!.Type switch
+                {
+                    ErrorType.NotFound => NotFound(result.Error.Message),
+                    _ => BadRequest(result.Error.Message)
+                };
+            }
+
+            return Ok(result.Value);
+        }
+
+        /// <summary>
+        /// Preview TDS/TCS values from modules (without saving)
+        /// </summary>
+        [HttpGet("tds-tcs-preview/{companyId:guid}/{financialYear}")]
+        [ProducesResponseType(typeof(TdsTcsPreviewDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetTdsTcsPreview(Guid companyId, string financialYear)
+        {
+            var result = await _service.GetTdsTcsPreviewAsync(companyId, financialYear);
+
+            if (result.IsFailure)
+                return NotFound(result.Error!.Message);
+
+            return Ok(result.Value);
+        }
+
         // ==================== Schedule Endpoints ====================
 
         /// <summary>

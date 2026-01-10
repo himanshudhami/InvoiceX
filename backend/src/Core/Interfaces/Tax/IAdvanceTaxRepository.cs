@@ -77,5 +77,19 @@ namespace Core.Interfaces.Tax
             Guid companyId,
             DateOnly fromDate,
             DateOnly toDate);
+
+        // ==================== TDS/TCS Integration ====================
+
+        /// <summary>
+        /// Get total TDS receivable for a company in a financial year.
+        /// Queries tds_receivable table and sums tds_amount.
+        /// </summary>
+        Task<decimal> GetTdsReceivableAsync(Guid companyId, string financialYear);
+
+        /// <summary>
+        /// Get total TCS credit (TCS paid by company) for a financial year.
+        /// Queries tcs_transactions where transaction_type = 'paid'.
+        /// </summary>
+        Task<decimal> GetTcsCreditAsync(Guid companyId, string financialYear);
     }
 }

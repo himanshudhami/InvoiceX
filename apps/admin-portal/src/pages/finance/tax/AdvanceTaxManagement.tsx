@@ -16,6 +16,7 @@ import {
   useRunAdvanceTaxScenario,
   useDeleteAdvanceTaxScenario,
   useRefreshYtd,
+  useRefreshTdsTcs,
 } from '@/features/advance-tax/hooks';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import type {
@@ -171,6 +172,7 @@ const AdvanceTaxManagement = () => {
   const runScenario = useRunAdvanceTaxScenario();
   const deleteScenario = useDeleteAdvanceTaxScenario();
   const refreshYtd = useRefreshYtd();
+  const refreshTdsTcs = useRefreshTdsTcs();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -827,6 +829,18 @@ const AdvanceTaxManagement = () => {
                       <span className="text-gray-600">Less: TCS Credit</span>
                       <span className="font-medium text-green-600">({formatCurrency(assessment.tcsCredit)})</span>
                     </div>
+                    {assessment.status !== 'finalized' && (
+                      <div className="flex justify-end py-2">
+                        <button
+                          onClick={() => assessment && refreshTdsTcs.mutateAsync(assessment.id)}
+                          disabled={refreshTdsTcs.isPending}
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          <RefreshCcw size={12} className={refreshTdsTcs.isPending ? 'animate-spin' : ''} />
+                          {refreshTdsTcs.isPending ? 'Refreshing...' : 'Refresh TDS/TCS from modules'}
+                        </button>
+                      </div>
+                    )}
                     <div className="flex justify-between py-2 bg-purple-50 px-2 rounded font-bold text-purple-800">
                       <span>Net Tax Payable</span>
                       <span>{formatCurrency(assessment.netTaxPayable)}</span>

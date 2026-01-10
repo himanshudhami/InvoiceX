@@ -60,6 +60,16 @@ namespace Application.Interfaces.Tax
         /// </summary>
         Task<Result<YtdFinancialsDto>> GetYtdFinancialsPreviewAsync(Guid companyId, string financialYear);
 
+        /// <summary>
+        /// Refresh TDS receivable and TCS credit from respective modules
+        /// </summary>
+        Task<Result<AdvanceTaxAssessmentDto>> RefreshTdsTcsAsync(Guid assessmentId, Guid userId);
+
+        /// <summary>
+        /// Get TDS/TCS preview (current values from modules without saving)
+        /// </summary>
+        Task<Result<TdsTcsPreviewDto>> GetTdsTcsPreviewAsync(Guid companyId, string financialYear);
+
         // ==================== Schedule Operations ====================
 
         /// <summary>

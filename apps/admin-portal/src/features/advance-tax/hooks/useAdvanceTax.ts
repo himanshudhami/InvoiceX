@@ -292,6 +292,43 @@ export const useYtdFinancialsPreview = (
   });
 };
 
+/**
+ * Refresh TDS receivable and TCS credit from modules
+ */
+export const useRefreshTdsTcs = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (assessmentId: string) => advanceTaxService.refreshTdsTcs(assessmentId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: advanceTaxKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: advanceTaxKeys.assessments.detail(result.id),
+      });
+      toast.success('TDS/TCS credits refreshed from modules');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to refresh TDS/TCS');
+    },
+  });
+};
+
+/**
+ * Fetch TDS/TCS preview (current values from modules)
+ */
+export const useTdsTcsPreview = (
+  companyId: string,
+  financialYear: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: advanceTaxKeys.tdsTcsPreview.byCompanyFy(companyId, financialYear),
+    queryFn: () => advanceTaxService.getTdsTcsPreview(companyId, financialYear),
+    enabled: enabled && !!companyId && !!financialYear,
+    staleTime: 1 * 60 * 1000, // 1 minute - fresh data important
+  });
+};
+
 // ==================== Schedule Mutations ====================
 
 /**

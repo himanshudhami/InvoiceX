@@ -339,3 +339,12 @@ export interface TaxComputation {
 
   netTaxPayable: number;
 }
+
+export interface TdsTcsPreview {
+  tdsReceivable: number;
+  tcsCredit: number;
+  currentTdsInAssessment: number;
+  currentTcsInAssessment: number;
+  tdsDifference: number;
+  tcsDifference: number;
+}

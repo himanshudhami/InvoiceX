@@ -7,6 +7,7 @@ import type {
   AdvanceTaxTracker,
   InterestCalculation,
   TaxComputation,
+  TdsTcsPreview,
   CreateAdvanceTaxAssessmentRequest,
   UpdateAdvanceTaxAssessmentRequest,
   RecordAdvanceTaxPaymentRequest,
@@ -100,6 +101,25 @@ export class AdvanceTaxService {
   async getYtdFinancialsPreview(companyId: string, financialYear: string): Promise<YtdFinancials> {
     return apiClient.get<YtdFinancials>(
       `${this.endpoint}/ytd-preview/${companyId}/${financialYear}`
+    );
+  }
+
+  /**
+   * Refresh TDS receivable and TCS credit from modules
+   */
+  async refreshTdsTcs(assessmentId: string): Promise<AdvanceTaxAssessment> {
+    return apiClient.post<AdvanceTaxAssessment>(
+      `${this.endpoint}/assessment/${assessmentId}/refresh-tds-tcs`,
+      {}
+    );
+  }
+
+  /**
+   * Preview TDS/TCS values from modules (without saving)
+   */
+  async getTdsTcsPreview(companyId: string, financialYear: string): Promise<TdsTcsPreview> {
+    return apiClient.get<TdsTcsPreview>(
+      `${this.endpoint}/tds-tcs-preview/${companyId}/${financialYear}`
     );
   }
 
