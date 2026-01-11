@@ -72,6 +72,7 @@ export interface InvoicePaymentStatus {
   invoiceId: string;
   invoiceNumber?: string;
   invoiceTotal: number;
+  currency?: string;
   totalPaid: number;
   balanceDue: number;
   status: 'unpaid' | 'partial' | 'paid';

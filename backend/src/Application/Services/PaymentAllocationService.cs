@@ -371,6 +371,7 @@ namespace Application.Services
                     InvoiceId = summary.invoice_id,
                     InvoiceNumber = summary.invoice_number,
                     InvoiceTotal = summary.invoice_total,
+                    Currency = summary.currency ?? "INR",
                     TotalPaid = summary.total_paid,
                     BalanceDue = summary.balance_due,
                     Status = summary.payment_status,

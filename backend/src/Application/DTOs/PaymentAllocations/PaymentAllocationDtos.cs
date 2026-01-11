@@ -65,6 +65,7 @@ namespace Application.DTOs.PaymentAllocations
         public Guid InvoiceId { get; set; }
         public string? InvoiceNumber { get; set; }
         public decimal InvoiceTotal { get; set; }
+        public string Currency { get; set; } = "INR";
         public decimal TotalPaid { get; set; }
         public decimal BalanceDue { get; set; }
         public string Status { get; set; } = "unpaid";

@@ -24,6 +24,7 @@ interface AllocationRow {
   amount: number;
   tdsAmount: number;
   notes: string;
+  currency?: string;
 }
 
 export const PaymentAllocationDialog = ({
@@ -91,6 +92,7 @@ export const PaymentAllocationDialog = ({
         amount: maxAmount,
         tdsAmount: 0,
         notes: '',
+        currency: invoiceStatus.currency,
       },
     ]);
   };
@@ -227,7 +229,7 @@ export const PaymentAllocationDialog = ({
                         <FileText className="h-4 w-4 text-blue-500" />
                         <span className="font-medium text-sm">{alloc.invoiceNumber}</span>
                         <span className="text-xs text-gray-500">
-                          (Total: {formatCurrency(alloc.invoiceTotal, payment.currency)} | Due: {formatCurrency(alloc.balanceDue, payment.currency)})
+                          (Total: {formatCurrency(alloc.invoiceTotal, alloc.currency || payment.currency)} | Due: {formatCurrency(alloc.balanceDue, alloc.currency || payment.currency)})
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -289,7 +291,7 @@ export const PaymentAllocationDialog = ({
                     <div>
                       <span className="font-medium">{inv.invoiceNumber}</span>
                       <span className="text-gray-500 ml-2">
-                        Due: {formatCurrency(inv.balanceDue, payment.currency)} of {formatCurrency(inv.invoiceTotal, payment.currency)}
+                        Due: {formatCurrency(inv.balanceDue, inv.currency || payment.currency)} of {formatCurrency(inv.invoiceTotal, inv.currency || payment.currency)}
                       </span>
                       <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
                         inv.status === 'partial'
