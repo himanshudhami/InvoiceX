@@ -75,6 +75,8 @@ namespace Core.Interfaces.Ledger
         public decimal Debits { get; set; }
         public decimal Credits { get; set; }
         public decimal ClosingBalance { get; set; }
+        public bool IsControlAccount { get; set; }
+        public string? ControlAccountType { get; set; }
     }
 
     public class AccountLedgerData

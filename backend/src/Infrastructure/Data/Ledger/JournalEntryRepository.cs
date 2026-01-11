@@ -647,5 +647,86 @@ namespace Infrastructure.Data.Ledger
                 "SELECT * FROM journal_entries WHERE company_id = @companyId AND tally_voucher_guid = @tallyVoucherGuid",
                 new { companyId, tallyVoucherGuid });
         }
+
+        // ==================== Subledger Queries (COA Modernization) ====================
+
+        public async Task<IEnumerable<SubledgerPartyBalance>> GetSubledgerBalancesByPartyAsync(
+            Guid companyId,
+            string subledgerType,
+            DateOnly asOfDate)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT
+                    jel.subledger_id AS PartyId,
+                    SUM(jel.debit_amount - jel.credit_amount) AS Balance,
+                    COUNT(*) AS TransactionCount,
+                    MAX(je.journal_date) AS LastTransactionDate
+                FROM journal_entry_lines jel
+                INNER JOIN journal_entries je ON jel.journal_entry_id = je.id
+                WHERE je.company_id = @companyId
+                  AND je.status = 'posted'
+                  AND je.journal_date <= @asOfDate
+                  AND jel.subledger_type = @subledgerType
+                  AND jel.subledger_id IS NOT NULL
+                GROUP BY jel.subledger_id
+                HAVING ABS(SUM(jel.debit_amount - jel.credit_amount)) >= 0.01";
+
+            return await connection.QueryAsync<SubledgerPartyBalance>(sql, new { companyId, subledgerType, asOfDate });
+        }
+
+        public async Task<decimal> GetSubledgerBalanceAsync(
+            Guid companyId,
+            string subledgerType,
+            Guid partyId,
+            DateOnly asOfDate)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0)
+                FROM journal_entry_lines jel
+                INNER JOIN journal_entries je ON jel.journal_entry_id = je.id
+                WHERE je.company_id = @companyId
+                  AND je.status = 'posted'
+                  AND je.journal_date <= @asOfDate
+                  AND jel.subledger_type = @subledgerType
+                  AND jel.subledger_id = @partyId";
+
+            return await connection.ExecuteScalarAsync<decimal>(sql, new { companyId, subledgerType, partyId, asOfDate });
+        }
+
+        public async Task<IEnumerable<SubledgerTransaction>> GetSubledgerTransactionsAsync(
+            Guid companyId,
+            string subledgerType,
+            Guid partyId,
+            DateOnly fromDate,
+            DateOnly toDate)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var sql = @"
+                SELECT
+                    je.journal_date AS Date,
+                    je.id AS JournalEntryId,
+                    je.journal_number AS JournalNumber,
+                    je.source_type AS SourceType,
+                    je.source_number AS SourceNumber,
+                    jel.description AS Description,
+                    jel.debit_amount AS Debit,
+                    jel.credit_amount AS Credit
+                FROM journal_entry_lines jel
+                INNER JOIN journal_entries je ON jel.journal_entry_id = je.id
+                WHERE je.company_id = @companyId
+                  AND je.status = 'posted'
+                  AND je.journal_date >= @fromDate
+                  AND je.journal_date <= @toDate
+                  AND jel.subledger_type = @subledgerType
+                  AND jel.subledger_id = @partyId
+                ORDER BY je.journal_date, je.journal_number";
+
+            return await connection.QueryAsync<SubledgerTransaction>(sql, new { companyId, subledgerType, partyId, fromDate, toDate });
+        }
     }
 }

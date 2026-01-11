@@ -58,6 +58,10 @@ public class ContractorPaymentFilterRequest : BasePayrollFilterRequest
     public int? PaymentMonth { get; set; }
     public int? PaymentYear { get; set; }
     public string? Status { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public decimal? MinAmount { get; set; }
+    public decimal? MaxAmount { get; set; }
 
     public Dictionary<string, object> GetFilters()
     {
@@ -67,6 +71,10 @@ public class ContractorPaymentFilterRequest : BasePayrollFilterRequest
         if (PaymentMonth.HasValue) filters["payment_month"] = PaymentMonth.Value;
         if (PaymentYear.HasValue) filters["payment_year"] = PaymentYear.Value;
         if (!string.IsNullOrEmpty(Status)) filters["status"] = Status;
+        if (FromDate.HasValue) filters["from_date"] = FromDate.Value;
+        if (ToDate.HasValue) filters["to_date"] = ToDate.Value;
+        if (MinAmount.HasValue) filters["min_amount"] = MinAmount.Value;
+        if (MaxAmount.HasValue) filters["max_amount"] = MaxAmount.Value;
         return filters;
     }
 }

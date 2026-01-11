@@ -97,6 +97,7 @@ const TrialBalanceReport = lazy(() => import('./pages/finance/ledger/TrialBalanc
 const IncomeStatementReport = lazy(() => import('./pages/finance/ledger/IncomeStatementReport'))
 const BalanceSheetReport = lazy(() => import('./pages/finance/ledger/BalanceSheetReport'))
 const AccountLedgerReport = lazy(() => import('./pages/finance/ledger/AccountLedgerReport'))
+const PartyLedgerReport = lazy(() => import('./pages/finance/ledger/PartyLedgerReport'))
 const AbnormalBalanceReport = lazy(() => import('./pages/finance/ledger/AbnormalBalanceReport'))
 
 // Approval Workflows
@@ -344,6 +345,7 @@ function AppRoutes() {
               <Route path="/ledger/income-statement" element={<IncomeStatementReport />} />
               <Route path="/ledger/balance-sheet" element={<BalanceSheetReport />} />
               <Route path="/ledger/account-ledger" element={<AccountLedgerReport />} />
+              <Route path="/ledger/party-ledger" element={<PartyLedgerReport />} />
               <Route path="/ledger/abnormal-balances" element={<AbnormalBalanceReport />} />
 
               {/* Leave Management Routes */}

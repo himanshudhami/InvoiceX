@@ -44,4 +44,17 @@ export const ledgerKeys = {
     [...ledgerKeys.dataQuality(), 'abnormal-balances', { companyId }] as const,
   abnormalBalanceAlert: (companyId: string) =>
     [...ledgerKeys.dataQuality(), 'abnormal-balance-alert', { companyId }] as const,
+
+  // Subledger Reports
+  subledger: () => [...ledgerKeys.all, 'subledger'] as const,
+  apAging: (companyId: string, asOfDate: string) =>
+    [...ledgerKeys.subledger(), 'ap-aging', { companyId, asOfDate }] as const,
+  arAging: (companyId: string, asOfDate: string) =>
+    [...ledgerKeys.subledger(), 'ar-aging', { companyId, asOfDate }] as const,
+  partyLedger: (companyId: string, partyType: string, partyId: string, fromDate: string, toDate: string) =>
+    [...ledgerKeys.subledger(), 'party-ledger', { companyId, partyType, partyId, fromDate, toDate }] as const,
+  controlAccountReconciliation: (companyId: string, asOfDate: string) =>
+    [...ledgerKeys.subledger(), 'reconciliation', { companyId, asOfDate }] as const,
+  subledgerDrilldown: (companyId: string, controlAccountId: string, asOfDate: string) =>
+    [...ledgerKeys.subledger(), 'drilldown', { companyId, controlAccountId, asOfDate }] as const,
 }

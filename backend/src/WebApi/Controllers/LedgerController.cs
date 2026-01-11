@@ -20,6 +20,7 @@ namespace WebApi.Controllers
         private readonly IPostingRuleRepository _ruleRepository;
         private readonly IAutoPostingService _autoPostingService;
         private readonly ITrialBalanceService _trialBalanceService;
+        private readonly ISubledgerReportService _subledgerReportService;
         private readonly IAuditService _auditService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<LedgerController> _logger;
@@ -30,6 +31,7 @@ namespace WebApi.Controllers
             IPostingRuleRepository ruleRepository,
             IAutoPostingService autoPostingService,
             ITrialBalanceService trialBalanceService,
+            ISubledgerReportService subledgerReportService,
             IAuditService auditService,
             IConfiguration configuration,
             ILogger<LedgerController> logger)
@@ -39,6 +41,7 @@ namespace WebApi.Controllers
             _ruleRepository = ruleRepository;
             _autoPostingService = autoPostingService;
             _trialBalanceService = trialBalanceService;
+            _subledgerReportService = subledgerReportService;
             _auditService = auditService;
             _configuration = configuration;
             _logger = logger;
@@ -418,6 +421,83 @@ namespace WebApi.Controllers
         {
             var alert = await _trialBalanceService.GetAbnormalBalanceAlertAsync(companyId);
             return Ok(alert);
+        }
+
+        // ==================== Subledger Reports ====================
+
+        /// <summary>
+        /// Get AP aging by vendor (subledger breakdown of Trade Payables)
+        /// </summary>
+        [HttpGet("reports/ap-aging/{companyId}")]
+        [ProducesResponseType(typeof(SubledgerAgingReport), 200)]
+        public async Task<IActionResult> GetApAging(
+            Guid companyId,
+            [FromQuery] DateOnly? asOfDate = null)
+        {
+            var date = asOfDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var report = await _subledgerReportService.GetApAgingAsync(companyId, date);
+            return Ok(report);
+        }
+
+        /// <summary>
+        /// Get AR aging by customer (subledger breakdown of Trade Receivables)
+        /// </summary>
+        [HttpGet("reports/ar-aging/{companyId}")]
+        [ProducesResponseType(typeof(SubledgerAgingReport), 200)]
+        public async Task<IActionResult> GetArAging(
+            Guid companyId,
+            [FromQuery] DateOnly? asOfDate = null)
+        {
+            var date = asOfDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var report = await _subledgerReportService.GetArAgingAsync(companyId, date);
+            return Ok(report);
+        }
+
+        /// <summary>
+        /// Get party ledger (transaction history for a specific party)
+        /// </summary>
+        [HttpGet("reports/party-ledger/{companyId}/{partyType}/{partyId}")]
+        [ProducesResponseType(typeof(PartyLedgerReport), 200)]
+        public async Task<IActionResult> GetPartyLedger(
+            Guid companyId,
+            string partyType,
+            Guid partyId,
+            [FromQuery] DateOnly fromDate,
+            [FromQuery] DateOnly toDate)
+        {
+            var report = await _subledgerReportService.GetPartyLedgerAsync(
+                companyId, partyType, partyId, fromDate, toDate);
+            return Ok(report);
+        }
+
+        /// <summary>
+        /// Get control account reconciliation (verify subledger = control balance)
+        /// </summary>
+        [HttpGet("reports/control-account-reconciliation/{companyId}")]
+        [ProducesResponseType(typeof(ControlAccountReconciliation), 200)]
+        public async Task<IActionResult> GetControlAccountReconciliation(
+            Guid companyId,
+            [FromQuery] DateOnly? asOfDate = null)
+        {
+            var date = asOfDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var report = await _subledgerReportService.GetControlAccountReconciliationAsync(companyId, date);
+            return Ok(report);
+        }
+
+        /// <summary>
+        /// Get subledger drill-down for a control account (party-wise breakdown)
+        /// </summary>
+        [HttpGet("reports/subledger-drilldown/{companyId}/{controlAccountId}")]
+        [ProducesResponseType(typeof(SubledgerDrilldown), 200)]
+        public async Task<IActionResult> GetSubledgerDrilldown(
+            Guid companyId,
+            Guid controlAccountId,
+            [FromQuery] DateOnly? asOfDate = null)
+        {
+            var date = asOfDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var report = await _subledgerReportService.GetSubledgerDrilldownAsync(
+                companyId, controlAccountId, date);
+            return Ok(report);
         }
 
         // ==================== Posting Rules ====================

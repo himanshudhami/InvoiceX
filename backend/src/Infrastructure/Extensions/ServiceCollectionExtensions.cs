@@ -212,6 +212,15 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.TrialBalanceService>>()
                 ));
 
+            // Subledger Report service (COA Modernization - party-wise control account breakdown)
+            services.AddScoped<Application.Interfaces.Ledger.ISubledgerReportService>(sp =>
+                new Application.Services.Ledger.SubledgerReportService(
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IJournalEntryRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.Ledger.IChartOfAccountRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IPartyRepository>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.SubledgerReportService>>()
+                ));
+
             // Auto-Posting service (for invoices, payments, vendor invoices, vendor payments, loans, etc.)
             // Note: Expense claim posting uses dedicated ExpensePostingService
             services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService>(sp =>
@@ -620,6 +629,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                 new Infrastructure.Data.Migration.TallyMigrationLogRepository(connectionString));
             services.AddScoped<Core.Interfaces.Migration.ITallyFieldMappingRepository>(sp =>
                 new Infrastructure.Data.Migration.TallyFieldMappingRepository(connectionString));
+            services.AddScoped<Core.Interfaces.Migration.ITallyLedgerMappingRepository>(sp =>
+                new Infrastructure.Data.Migration.TallyLedgerMappingRepository(connectionString));
 
             // Tally Parser services
             services.AddScoped<Application.Interfaces.Migration.ITallyParserService, Application.Services.Migration.TallyXmlParserService>();

@@ -25,6 +25,7 @@ namespace Application.Services.Migration
         private readonly ILogger<TallyMasterMappingService> _logger;
         private readonly ITallyMigrationLogRepository _logRepository;
         private readonly ITallyFieldMappingRepository _mappingRepository;
+        private readonly ITallyLedgerMappingRepository _tallyLedgerMappingRepository;
         private readonly IChartOfAccountRepository _coaRepository;
         private readonly IPartyRepository _partyRepository;
         private readonly ITdsTagRuleRepository _tdsTagRuleRepository;
@@ -39,6 +40,7 @@ namespace Application.Services.Migration
             ILogger<TallyMasterMappingService> logger,
             ITallyMigrationLogRepository logRepository,
             ITallyFieldMappingRepository mappingRepository,
+            ITallyLedgerMappingRepository tallyLedgerMappingRepository,
             IChartOfAccountRepository coaRepository,
             IPartyRepository partyRepository,
             ITdsTagRuleRepository tdsTagRuleRepository,
@@ -52,6 +54,7 @@ namespace Application.Services.Migration
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _logRepository = logRepository ?? throw new ArgumentNullException(nameof(logRepository));
             _mappingRepository = mappingRepository ?? throw new ArgumentNullException(nameof(mappingRepository));
+            _tallyLedgerMappingRepository = tallyLedgerMappingRepository ?? throw new ArgumentNullException(nameof(tallyLedgerMappingRepository));
             _coaRepository = coaRepository ?? throw new ArgumentNullException(nameof(coaRepository));
             _partyRepository = partyRepository ?? throw new ArgumentNullException(nameof(partyRepository));
             _tdsTagRuleRepository = tdsTagRuleRepository ?? throw new ArgumentNullException(nameof(tdsTagRuleRepository));
@@ -117,6 +120,14 @@ namespace Application.Services.Migration
                                       result.Ledgers.Failed + result.StockItems.Failed;
 
                 result.TotalSuspense = result.Ledgers.Suspense;
+
+                // 7. Sync control account opening balances from subledger mappings
+                // Ensures Trade Receivables/Payables reflect sum of party balances
+                await SyncControlAccountOpeningBalancesAsync(companyId, cancellationToken);
+
+                // 8. Create equity plug to balance opening balances
+                // Tally data often doesn't include the Retained Earnings account needed to make opening balances sum to zero
+                await CreateOpeningBalanceEquityPlugAsync(batchId, companyId, cancellationToken);
 
                 _logger.LogInformation(
                     "Master import completed for batch {BatchId}: {Imported} imported, {Failed} failed, {Suspense} suspense",
@@ -828,8 +839,8 @@ namespace Application.Services.Migration
                 AccountNumber = ledger.BankAccountNumber,
                 BankName = ledger.BankBranchName ?? ledger.Name ?? "Unknown Bank", // Required field - fallback to ledger name
                 IfscCode = ledger.IfscCode,
-                CurrentBalance = ledger.ClosingBalance,
-                OpeningBalance = ledger.OpeningBalance,
+                CurrentBalance = -ledger.ClosingBalance, // Negate: Tally uses inverted sign convention
+                OpeningBalance = -ledger.OpeningBalance, // Negate: Tally uses inverted sign convention
                 IsActive = true,
                 TallyLedgerGuid = ledger.Guid,
                 TallyLedgerName = ledger.Name,
@@ -888,8 +899,8 @@ namespace Application.Services.Migration
                 AccountName = ledger.Name,
                 AccountType = accountType,
                 NormalBalance = GetNormalBalance(accountType),
-                OpeningBalance = ledger.OpeningBalance,
-                CurrentBalance = ledger.ClosingBalance,
+                OpeningBalance = -ledger.OpeningBalance, // Negate: Tally uses inverted sign convention
+                CurrentBalance = -ledger.ClosingBalance, // Negate: Tally uses inverted sign convention
                 IsActive = true,
                 TallyLedgerGuid = ledger.Guid,
                 TallyLedgerName = ledger.Name,
@@ -920,86 +931,74 @@ namespace Application.Services.Migration
 
         private async Task CreateReceivableAccount(Guid batchId, Guid companyId, TallyLedgerDto ledger, Guid customerId, int order)
         {
-            var accountName = $"Trade Receivable - {ledger.Name}";
-
-            // Check if account already exists by name (deduplication)
-            var existingByName = await _coaRepository.GetByNameAsync(companyId, accountName);
-            if (existingByName != null)
+            // COA Modernization: Create tally_ledger_mapping instead of individual COA entries
+            // Maps Tally ledger name → Control Account (1120) + Party
+            var existingMapping = await _tallyLedgerMappingRepository.GetByTallyGuidAsync(companyId, ledger.Guid);
+            if (existingMapping != null)
             {
-                // Link existing account to Tally
-                existingByName.TallyLedgerGuid = ledger.Guid;
-                existingByName.TallyLedgerName = ledger.Name;
-                existingByName.TallyGroupName = ledger.LedgerGroup;
-                existingByName.TallyMigrationBatchId = batchId;
-                existingByName.UpdatedAt = DateTime.UtcNow;
-                await _coaRepository.UpdateAsync(existingByName);
+                _logger.LogDebug("Tally ledger mapping already exists for {LedgerName}", ledger.Name);
                 return;
             }
 
-            var accountCode = await GenerateAccountCode(companyId, "asset", ledger.Guid + "_AR");
-            var account = new ChartOfAccount
+            // Get Trade Receivables control account (1120)
+            var controlAccount = await _coaRepository.GetByCodeAsync(companyId, "1120");
+            if (controlAccount == null)
             {
-                Id = Guid.NewGuid(),
+                _logger.LogWarning("Control account 1120 (Trade Receivables) not found for company {CompanyId}", companyId);
+                return;
+            }
+
+            var mapping = new TallyLedgerMapping
+            {
                 CompanyId = companyId,
-                AccountCode = accountCode,
-                AccountName = accountName,
-                AccountType = "asset",
-                NormalBalance = "debit",
-                AccountSubtype = "trade_receivables",
-                OpeningBalance = ledger.OpeningBalance,
-                CurrentBalance = ledger.ClosingBalance,
-                IsActive = true,
-                TallyLedgerGuid = ledger.Guid,
                 TallyLedgerName = ledger.Name,
-                TallyGroupName = ledger.LedgerGroup,
-                TallyMigrationBatchId = batchId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                TallyLedgerGuid = ledger.Guid,
+                TallyParentGroup = ledger.LedgerGroup,
+                ControlAccountId = controlAccount.Id,
+                PartyType = "customer",
+                PartyId = customerId,
+                OpeningBalance = -ledger.OpeningBalance, // Negate: Tally uses inverted sign convention
+                IsActive = true
             };
 
-            await _coaRepository.AddAsync(account);
+            await _tallyLedgerMappingRepository.AddAsync(mapping);
+            _logger.LogDebug("Created tally ledger mapping for customer {CustomerName} → 1120", ledger.Name);
         }
 
         private async Task CreatePayableAccount(Guid batchId, Guid companyId, TallyLedgerDto ledger, Guid vendorId, int order)
         {
-            var accountName = $"Trade Payable - {ledger.Name}";
-
-            // Check if account already exists by name (deduplication)
-            var existingByName = await _coaRepository.GetByNameAsync(companyId, accountName);
-            if (existingByName != null)
+            // COA Modernization: Create tally_ledger_mapping instead of individual COA entries
+            // Maps Tally ledger name → Control Account (2100) + Party
+            var existingMapping = await _tallyLedgerMappingRepository.GetByTallyGuidAsync(companyId, ledger.Guid);
+            if (existingMapping != null)
             {
-                // Link existing account to Tally
-                existingByName.TallyLedgerGuid = ledger.Guid;
-                existingByName.TallyLedgerName = ledger.Name;
-                existingByName.TallyGroupName = ledger.LedgerGroup;
-                existingByName.TallyMigrationBatchId = batchId;
-                existingByName.UpdatedAt = DateTime.UtcNow;
-                await _coaRepository.UpdateAsync(existingByName);
+                _logger.LogDebug("Tally ledger mapping already exists for {LedgerName}", ledger.Name);
                 return;
             }
 
-            var accountCode = await GenerateAccountCode(companyId, "liability", ledger.Guid + "_AP");
-            var account = new ChartOfAccount
+            // Get Trade Payables control account (2100)
+            var controlAccount = await _coaRepository.GetByCodeAsync(companyId, "2100");
+            if (controlAccount == null)
             {
-                Id = Guid.NewGuid(),
+                _logger.LogWarning("Control account 2100 (Trade Payables) not found for company {CompanyId}", companyId);
+                return;
+            }
+
+            var mapping = new TallyLedgerMapping
+            {
                 CompanyId = companyId,
-                AccountCode = accountCode,
-                AccountName = accountName,
-                AccountType = "liability",
-                NormalBalance = "credit",
-                AccountSubtype = "trade_payables",
-                OpeningBalance = ledger.OpeningBalance,
-                CurrentBalance = ledger.ClosingBalance,
-                IsActive = true,
-                TallyLedgerGuid = ledger.Guid,
                 TallyLedgerName = ledger.Name,
-                TallyGroupName = ledger.LedgerGroup,
-                TallyMigrationBatchId = batchId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                TallyLedgerGuid = ledger.Guid,
+                TallyParentGroup = ledger.LedgerGroup,
+                ControlAccountId = controlAccount.Id,
+                PartyType = "vendor",
+                PartyId = vendorId,
+                OpeningBalance = -ledger.OpeningBalance, // Negate: Tally uses inverted sign convention
+                IsActive = true
             };
 
-            await _coaRepository.AddAsync(account);
+            await _tallyLedgerMappingRepository.AddAsync(mapping);
+            _logger.LogDebug("Created tally ledger mapping for vendor {VendorName} → 2100", ledger.Name);
         }
 
         private async Task CreateBankGlAccount(Guid batchId, Guid companyId, TallyLedgerDto ledger, Guid bankAccountId, int order)
@@ -1030,8 +1029,8 @@ namespace Application.Services.Migration
                 AccountType = "asset",
                 NormalBalance = "debit",
                 AccountSubtype = "bank",
-                OpeningBalance = ledger.OpeningBalance,
-                CurrentBalance = ledger.ClosingBalance,
+                OpeningBalance = -ledger.OpeningBalance, // Negate: Tally uses inverted sign convention
+                CurrentBalance = -ledger.ClosingBalance, // Negate: Tally uses inverted sign convention
                 IsActive = true,
                 TallyLedgerGuid = ledger.Guid,
                 TallyLedgerName = ledger.Name,
@@ -1042,6 +1041,135 @@ namespace Application.Services.Migration
             };
 
             await _coaRepository.AddAsync(account);
+        }
+
+        /// <summary>
+        /// Creates an equity plug entry to balance opening balances from Tally.
+        /// Tally exports often don't include Retained Earnings, causing opening balances to be unbalanced.
+        /// This method calculates the imbalance and creates/updates a Retained Earnings account to balance it.
+        /// </summary>
+        private async Task CreateOpeningBalanceEquityPlugAsync(Guid batchId, Guid companyId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Calculate total opening balance from all COA accounts
+                var totalOpeningBalance = await _coaRepository.GetTotalOpeningBalanceAsync(companyId);
+
+                // If already balanced (within 1 rupee tolerance for rounding), no plug needed
+                if (Math.Abs(totalOpeningBalance) < 1.0m)
+                {
+                    _logger.LogInformation("Opening balances are balanced (total: {Total}). No equity plug needed.", totalOpeningBalance);
+                    return;
+                }
+
+                _logger.LogInformation(
+                    "Opening balance imbalance detected: {Imbalance}. Creating equity plug entry.",
+                    totalOpeningBalance);
+
+                // The plug amount is the negative of the imbalance
+                // If assets > liabilities (positive imbalance), we need to credit equity (negative balance)
+                // If liabilities > assets (negative imbalance), we need to debit equity (positive balance)
+                var plugAmount = -totalOpeningBalance;
+
+                // Find or create Retained Earnings account (3210)
+                var retainedEarningsAccount = await _coaRepository.GetByCodeAsync(companyId, "3210");
+
+                if (retainedEarningsAccount == null)
+                {
+                    // Create Retained Earnings account
+                    retainedEarningsAccount = new ChartOfAccount
+                    {
+                        Id = Guid.NewGuid(),
+                        CompanyId = companyId,
+                        AccountCode = "3210",
+                        AccountName = "Retained Earnings",
+                        AccountType = "equity",
+                        AccountSubtype = "retained_earnings",
+                        NormalBalance = "credit",
+                        OpeningBalance = plugAmount,
+                        CurrentBalance = plugAmount,
+                        IsActive = true,
+                        TallyLedgerName = "Tally Import - Opening Balance Equity",
+                        TallyMigrationBatchId = batchId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _coaRepository.AddAsync(retainedEarningsAccount);
+                    _logger.LogInformation(
+                        "Created Retained Earnings account (3210) with opening balance {Amount} to balance Tally import",
+                        plugAmount);
+                }
+                else
+                {
+                    // Update existing Retained Earnings account's opening balance
+                    retainedEarningsAccount.OpeningBalance += plugAmount;
+                    retainedEarningsAccount.CurrentBalance += plugAmount;
+                    retainedEarningsAccount.TallyMigrationBatchId = batchId;
+                    retainedEarningsAccount.UpdatedAt = DateTime.UtcNow;
+
+                    await _coaRepository.UpdateAsync(retainedEarningsAccount);
+                    _logger.LogInformation(
+                        "Updated Retained Earnings account (3210) with additional {Amount} to balance Tally import",
+                        plugAmount);
+                }
+
+                // Verify balance after plug
+                var newTotal = await _coaRepository.GetTotalOpeningBalanceAsync(companyId);
+                _logger.LogInformation(
+                    "After equity plug: Total opening balance = {Total} (should be ~0)",
+                    newTotal);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the import - this is a balancing entry, not critical
+                _logger.LogWarning(ex, "Failed to create opening balance equity plug for company {CompanyId}", companyId);
+            }
+        }
+
+        /// <summary>
+        /// Syncs control account opening balances from subledger (tally_ledger_mapping) totals.
+        /// This ensures Trade Receivables (1120) and Trade Payables (2100) reflect the sum of party balances.
+        /// Called during Tally import after all masters are imported.
+        /// </summary>
+        private async Task SyncControlAccountOpeningBalancesAsync(Guid companyId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogInformation("Syncing control account opening balances from subledger mappings for company {CompanyId}", companyId);
+
+                // Get all control accounts
+                var controlAccounts = await _coaRepository.GetControlAccountsAsync(companyId);
+
+                foreach (var controlAccount in controlAccounts)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Get sum of subledger opening balances for this control account
+                    var mappings = await _tallyLedgerMappingRepository.GetByCompanyIdAsync(companyId);
+                    var subledgerTotal = mappings
+                        .Where(m => m.ControlAccountId == controlAccount.Id && m.IsActive)
+                        .Sum(m => m.OpeningBalance ?? 0m);
+
+                    if (subledgerTotal == 0m) continue;
+
+                    // Update control account opening balance
+                    var previousBalance = controlAccount.OpeningBalance;
+                    controlAccount.OpeningBalance = subledgerTotal;
+                    controlAccount.CurrentBalance = subledgerTotal; // Also set current balance for opening
+                    controlAccount.UpdatedAt = DateTime.UtcNow;
+
+                    await _coaRepository.UpdateAsync(controlAccount);
+
+                    _logger.LogInformation(
+                        "Updated control account {AccountCode} ({AccountName}) opening balance: {Previous} → {New}",
+                        controlAccount.AccountCode, controlAccount.AccountName, previousBalance, subledgerTotal);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to sync control account opening balances for company {CompanyId}", companyId);
+            }
         }
 
         private static string GetNormalBalance(string accountType)

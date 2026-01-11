@@ -77,6 +77,11 @@ namespace Core.Entities.Ledger
         public bool IsControlAccount { get; set; }
 
         /// <summary>
+        /// Type of control account: payables, receivables, tds_payable, tds_receivable, gst_input, gst_output, loans
+        /// </summary>
+        public string? ControlAccountType { get; set; }
+
+        /// <summary>
         /// System-created account that cannot be modified
         /// </summary>
         public bool IsSystemAccount { get; set; }

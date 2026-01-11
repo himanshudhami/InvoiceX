@@ -34,7 +34,9 @@ namespace Infrastructure.Data.Ledger
                     coa.opening_balance,
                     COALESCE(SUM(jel.debit_amount), 0) as debits,
                     COALESCE(SUM(jel.credit_amount), 0) as credits,
-                    COALESCE(SUM(jel.debit_amount), 0) - COALESCE(SUM(jel.credit_amount), 0) - coa.opening_balance as closing_balance
+                    coa.opening_balance + COALESCE(SUM(jel.debit_amount), 0) - COALESCE(SUM(jel.credit_amount), 0) as closing_balance,
+                    coa.is_control_account,
+                    coa.control_account_type
                 FROM chart_of_accounts coa
                 LEFT JOIN journal_entry_lines jel ON jel.account_id = coa.id
                 LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
@@ -43,7 +45,8 @@ namespace Infrastructure.Data.Ledger
                 WHERE coa.company_id = @companyId
                     AND coa.is_active = TRUE
                 GROUP BY coa.id, coa.account_code, coa.account_name, coa.account_type,
-                         coa.depth_level, coa.opening_balance, coa.normal_balance
+                         coa.depth_level, coa.opening_balance, coa.normal_balance,
+                         coa.is_control_account, coa.control_account_type
                 HAVING @includeZeroBalances = TRUE OR (
                     coa.opening_balance != 0 OR
                     COALESCE(SUM(jel.debit_amount), 0) != 0 OR

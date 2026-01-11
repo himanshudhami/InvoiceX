@@ -238,6 +238,20 @@ namespace Infrastructure.Data.Ledger
                 new { accountId, newBalance });
         }
 
+        public async Task<decimal> GetTotalOpeningBalanceAsync(Guid companyId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            // Sum all opening balances for the company
+            // In a balanced set of books: Assets(+) + Expenses(+) = Liabilities(-) + Equity(-) + Income(-)
+            // So total should be 0 when balanced
+            var total = await connection.ExecuteScalarAsync<decimal?>(
+                @"SELECT COALESCE(SUM(opening_balance), 0)
+                  FROM chart_of_accounts
+                  WHERE company_id = @companyId AND is_active = true",
+                new { companyId });
+            return total ?? 0m;
+        }
+
         // ==================== Initialization ====================
 
         public async Task<bool> HasAccountsAsync(Guid companyId)
@@ -291,6 +305,18 @@ namespace Infrastructure.Data.Ledger
                 "SELECT MAX(account_code) FROM chart_of_accounts WHERE company_id = @companyId AND account_type = @accountType",
                 new { companyId, accountType });
             return result ?? "0000";
+        }
+
+        // ==================== Control Accounts (COA Modernization) ====================
+
+        public async Task<IEnumerable<ChartOfAccount>> GetControlAccountsAsync(Guid companyId)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+            return await connection.QueryAsync<ChartOfAccount>(
+                @"SELECT * FROM chart_of_accounts
+                  WHERE company_id = @companyId AND is_control_account = true AND is_active = true
+                  ORDER BY account_code",
+                new { companyId });
         }
     }
 }

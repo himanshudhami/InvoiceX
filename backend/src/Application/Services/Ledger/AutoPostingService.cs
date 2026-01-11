@@ -74,6 +74,7 @@ namespace Application.Services.Ledger
                 var sourceData = new Dictionary<string, object>
                 {
                     ["company_id"] = invoice.CompanyId?.ToString() ?? "",
+                    ["customer_id"] = invoice.PartyId?.ToString() ?? "", // For subledger tracking
                     ["invoice_type"] = invoice.InvoiceType ?? "b2b",
                     ["is_export"] = isExport,
                     ["is_intra_state"] = isIntraState,
@@ -121,6 +122,7 @@ namespace Application.Services.Ledger
                 var sourceData = new Dictionary<string, object>
                 {
                     ["company_id"] = payment.CompanyId?.ToString() ?? "",
+                    ["customer_id"] = payment.PartyId?.ToString() ?? "", // For subledger tracking
                     ["tds_applicable"] = hasTds,
                     ["tds_section"] = tdsSection,
                     ["is_advance"] = payment.InvoiceId == null,
@@ -612,6 +614,22 @@ namespace Application.Services.Ledger
                         lineTemplate.Description,
                         sourceData);
 
+                    // Resolve subledger (party) reference from template
+                    var subledgerType = lineTemplate.SubledgerType ?? lineTemplate.SubledgerTypeCamel;
+                    Guid? subledgerId = null;
+                    var subledgerIdField = lineTemplate.SubledgerIdField
+                        ?? lineTemplate.SubledgerIdFieldCamel
+                        ?? lineTemplate.SubledgerFieldLegacy; // Legacy: "subledgerField"
+                    if (!string.IsNullOrEmpty(subledgerIdField) && sourceData.TryGetValue(subledgerIdField, out var sidValue))
+                    {
+                        if (sidValue is Guid g)
+                            subledgerId = g;
+                        else if (sidValue is string s && Guid.TryParse(s, out var parsed))
+                            subledgerId = parsed;
+                        else if (sidValue != null && Guid.TryParse(sidValue.ToString(), out var parsedObj))
+                            subledgerId = parsedObj;
+                    }
+
                     var line = new JournalEntryLine
                     {
                         AccountId = account.Id,
@@ -619,7 +637,9 @@ namespace Application.Services.Ledger
                         CreditAmount = creditAmount,
                         Description = description,
                         Currency = "INR",
-                        ExchangeRate = 1
+                        ExchangeRate = 1,
+                        SubledgerType = subledgerType,
+                        SubledgerId = subledgerId
                     };
 
                     journalEntry.Lines.Add(line);
@@ -866,5 +886,9 @@ namespace Application.Services.Ledger
 
         [JsonPropertyName("subledgerIdField")]
         public string? SubledgerIdFieldCamel { get; set; }
+
+        // Legacy alias (existing templates use "subledgerField")
+        [JsonPropertyName("subledgerField")]
+        public string? SubledgerFieldLegacy { get; set; }
     }
 }

@@ -37,6 +37,15 @@ namespace Application.Services.Migration
         private readonly ITallyBankTransactionMapper _bankTransactionMapper;
         private readonly IPaymentAllocationRepository _paymentAllocationRepository;
         private readonly IVendorPaymentAllocationRepository _vendorPaymentAllocationRepository;
+        private readonly ITallyLedgerMappingRepository _tallyLedgerMappingRepository;
+        private readonly IPartyRepository _partyRepository;
+
+        // Control account codes - COA Modernization
+        private const string TradeReceivablesCode = "1120";
+        private const string TradePayablesCode = "2100";
+
+        // Cached control account IDs per company
+        private readonly Dictionary<Guid, (Guid? receivables, Guid? payables)> _controlAccountCache = new();
 
         public TallyVoucherMappingService(
             ILogger<TallyVoucherMappingService> logger,
@@ -57,7 +66,9 @@ namespace Application.Services.Migration
             ITallyStatutoryPaymentMapper statutoryPaymentMapper,
             ITallyBankTransactionMapper bankTransactionMapper,
             IPaymentAllocationRepository paymentAllocationRepository,
-            IVendorPaymentAllocationRepository vendorPaymentAllocationRepository)
+            IVendorPaymentAllocationRepository vendorPaymentAllocationRepository,
+            ITallyLedgerMappingRepository tallyLedgerMappingRepository,
+            IPartyRepository partyRepository)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _logRepository = logRepository ?? throw new ArgumentNullException(nameof(logRepository));
@@ -78,6 +89,8 @@ namespace Application.Services.Migration
             _bankTransactionMapper = bankTransactionMapper ?? throw new ArgumentNullException(nameof(bankTransactionMapper));
             _paymentAllocationRepository = paymentAllocationRepository ?? throw new ArgumentNullException(nameof(paymentAllocationRepository));
             _vendorPaymentAllocationRepository = vendorPaymentAllocationRepository ?? throw new ArgumentNullException(nameof(vendorPaymentAllocationRepository));
+            _tallyLedgerMappingRepository = tallyLedgerMappingRepository ?? throw new ArgumentNullException(nameof(tallyLedgerMappingRepository));
+            _partyRepository = partyRepository ?? throw new ArgumentNullException(nameof(partyRepository));
         }
 
         public async Task<Result<TallyVoucherImportResultDto>> ImportVouchersAsync(
@@ -960,24 +973,68 @@ namespace Application.Services.Migration
             {
                 lineNumber++;
 
-                // Resolve account
-                var account = await _coaRepository.GetByNameAsync(companyId, entry.LedgerName);
-                if (account == null && !string.IsNullOrEmpty(entry.LedgerGuid))
+                Guid accountId;
+                string? subledgerType = null;
+                Guid? subledgerId = null;
+
+                // COA Modernization: First check tally_ledger_mapping for party ledgers
+                var tallyMapping = await _tallyLedgerMappingRepository.GetByTallyLedgerNameAsync(companyId, entry.LedgerName);
+                if (tallyMapping == null && !string.IsNullOrEmpty(entry.LedgerGuid))
                 {
-                    account = await _coaRepository.GetByTallyGuidAsync(companyId, entry.LedgerGuid);
+                    tallyMapping = await _tallyLedgerMappingRepository.GetByTallyGuidAsync(companyId, entry.LedgerGuid);
                 }
 
-                // If account not found, use suspense account
-                Guid accountId;
-                if (account != null)
+                if (tallyMapping != null && tallyMapping.PartyId.HasValue)
                 {
-                    accountId = account.Id;
+                    // COA Modernization: Route by VOUCHER TYPE, not party classification
+                    // This fixes the issue where a vendor with sales transactions was posting to Trade Payables
+                    var (voucherControlAccountId, voucherSubledgerType) =
+                        await GetControlAccountForVoucherTypeAsync(companyId, voucher.VoucherType);
+
+                    if (voucherControlAccountId.HasValue && voucherSubledgerType != null)
+                    {
+                        // Use control account determined by voucher type
+                        accountId = voucherControlAccountId.Value;
+                        subledgerType = voucherSubledgerType;
+                        subledgerId = tallyMapping.PartyId;
+
+                        // Update party flags to reflect dual-role if needed
+                        await UpdatePartyRoleAsync(tallyMapping.PartyId.Value, voucherSubledgerType);
+                    }
+                    else
+                    {
+                        // Non-party voucher type (journal, contra) - use mapping as-is
+                        accountId = tallyMapping.ControlAccountId ?? await GetOrCreateSuspenseAccountAsync(companyId, entry.LedgerName);
+                        subledgerType = tallyMapping.PartyType;
+                        subledgerId = tallyMapping.PartyId;
+                    }
+                }
+                else if (tallyMapping != null && tallyMapping.ControlAccountId.HasValue)
+                {
+                    // Non-party mapping (e.g., expense account mapped to control) - use as-is
+                    accountId = tallyMapping.ControlAccountId.Value;
+                    subledgerType = tallyMapping.PartyType;
+                    subledgerId = tallyMapping.PartyId;
                 }
                 else
                 {
-                    // Get or create suspense account for unmapped ledgers
-                    accountId = await GetOrCreateSuspenseAccountAsync(companyId, entry.LedgerName);
-                    _logger.LogWarning("Using suspense account for unmapped ledger: {LedgerName}", entry.LedgerName);
+                    // Fallback: Direct COA lookup (legacy behavior)
+                    var account = await _coaRepository.GetByNameAsync(companyId, entry.LedgerName);
+                    if (account == null && !string.IsNullOrEmpty(entry.LedgerGuid))
+                    {
+                        account = await _coaRepository.GetByTallyGuidAsync(companyId, entry.LedgerGuid);
+                    }
+
+                    if (account != null)
+                    {
+                        accountId = account.Id;
+                    }
+                    else
+                    {
+                        // Get or create suspense account for unmapped ledgers
+                        accountId = await GetOrCreateSuspenseAccountAsync(companyId, entry.LedgerName);
+                        _logger.LogWarning("Using suspense account for unmapped ledger: {LedgerName}", entry.LedgerName);
+                    }
                 }
 
                 // Tally convention: Negative amount = Debit, Positive amount = Credit
@@ -989,7 +1046,9 @@ namespace Application.Services.Migration
                     AccountId = accountId,
                     Description = entry.LedgerName,
                     DebitAmount = entry.Amount < 0 ? Math.Abs(entry.Amount) : 0,
-                    CreditAmount = entry.Amount > 0 ? entry.Amount : 0
+                    CreditAmount = entry.Amount > 0 ? entry.Amount : 0,
+                    SubledgerType = subledgerType,
+                    SubledgerId = subledgerId
                 };
 
                 lines.Add(line);
@@ -1641,6 +1700,76 @@ namespace Application.Services.Migration
 
             // Fallback: truncate to first 5 chars
             return placeOfSupply.Substring(0, 5);
+        }
+
+        /// <summary>
+        /// COA Modernization: Determines control account based on voucher type, not party classification.
+        /// Sales/Receipt/Debit Note → Trade Receivables (1120)
+        /// Purchase/Payment/Credit Note → Trade Payables (2100)
+        /// </summary>
+        private async Task<(Guid? controlAccountId, string? subledgerType)> GetControlAccountForVoucherTypeAsync(
+            Guid companyId,
+            string voucherType)
+        {
+            // Get or cache control account IDs for this company
+            if (!_controlAccountCache.TryGetValue(companyId, out var cached))
+            {
+                var receivablesAccount = await _coaRepository.GetByCodeAsync(companyId, TradeReceivablesCode);
+                var payablesAccount = await _coaRepository.GetByCodeAsync(companyId, TradePayablesCode);
+                cached = (receivablesAccount?.Id, payablesAccount?.Id);
+                _controlAccountCache[companyId] = cached;
+            }
+
+            // Route based on voucher type
+            var normalizedType = NormalizeVoucherType(voucherType);
+            return normalizedType switch
+            {
+                "sales" or "receipt" or "debit_note" =>
+                    (cached.receivables, "customer"),
+                "purchase" or "payment" or "credit_note" =>
+                    (cached.payables, "vendor"),
+                _ => (null, null) // Non-party voucher types (journal, contra, etc.)
+            };
+        }
+
+        /// <summary>
+        /// Updates party flags (is_customer/is_vendor) based on transaction type routing.
+        /// A party can be both customer AND vendor if they have both types of transactions.
+        /// </summary>
+        private async Task UpdatePartyRoleAsync(Guid partyId, string subledgerType)
+        {
+            try
+            {
+                var party = await _partyRepository.GetByIdAsync(partyId);
+                if (party == null) return;
+
+                bool needsUpdate = false;
+
+                if (subledgerType == "customer" && !party.IsCustomer)
+                {
+                    party.IsCustomer = true;
+                    needsUpdate = true;
+                    _logger.LogInformation("Party {PartyName} ({PartyId}) marked as customer (has customer transactions)",
+                        party.Name, partyId);
+                }
+                else if (subledgerType == "vendor" && !party.IsVendor)
+                {
+                    party.IsVendor = true;
+                    needsUpdate = true;
+                    _logger.LogInformation("Party {PartyName} ({PartyId}) marked as vendor (has vendor transactions)",
+                        party.Name, partyId);
+                }
+
+                if (needsUpdate)
+                {
+                    party.UpdatedAt = DateTime.UtcNow;
+                    await _partyRepository.UpdateAsync(party);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update party role for {PartyId}", partyId);
+            }
         }
     }
 }

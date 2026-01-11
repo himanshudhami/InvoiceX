@@ -42,7 +42,9 @@ namespace Application.Services.Ledger
                 OpeningBalance = d.OpeningBalance,
                 Debits = d.Debits,
                 Credits = d.Credits,
-                ClosingBalance = d.ClosingBalance
+                ClosingBalance = d.ClosingBalance,
+                IsControlAccount = d.IsControlAccount,
+                ControlAccountType = d.ControlAccountType
             }).ToList();
 
             var report = new TrialBalanceReport

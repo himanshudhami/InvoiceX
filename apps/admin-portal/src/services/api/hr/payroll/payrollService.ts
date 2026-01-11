@@ -292,6 +292,10 @@ export class PayrollService {
     paymentMonth?: number;
     paymentYear?: number;
     status?: string;
+    fromDate?: string;
+    toDate?: string;
+    minAmount?: number;
+    maxAmount?: number;
   } = {}): Promise<PagedResponse<ContractorPayment>> {
     return apiClient.getPaged<ContractorPayment>(this.contractorEndpoint, params);
   }

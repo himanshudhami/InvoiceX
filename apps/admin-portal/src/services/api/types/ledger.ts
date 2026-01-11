@@ -136,6 +136,8 @@ export interface TrialBalanceRow {
   closingBalance: number;
   debitBalance: number;
   creditBalance: number;
+  isControlAccount?: boolean;
+  controlAccountType?: string;
 }
 
 export interface TrialBalanceReport {
@@ -282,4 +284,109 @@ export interface AbnormalBalanceAlertSummary {
   alertMessage: string;
   alertSeverity: 'success' | 'warning' | 'error' | 'info';
   topCategories: AbnormalBalanceCategorySummary[];
+}
+
+// ==================== Subledger Reports (COA Modernization) ====================
+
+export interface SubledgerAgingRow {
+  partyId: string;
+  partyName: string;
+  partyCode?: string;
+  current: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  over90Days: number;
+  totalOutstanding: number;
+}
+
+export interface SubledgerAgingTotals {
+  current: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  over90Days: number;
+  totalOutstanding: number;
+}
+
+export interface AgingBuckets {
+  bucket1Days: number;
+  bucket2Days: number;
+  bucket3Days: number;
+}
+
+export interface SubledgerAgingReport {
+  companyId: string;
+  reportType: 'AP' | 'AR';
+  asOfDate: string;
+  rows: SubledgerAgingRow[];
+  buckets: AgingBuckets;
+  totals: SubledgerAgingTotals;
+}
+
+export interface PartyLedgerEntry {
+  date: string;
+  journalEntryId: string;
+  journalNumber: string;
+  sourceType?: string;
+  sourceNumber?: string;
+  description: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface PartyLedgerReport {
+  companyId: string;
+  partyId: string;
+  partyName: string;
+  partyType: string;
+  fromDate: string;
+  toDate: string;
+  openingBalance: number;
+  entries: PartyLedgerEntry[];
+  closingBalance: number;
+  totalDebits: number;
+  totalCredits: number;
+}
+
+export interface ControlAccountReconciliationRow {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  controlAccountType?: string;
+  controlAccountBalance: number;
+  subledgerSum: number;
+  difference: number;
+  isReconciled: boolean;
+  partyCount: number;
+}
+
+export interface ControlAccountReconciliation {
+  companyId: string;
+  asOfDate: string;
+  rows: ControlAccountReconciliationRow[];
+  allReconciled: boolean;
+}
+
+export interface SubledgerDrilldownRow {
+  partyId: string;
+  partyName: string;
+  partyCode?: string;
+  partyType: string;
+  balance: number;
+  transactionCount: number;
+  lastTransactionDate?: string;
+}
+
+export interface SubledgerDrilldown {
+  companyId: string;
+  controlAccountId: string;
+  controlAccountCode: string;
+  controlAccountName: string;
+  asOfDate: string;
+  controlAccountBalance: number;
+  parties: SubledgerDrilldownRow[];
+  subledgerSum: number;
+  isReconciled: boolean;
 }

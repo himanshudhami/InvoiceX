@@ -145,5 +145,56 @@ namespace Core.Interfaces.Ledger
         /// Get journal entry by Tally voucher GUID
         /// </summary>
         Task<JournalEntry?> GetByTallyGuidAsync(Guid companyId, string tallyVoucherGuid);
+
+        // ==================== Subledger Queries (COA Modernization) ====================
+
+        /// <summary>
+        /// Get subledger balances grouped by party
+        /// </summary>
+        Task<IEnumerable<SubledgerPartyBalance>> GetSubledgerBalancesByPartyAsync(
+            Guid companyId,
+            string subledgerType,
+            DateOnly asOfDate);
+
+        /// <summary>
+        /// Get subledger balance for a specific party
+        /// </summary>
+        Task<decimal> GetSubledgerBalanceAsync(
+            Guid companyId,
+            string subledgerType,
+            Guid partyId,
+            DateOnly asOfDate);
+
+        /// <summary>
+        /// Get subledger transactions for a party in date range
+        /// </summary>
+        Task<IEnumerable<SubledgerTransaction>> GetSubledgerTransactionsAsync(
+            Guid companyId,
+            string subledgerType,
+            Guid partyId,
+            DateOnly fromDate,
+            DateOnly toDate);
+    }
+
+    // ==================== Subledger DTOs ====================
+
+    public class SubledgerPartyBalance
+    {
+        public Guid PartyId { get; set; }
+        public decimal Balance { get; set; }
+        public int TransactionCount { get; set; }
+        public DateOnly? LastTransactionDate { get; set; }
+    }
+
+    public class SubledgerTransaction
+    {
+        public DateOnly Date { get; set; }
+        public Guid JournalEntryId { get; set; }
+        public string JournalNumber { get; set; } = string.Empty;
+        public string? SourceType { get; set; }
+        public string? SourceNumber { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public decimal Debit { get; set; }
+        public decimal Credit { get; set; }
     }
 }

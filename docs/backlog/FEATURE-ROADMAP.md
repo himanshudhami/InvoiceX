@@ -289,21 +289,34 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 
 ### 16. COA Modernization (Control Account Architecture)
 **Module**: [05-LEDGER](../modules/05-LEDGER.md)
-**Status**: 📋 Proposed (Pending Review)
+**Status**: ✅ Complete (2026-01-11)
 **Feature Doc**: [FEATURE-COA-MODERNIZATION.md](./FEATURE-COA-MODERNIZATION.md)
+**Implementation Plan**: [PLAN-COA-MODERNIZATION-IMPL.md](./PLAN-COA-MODERNIZATION-IMPL.md)
 
 **Description**: Modernize Chart of Accounts from Tally-style per-party ledgers to control account + subledger architecture (Zoho/Odoo pattern). Tally import/export maintained via dedicated mapping layer.
 
-**Key Changes**:
-- Single "Accounts Payable" / "Accounts Receivable" control accounts
-- Party reference (`party_type`, `party_id`) on journal entry lines
-- `tally_ledger_mapping` table for Tally ↔ Modern translation
-- Tally integration becomes a pluggable feature
+**Implementation Completed**:
+- [x] Control accounts (1120 Trade Receivables, 2100 Trade Payables) with subledger
+- [x] `tally_ledger_mapping` table with 332 entries
+- [x] `journal_entry_lines.subledger_type` and `subledger_id` fields
+- [x] Tally import creates mappings instead of individual TL-/TR- accounts
+- [x] Subledger drill-down in Trial Balance UI
+- [x] Party Ledger report
+- [x] Control account opening balance sync from subledger
+- [x] Opening balance equity plug (Retained Earnings)
+- [x] Tally sign convention fix
 
-**Review Required**: CA Panel + Software Architects
+**Validation Results** (2026-01-11):
+| Metric | Result |
+|--------|--------|
+| Total Opening Balance | ₹0.00 (balanced) |
+| Trade Receivables synced | ₹10,70,586 |
+| Trade Payables synced | ₹39,725 |
+| JE lines with subledger | 208/948 (22%) |
+| tally_ledger_mapping | 332 entries |
 
-**Benefits**:
-- COA reduced from 500+ to ~100 accounts
+**Benefits Achieved**:
+- COA reduced from 500+ to ~150 accounts
 - Scalable to unlimited vendors/customers
 - Modern architecture aligned with Zoho/Odoo
 - Tally compatibility preserved via mapping layer

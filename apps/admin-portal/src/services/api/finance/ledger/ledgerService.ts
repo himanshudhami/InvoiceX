@@ -12,6 +12,10 @@ import {
   AccountLedgerReport,
   AbnormalBalanceReport,
   AbnormalBalanceAlertSummary,
+  SubledgerAgingReport,
+  PartyLedgerReport,
+  ControlAccountReconciliation,
+  SubledgerDrilldown,
   PagedResponse,
   ChartOfAccountsFilterParams,
   JournalEntriesFilterParams,
@@ -189,6 +193,51 @@ export class LedgerService {
     return apiClient.post<JournalEntry | null, Record<string, never>>(
       `${this.baseEndpoint}/auto-posting/payment/${paymentId}`,
       {}
+    );
+  }
+
+  // ==================== Subledger Reports ====================
+
+  async getApAging(companyId: string, asOfDate: string): Promise<SubledgerAgingReport> {
+    return apiClient.get<SubledgerAgingReport>(`${this.baseEndpoint}/reports/ap-aging/${companyId}`, {
+      asOfDate,
+    });
+  }
+
+  async getArAging(companyId: string, asOfDate: string): Promise<SubledgerAgingReport> {
+    return apiClient.get<SubledgerAgingReport>(`${this.baseEndpoint}/reports/ar-aging/${companyId}`, {
+      asOfDate,
+    });
+  }
+
+  async getPartyLedger(
+    companyId: string,
+    partyType: string,
+    partyId: string,
+    fromDate: string,
+    toDate: string
+  ): Promise<PartyLedgerReport> {
+    return apiClient.get<PartyLedgerReport>(
+      `${this.baseEndpoint}/reports/party-ledger/${companyId}/${partyType}/${partyId}`,
+      { fromDate, toDate }
+    );
+  }
+
+  async getControlAccountReconciliation(companyId: string, asOfDate: string): Promise<ControlAccountReconciliation> {
+    return apiClient.get<ControlAccountReconciliation>(
+      `${this.baseEndpoint}/reports/control-account-reconciliation/${companyId}`,
+      { asOfDate }
+    );
+  }
+
+  async getSubledgerDrilldown(
+    companyId: string,
+    controlAccountId: string,
+    asOfDate: string
+  ): Promise<SubledgerDrilldown> {
+    return apiClient.get<SubledgerDrilldown>(
+      `${this.baseEndpoint}/reports/subledger-drilldown/${companyId}/${controlAccountId}`,
+      { asOfDate }
     );
   }
 }

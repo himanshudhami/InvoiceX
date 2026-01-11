@@ -105,5 +105,10 @@ namespace Core.Interfaces
         /// Get parties by a list of IDs
         /// </summary>
         Task<IEnumerable<Party>> GetByIdsAsync(IEnumerable<Guid> ids);
+
+        /// <summary>
+        /// Get parties by type (vendor, customer, employee)
+        /// </summary>
+        Task<IEnumerable<Party>> GetByTypeAsync(Guid companyId, string partyType);
     }
 }

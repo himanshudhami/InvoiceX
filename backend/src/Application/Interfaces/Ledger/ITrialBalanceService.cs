@@ -88,6 +88,8 @@ namespace Application.Interfaces.Ledger
         public decimal ClosingBalance { get; set; }
         public decimal DebitBalance => ClosingBalance > 0 ? ClosingBalance : 0;
         public decimal CreditBalance => ClosingBalance < 0 ? Math.Abs(ClosingBalance) : 0;
+        public bool IsControlAccount { get; set; }
+        public string? ControlAccountType { get; set; }
     }
 
     public class AccountLedgerReport

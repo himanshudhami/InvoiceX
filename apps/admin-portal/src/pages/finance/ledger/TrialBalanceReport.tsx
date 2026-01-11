@@ -1,8 +1,10 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useQueryStates, parseAsString, parseAsBoolean } from 'nuqs'
 import { useTrialBalance } from '@/features/ledger/hooks'
 import { useCompanies } from '@/hooks/api/useCompanies'
 import { TrialBalanceRow, AccountType } from '@/services/api/types'
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown'
+import SubledgerDrilldownDrawer from '@/components/ledger/SubledgerDrilldownDrawer'
 import { format } from 'date-fns'
 import {
   FileText,
@@ -14,7 +16,8 @@ import {
   TrendingDown,
   Wallet,
   DollarSign,
-  BookOpen
+  BookOpen,
+  ChevronRight
 } from 'lucide-react'
 
 const accountTypeConfig: Record<AccountType, { label: string; color: string; icon: React.ElementType }> = {
@@ -26,10 +29,21 @@ const accountTypeConfig: Record<AccountType, { label: string; color: string; ico
 }
 
 const TrialBalanceReport = () => {
-  const [companyFilter, setCompanyFilter] = useState<string>('')
-  const [asOfDate, setAsOfDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [includeZeroBalances, setIncludeZeroBalances] = useState(false)
-  const [groupByType, setGroupByType] = useState(true)
+  // URL-backed filter state with nuqs
+  const [filters, setFilters] = useQueryStates({
+    company: parseAsString.withDefault(''),
+    asOfDate: parseAsString.withDefault(format(new Date(), 'yyyy-MM-dd')),
+    includeZero: parseAsBoolean.withDefault(false),
+    groupByType: parseAsBoolean.withDefault(true),
+  })
+
+  const { company: companyFilter, asOfDate, includeZero: includeZeroBalances, groupByType } = filters
+
+  // Subledger drill-down state (not in URL - ephemeral UI state)
+  const [selectedControlAccount, setSelectedControlAccount] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const { data: companies = [] } = useCompanies()
   const { data: report, isLoading, error, refetch } = useTrialBalance(
@@ -38,6 +52,13 @@ const TrialBalanceReport = () => {
     includeZeroBalances,
     !!companyFilter && !!asOfDate
   )
+
+  // Handle control account click for drill-down
+  const handleControlAccountClick = (row: TrialBalanceRow) => {
+    if (row.isControlAccount) {
+      setSelectedControlAccount({ id: row.accountId, name: row.accountName })
+    }
+  }
 
   const selectedCompany = companies.find(c => c.id === companyFilter)
 
@@ -135,7 +156,7 @@ const TrialBalanceReport = () => {
             <div className="mt-6 flex justify-center">
               <CompanyFilterDropdown
                 value={companyFilter}
-                onChange={setCompanyFilter}
+                onChange={(value) => setFilters({ company: value })}
               />
             </div>
           </div>
@@ -178,7 +199,7 @@ const TrialBalanceReport = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
             <CompanyFilterDropdown
               value={companyFilter}
-              onChange={setCompanyFilter}
+              onChange={(value) => setFilters({ company: value })}
             />
           </div>
           <div>
@@ -186,7 +207,7 @@ const TrialBalanceReport = () => {
             <input
               type="date"
               value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
+              onChange={(e) => setFilters({ asOfDate: e.target.value })}
               className="block w-48 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             />
           </div>
@@ -195,7 +216,7 @@ const TrialBalanceReport = () => {
               type="checkbox"
               id="includeZero"
               checked={includeZeroBalances}
-              onChange={(e) => setIncludeZeroBalances(e.target.checked)}
+              onChange={(e) => setFilters({ includeZero: e.target.checked })}
               className="rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="includeZero" className="text-sm text-gray-700">
@@ -207,7 +228,7 @@ const TrialBalanceReport = () => {
               type="checkbox"
               id="groupByType"
               checked={groupByType}
-              onChange={(e) => setGroupByType(e.target.checked)}
+              onChange={(e) => setFilters({ groupByType: e.target.checked })}
               className="rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="groupByType" className="text-sm text-gray-700">
@@ -301,7 +322,7 @@ const TrialBalanceReport = () => {
                     const config = accountTypeConfig[type as AccountType]
                     const totals = typeTotals[type]
                     return (
-                      <tbody key={type}>
+                      <React.Fragment key={type}>
                         {/* Type Header */}
                         <tr className="bg-gray-50">
                           <td colSpan={4} className="px-4 py-2">
@@ -313,17 +334,26 @@ const TrialBalanceReport = () => {
                         </tr>
                         {/* Rows */}
                         {rows.map((row) => (
-                          <tr key={row.accountId} className="hover:bg-gray-50">
+                          <tr
+                            key={row.accountId}
+                            className={`hover:bg-gray-50 ${row.isControlAccount ? 'cursor-pointer' : ''}`}
+                            onClick={() => handleControlAccountClick(row)}
+                          >
                             <td className="px-4 py-3 text-sm font-mono text-gray-600" style={{ paddingLeft: `${(row.depthLevel + 1) * 16}px` }}>
                               {row.accountCode}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900">
-                              {row.accountName}
+                              <span className="flex items-center gap-2">
+                                {row.accountName}
+                                {row.isControlAccount && (
+                                  <ChevronRight size={14} className="text-blue-500" />
+                                )}
+                              </span>
                             </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-blue-600">
+                            <td className="px-4 py-3 text-sm text-right font-medium text-blue-600 w-36">
                               {row.debitBalance > 0 ? formatCurrency(row.debitBalance) : ''}
                             </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-green-600">
+                            <td className="px-4 py-3 text-sm text-right font-medium text-green-600 w-36">
                               {row.creditBalance > 0 ? formatCurrency(row.creditBalance) : ''}
                             </td>
                           </tr>
@@ -333,30 +363,39 @@ const TrialBalanceReport = () => {
                           <td colSpan={2} className="px-4 py-2 text-right text-sm text-gray-600">
                             Subtotal - {config?.label}:
                           </td>
-                          <td className="px-4 py-2 text-right text-sm text-blue-700">
+                          <td className="px-4 py-2 text-right text-sm text-blue-700 w-36">
                             {totals?.debit ? formatCurrency(totals.debit) : ''}
                           </td>
-                          <td className="px-4 py-2 text-right text-sm text-green-700">
+                          <td className="px-4 py-2 text-right text-sm text-green-700 w-36">
                             {totals?.credit ? formatCurrency(totals.credit) : ''}
                           </td>
                         </tr>
-                      </tbody>
+                      </React.Fragment>
                     )
                   })
                 ) : (
                   // Flat list
                   report.rows.map((row) => (
-                    <tr key={row.accountId} className="hover:bg-gray-50">
+                    <tr
+                      key={row.accountId}
+                      className={`hover:bg-gray-50 ${row.isControlAccount ? 'cursor-pointer' : ''}`}
+                      onClick={() => handleControlAccountClick(row)}
+                    >
                       <td className="px-4 py-3 text-sm font-mono text-gray-600" style={{ paddingLeft: `${(row.depthLevel + 1) * 16}px` }}>
                         {row.accountCode}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {row.accountName}
+                        <span className="flex items-center gap-2">
+                          {row.accountName}
+                          {row.isControlAccount && (
+                            <ChevronRight size={14} className="text-blue-500" />
+                          )}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium text-blue-600">
+                      <td className="px-4 py-3 text-sm text-right font-medium text-blue-600 w-36">
                         {row.debitBalance > 0 ? formatCurrency(row.debitBalance) : ''}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium text-green-600">
+                      <td className="px-4 py-3 text-sm text-right font-medium text-green-600 w-36">
                         {row.creditBalance > 0 ? formatCurrency(row.creditBalance) : ''}
                       </td>
                     </tr>
@@ -368,10 +407,10 @@ const TrialBalanceReport = () => {
                   <td colSpan={2} className="px-4 py-3 text-right font-bold">
                     GRAND TOTAL
                   </td>
-                  <td className="px-4 py-3 text-right font-bold">
+                  <td className="px-4 py-3 text-right font-bold w-36">
                     {formatCurrency(report.totalDebits)}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold">
+                  <td className="px-4 py-3 text-right font-bold w-36">
                     {formatCurrency(report.totalCredits)}
                   </td>
                 </tr>
@@ -399,6 +438,16 @@ const TrialBalanceReport = () => {
           </div>
         </div>
       )}
+
+      {/* Subledger Drill-Down Drawer */}
+      <SubledgerDrilldownDrawer
+        isOpen={!!selectedControlAccount}
+        onClose={() => setSelectedControlAccount(null)}
+        companyId={companyFilter}
+        controlAccountId={selectedControlAccount?.id || ''}
+        controlAccountName={selectedControlAccount?.name || ''}
+        asOfDate={asOfDate}
+      />
     </div>
   )
 }

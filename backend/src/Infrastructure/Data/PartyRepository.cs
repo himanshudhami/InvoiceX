@@ -679,5 +679,28 @@ namespace Infrastructure.Data
                   FROM parties WHERE id = ANY(@ids)",
                 new { ids = idList.ToArray() });
         }
+
+        public async Task<IEnumerable<Party>> GetByTypeAsync(Guid companyId, string partyType)
+        {
+            using var connection = new NpgsqlConnection(_connectionString);
+
+            var whereClause = partyType.ToLower() switch
+            {
+                "vendor" => "is_vendor = true",
+                "customer" => "is_customer = true",
+                "employee" => "is_employee = true",
+                _ => "1=1"
+            };
+
+            return await connection.QueryAsync<Party>(
+                $@"SELECT id, company_id AS CompanyId, party_code AS PartyCode, legal_name AS LegalName,
+                          display_name AS DisplayName, name,
+                          is_customer AS IsCustomer, is_vendor AS IsVendor, is_employee AS IsEmployee,
+                          email, phone, gstin, pan_number AS PanNumber, is_active AS IsActive
+                   FROM parties
+                   WHERE company_id = @companyId AND {whereClause} AND is_active = true
+                   ORDER BY display_name, name",
+                new { companyId });
+        }
     }
 }

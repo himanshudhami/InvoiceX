@@ -61,6 +61,13 @@ namespace Core.Interfaces.Ledger
         /// </summary>
         Task UpdateBalanceAsync(Guid accountId, decimal newBalance);
 
+        /// <summary>
+        /// Get total opening balance for all accounts in a company.
+        /// Used to calculate the equity plug needed to balance Tally imports.
+        /// Should return 0 for a balanced set of books (Assets = Liabilities + Equity).
+        /// </summary>
+        Task<decimal> GetTotalOpeningBalanceAsync(Guid companyId);
+
         // ==================== Initialization ====================
 
         /// <summary>
@@ -94,5 +101,12 @@ namespace Core.Interfaces.Ledger
         /// Get maximum account code for a specific account type (for generating new codes)
         /// </summary>
         Task<string> GetMaxAccountCodeAsync(Guid companyId, string accountType);
+
+        // ==================== Control Accounts (COA Modernization) ====================
+
+        /// <summary>
+        /// Get all control accounts for a company
+        /// </summary>
+        Task<IEnumerable<ChartOfAccount>> GetControlAccountsAsync(Guid companyId);
     }
 }

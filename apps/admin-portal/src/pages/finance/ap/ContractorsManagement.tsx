@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { useContractorPayments, useContractorPaymentBreakdown } from '@/features/payroll/hooks/useContractorPayments';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { DataTable } from '@/components/ui/DataTable';
 import { Drawer } from '@/components/ui/Drawer';
 import CompanyFilterDropdown from '@/components/ui/CompanyFilterDropdown';
-import { Users, IndianRupee, FileText, CreditCard } from 'lucide-react';
+import { DateRangeFilter } from '@/components/filters/DateRangeFilter';
+import { AmountRangeFilter } from '@/components/filters/AmountRangeFilter';
+import { Users, IndianRupee, CreditCard, Filter, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useQueryState, parseAsString } from 'nuqs';
+import { useQueryStates, parseAsString } from 'nuqs';
 import { formatINR } from '@/lib/currency';
 import type { ContractorPayment, ContractorPaymentDetail } from '@/features/payroll/types/payroll';
 
@@ -18,16 +20,40 @@ const ContractorsManagement = () => {
   const { selectedCompanyId, hasMultiCompanyAccess } = useCompanyContext();
 
   // URL-backed filter state with nuqs - persists on refresh
-  const [companyFilter, setCompanyFilter] = useQueryState('company', parseAsString.withDefault(''));
+  const [urlState, setUrlState] = useQueryStates({
+    company: parseAsString.withDefault(''),
+    fromDate: parseAsString.withDefault(''),
+    toDate: parseAsString.withDefault(''),
+    minAmount: parseAsString.withDefault(''),
+    maxAmount: parseAsString.withDefault(''),
+  });
+
+  const { company: companyFilter, fromDate, toDate, minAmount, maxAmount } = urlState;
+
+  // Setters that update URL
+  const setCompanyFilter = (value: string | null) => setUrlState({ company: value || '' });
+  const setFromDate = (date: string) => setUrlState({ fromDate: date });
+  const setToDate = (date: string) => setUrlState({ toDate: date });
+  const setMinAmount = (amount: string) => setUrlState({ minAmount: amount });
+  const setMaxAmount = (amount: string) => setUrlState({ maxAmount: amount });
+
+  // State for expanded filters - auto-expand if URL has date/amount filters
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(() => {
+    return !!(fromDate || toDate || minAmount || maxAmount);
+  });
 
   // Determine effective company ID: URL filter takes precedence, then context selection
   const effectiveCompanyId = companyFilter || (hasMultiCompanyAccess ? selectedCompanyId : undefined);
 
-  // Fetch contractor payments with pagination
+  // Fetch contractor payments with pagination and server-side filtering
   const { data: paymentsData, isLoading, error, refetch } = useContractorPayments({
     companyId: effectiveCompanyId || undefined,
     pageNumber: 1,
     pageSize: 100,
+    fromDate: fromDate || undefined,
+    toDate: toDate || undefined,
+    minAmount: minAmount ? parseFloat(minAmount) : undefined,
+    maxAmount: maxAmount ? parseFloat(maxAmount) : undefined,
   });
 
   // Fetch payment breakdown
@@ -46,6 +72,39 @@ const ContractorsManagement = () => {
         ).values()
       )
     : [];
+
+  // Count active filters for badge
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (companyFilter) count++;
+    if (fromDate || toDate) count++;
+    if (minAmount || maxAmount) count++;
+    return count;
+  }, [companyFilter, fromDate, toDate, minAmount, maxAmount]);
+
+  // Clear all filters
+  const handleClearAllFilters = () => {
+    setUrlState({
+      company: '',
+      fromDate: '',
+      toDate: '',
+      minAmount: '',
+      maxAmount: '',
+    });
+  };
+
+  // Compute totals for footer
+  const totals = useMemo(() => {
+    if (!paymentsData?.items?.length) return null;
+    return paymentsData.items.reduce(
+      (acc, payment) => ({
+        grossAmount: acc.grossAmount + (payment.grossAmount || 0),
+        tdsAmount: acc.tdsAmount + (payment.tdsAmount || 0),
+        netPayable: acc.netPayable + (payment.netPayable || 0),
+      }),
+      { grossAmount: 0, tdsAmount: 0, netPayable: 0 }
+    );
+  }, [paymentsData?.items]);
 
   const columns: ColumnDef<ContractorPayment>[] = [
     {
@@ -253,22 +312,141 @@ const ContractorsManagement = () => {
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <div className="mb-4 flex items-center gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
-              <CompanyFilterDropdown
-                value={companyFilter ?? ''}
-                onChange={(value) => setCompanyFilter(value || null)}
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-4 space-y-4">
+        {/* Primary Filters Row */}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Filters:</span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
+
+          <div>
+            <CompanyFilterDropdown
+              value={companyFilter ?? ''}
+              onChange={(value) => setCompanyFilter(value || null)}
+            />
+          </div>
+
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+              showAdvancedFilters || fromDate || toDate || minAmount || maxAmount
+                ? 'border-blue-300 bg-blue-50 text-blue-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {showAdvancedFilters ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+            More Filters
+          </button>
+
+          {activeFilterCount > 0 && (
+            <button
+              onClick={handleClearAllFilters}
+              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+            >
+              Clear All
+            </button>
+          )}
+
+          <span className="text-sm text-gray-500 ml-auto">
+            {paymentsData?.items?.length || 0} payments
+          </span>
+        </div>
+
+        {/* Advanced Filters (Date & Amount) */}
+        {showAdvancedFilters && (
+          <div className="pt-4 border-t border-gray-200 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DateRangeFilter
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={setFromDate}
+                onToDateChange={setToDate}
+                showQuickOptions={true}
+              />
+              <AmountRangeFilter
+                minAmount={minAmount}
+                maxAmount={maxAmount}
+                onMinAmountChange={setMinAmount}
+                onMaxAmountChange={setMaxAmount}
+                currency="INR"
+                showQuickOptions={true}
               />
             </div>
           </div>
+        )}
+
+        {/* Active Filter Tags */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {companyFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                Company filtered
+                <button
+                  onClick={() => setCompanyFilter(null)}
+                  className="hover:text-gray-900"
+                >
+                  <XCircle className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {(fromDate || toDate) && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                Date: {fromDate || 'Any'} to {toDate || 'Any'}
+                <button
+                  onClick={() => {
+                    setFromDate('');
+                    setToDate('');
+                  }}
+                  className="hover:text-blue-900"
+                >
+                  <XCircle className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {(minAmount || maxAmount) && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+                Amount: {minAmount ? `₹${Number(minAmount).toLocaleString('en-IN')}` : '₹0'} - {maxAmount ? `₹${Number(maxAmount).toLocaleString('en-IN')}` : 'Any'}
+                <button
+                  onClick={() => {
+                    setMinAmount('');
+                    setMaxAmount('');
+                  }}
+                  className="hover:text-green-900"
+                >
+                  <XCircle className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Data Table */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6">
           <DataTable
             columns={columns}
             data={paymentsData?.items || []}
             searchPlaceholder="Search contractors..."
+            totalsFooter={totals ? {
+              label: 'Total',
+              values: [
+                { label: 'Gross', value: formatINR(totals.grossAmount) },
+                { label: 'TDS', value: formatINR(totals.tdsAmount) },
+                { label: 'Net Payable', value: formatINR(totals.netPayable) },
+              ]
+            } : undefined}
           />
         </div>
       </div>

@@ -17,6 +17,10 @@ export const useContractorPayments = (params: PaginationParams & {
   paymentMonth?: number;
   paymentYear?: number;
   status?: string;
+  fromDate?: string;
+  toDate?: string;
+  minAmount?: number;
+  maxAmount?: number;
 } = {}) => {
   return useQuery({
     queryKey: payrollKeys.contractorPaymentList(params),

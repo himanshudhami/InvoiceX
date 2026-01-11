@@ -366,3 +366,77 @@ export const usePostPayment = () => {
     },
   })
 }
+
+// ==================== Subledger Report Hooks ====================
+
+/**
+ * Fetch AP aging by vendor
+ */
+export const useApAging = (companyId: string, asOfDate: string, enabled = true) => {
+  return useQuery({
+    queryKey: ledgerKeys.apAging(companyId, asOfDate),
+    queryFn: () => ledgerService.getApAging(companyId, asOfDate),
+    enabled: enabled && !!companyId && !!asOfDate,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
+ * Fetch AR aging by customer
+ */
+export const useArAging = (companyId: string, asOfDate: string, enabled = true) => {
+  return useQuery({
+    queryKey: ledgerKeys.arAging(companyId, asOfDate),
+    queryFn: () => ledgerService.getArAging(companyId, asOfDate),
+    enabled: enabled && !!companyId && !!asOfDate,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
+ * Fetch party ledger (transaction history for a party)
+ */
+export const usePartyLedger = (
+  companyId: string,
+  partyType: string,
+  partyId: string,
+  fromDate: string,
+  toDate: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: ledgerKeys.partyLedger(companyId, partyType, partyId, fromDate, toDate),
+    queryFn: () => ledgerService.getPartyLedger(companyId, partyType, partyId, fromDate, toDate),
+    enabled: enabled && !!companyId && !!partyType && !!partyId && !!fromDate && !!toDate,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
+ * Fetch control account reconciliation
+ */
+export const useControlAccountReconciliation = (companyId: string, asOfDate: string, enabled = true) => {
+  return useQuery({
+    queryKey: ledgerKeys.controlAccountReconciliation(companyId, asOfDate),
+    queryFn: () => ledgerService.getControlAccountReconciliation(companyId, asOfDate),
+    enabled: enabled && !!companyId && !!asOfDate,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
+ * Fetch subledger drilldown for a control account
+ */
+export const useSubledgerDrilldown = (
+  companyId: string,
+  controlAccountId: string,
+  asOfDate: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: ledgerKeys.subledgerDrilldown(companyId, controlAccountId, asOfDate),
+    queryFn: () => ledgerService.getSubledgerDrilldown(companyId, controlAccountId, asOfDate),
+    enabled: enabled && !!companyId && !!controlAccountId && !!asOfDate,
+    staleTime: 60 * 1000,
+  })
+}

@@ -176,6 +176,28 @@ namespace Infrastructure.Data.Payroll
                     whereClauses.Add("cp.status = @status");
                     parameters.Add("status", status);
                 }
+                // Date range filter - construct date from payment_year and payment_month
+                if (filters.TryGetValue("from_date", out var fromDate))
+                {
+                    whereClauses.Add("make_date(cp.payment_year, cp.payment_month, 1) >= @fromDate::date");
+                    parameters.Add("fromDate", fromDate);
+                }
+                if (filters.TryGetValue("to_date", out var toDate))
+                {
+                    whereClauses.Add("make_date(cp.payment_year, cp.payment_month, 1) <= @toDate::date");
+                    parameters.Add("toDate", toDate);
+                }
+                // Amount range filter - using gross_amount
+                if (filters.TryGetValue("min_amount", out var minAmount))
+                {
+                    whereClauses.Add("cp.gross_amount >= @minAmount");
+                    parameters.Add("minAmount", minAmount);
+                }
+                if (filters.TryGetValue("max_amount", out var maxAmount))
+                {
+                    whereClauses.Add("cp.gross_amount <= @maxAmount");
+                    parameters.Add("maxAmount", maxAmount);
+                }
             }
 
             var whereClause = whereClauses.Count > 0 ? "WHERE " + string.Join(" AND ", whereClauses) : "";
