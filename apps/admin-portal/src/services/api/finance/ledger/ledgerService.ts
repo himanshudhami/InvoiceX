@@ -10,6 +10,8 @@ import {
   IncomeStatementReport,
   BalanceSheetReport,
   AccountLedgerReport,
+  AbnormalBalanceReport,
+  AbnormalBalanceAlertSummary,
   PagedResponse,
   ChartOfAccountsFilterParams,
   JournalEntriesFilterParams,
@@ -162,6 +164,16 @@ export class LedgerService {
       fromDate,
       toDate,
     });
+  }
+
+  // ==================== Data Quality Reports ====================
+
+  async getAbnormalBalances(companyId: string): Promise<AbnormalBalanceReport> {
+    return apiClient.get<AbnormalBalanceReport>(`${this.baseEndpoint}/reports/abnormal-balances/${companyId}`);
+  }
+
+  async getAbnormalBalanceAlert(companyId: string): Promise<AbnormalBalanceAlertSummary> {
+    return apiClient.get<AbnormalBalanceAlertSummary>(`${this.baseEndpoint}/alerts/abnormal-balances/${companyId}`);
   }
 
   // ==================== Auto-Posting ====================

@@ -212,7 +212,7 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.TrialBalanceService>>()
                 ));
 
-            // Auto-Posting service (for invoices, payments, vendor invoices, vendor payments, etc.)
+            // Auto-Posting service (for invoices, payments, vendor invoices, vendor payments, loans, etc.)
             // Note: Expense claim posting uses dedicated ExpensePostingService
             services.AddScoped<Application.Interfaces.Ledger.IAutoPostingService>(sp =>
                 new Application.Services.Ledger.AutoPostingService(
@@ -223,6 +223,8 @@ services.AddScoped<Core.Interfaces.ICashFlowRepository>(sp =>
                     sp.GetRequiredService<Core.Interfaces.IPaymentsRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IVendorInvoicesRepository>(),
                     sp.GetRequiredService<Core.Interfaces.IVendorPaymentsRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.ILoansRepository>(),
+                    sp.GetRequiredService<Core.Interfaces.IBankAccountRepository>(),
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Application.Services.Ledger.AutoPostingService>>()
                 ));
 

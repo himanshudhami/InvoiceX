@@ -1,6 +1,9 @@
 using Dapper;
 using System;
 using System.Data;
+using System.Text.Json;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Infrastructure.Configuration
 {
@@ -17,6 +20,48 @@ namespace Infrastructure.Configuration
             SqlMapper.AddTypeHandler(new DateOnlyHandler());
             SqlMapper.AddTypeHandler(new NullableDateOnlyHandler());
             SqlMapper.AddTypeHandler(new TimeOnlyHandler());
+            SqlMapper.AddTypeHandler(new JsonStringHandler());
+        }
+    }
+
+    /// <summary>
+    /// Type handler for PostgreSQL JSONB columns mapped to string properties.
+    /// Handles the Npgsql 7+ behavior where JSONB is returned as JsonDocument.
+    /// </summary>
+    public class JsonStringHandler : SqlMapper.TypeHandler<string>
+    {
+        public override void SetValue(IDbDataParameter parameter, string? value)
+        {
+            if (parameter is NpgsqlParameter npgsqlParam)
+            {
+                npgsqlParam.NpgsqlDbType = NpgsqlDbType.Jsonb;
+                npgsqlParam.Value = value ?? (object)DBNull.Value;
+            }
+            else
+            {
+                parameter.Value = value ?? (object)DBNull.Value;
+            }
+        }
+
+        public override string? Parse(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                return null;
+
+            // Handle JsonDocument from Npgsql 7+
+            if (value is JsonDocument jsonDoc)
+                return jsonDoc.RootElement.GetRawText();
+
+            // Handle JsonElement
+            if (value is JsonElement jsonElement)
+                return jsonElement.GetRawText();
+
+            // Handle string (already serialized)
+            if (value is string str)
+                return str;
+
+            // Fallback: try to serialize
+            return JsonSerializer.Serialize(value);
         }
     }
 

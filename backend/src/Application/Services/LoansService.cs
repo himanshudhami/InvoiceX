@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.DTOs.Loans;
 using Application.Interfaces;
+using Application.Interfaces.Ledger;
 using Application.Services.Loans;
 using Application.Validators.Loans;
 using AutoMapper;
@@ -8,6 +9,7 @@ using Core.Common;
 using Core.Entities;
 using Core.Interfaces;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +27,8 @@ public class LoansService : ILoansService
     private readonly IValidator<CreateEmiPaymentDto> _emiPaymentValidator;
     private readonly IValidator<PrepaymentDto> _prepaymentValidator;
     private readonly EmiCalculationService _emiCalculator;
+    private readonly IAutoPostingService _autoPostingService;
+    private readonly ILogger<LoansService> _logger;
 
     public LoansService(
         ILoansRepository repository,
@@ -33,7 +37,9 @@ public class LoansService : ILoansService
         IValidator<UpdateLoanDto> updateValidator,
         IValidator<CreateEmiPaymentDto> emiPaymentValidator,
         IValidator<PrepaymentDto> prepaymentValidator,
-        EmiCalculationService emiCalculator)
+        EmiCalculationService emiCalculator,
+        IAutoPostingService autoPostingService,
+        ILogger<LoansService> logger)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
@@ -42,6 +48,8 @@ public class LoansService : ILoansService
         _emiPaymentValidator = emiPaymentValidator ?? throw new ArgumentNullException(nameof(emiPaymentValidator));
         _prepaymentValidator = prepaymentValidator ?? throw new ArgumentNullException(nameof(prepaymentValidator));
         _emiCalculator = emiCalculator ?? throw new ArgumentNullException(nameof(emiCalculator));
+        _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<Result<LoanEntity>> GetByIdAsync(Guid id)
@@ -290,12 +298,35 @@ public class LoansService : ILoansService
             PaymentMethod = dto.PaymentMethod,
             BankAccountId = dto.BankAccountId,
             VoucherReference = dto.VoucherReference,
-            Description = $"EMI payment for loan {loan.LoanName}",
+            Description = $"EMI payment for loan {loan.LoanName}" + (dto.EmiNumber.HasValue ? $" - EMI #{dto.EmiNumber}" : ""),
             Notes = dto.Notes,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        await _repository.AddTransactionAsync(transaction);
+        var savedTransaction = await _repository.AddTransactionAsync(transaction);
+
+        // Auto-post journal entry if loan has linked accounts
+        try
+        {
+            var journalEntry = await _autoPostingService.PostLoanPaymentAsync(savedTransaction.Id, loanId);
+            if (journalEntry != null)
+            {
+                _logger.LogInformation(
+                    "Created journal entry {JournalNumber} for EMI payment on loan {LoanId}",
+                    journalEntry.JournalNumber, loanId);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Could not auto-post journal entry for EMI payment on loan {LoanId}. Check if ledger accounts are configured.",
+                    loanId);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the payment recording - autoposting is optional
+            _logger.LogError(ex, "Error auto-posting journal entry for EMI payment on loan {LoanId}", loanId);
+        }
 
         return Result<LoanEntity>.Success(loan);
     }
@@ -357,7 +388,23 @@ public class LoansService : ILoansService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        await _repository.AddTransactionAsync(transaction);
+        var savedTransaction = await _repository.AddTransactionAsync(transaction);
+
+        // Auto-post journal entry if loan has linked accounts
+        try
+        {
+            var journalEntry = await _autoPostingService.PostLoanPrepaymentAsync(savedTransaction.Id, loanId);
+            if (journalEntry != null)
+            {
+                _logger.LogInformation(
+                    "Created journal entry {JournalNumber} for prepayment on loan {LoanId}",
+                    journalEntry.JournalNumber, loanId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error auto-posting journal entry for prepayment on loan {LoanId}", loanId);
+        }
 
         return Result<LoanEntity>.Success(loan);
     }

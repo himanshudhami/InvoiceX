@@ -24,6 +24,8 @@ namespace Application.Services.Ledger
         private readonly IPaymentsRepository _paymentRepository;
         private readonly IVendorInvoicesRepository _vendorInvoiceRepository;
         private readonly IVendorPaymentsRepository _vendorPaymentRepository;
+        private readonly ILoansRepository _loansRepository;
+        private readonly IBankAccountRepository _bankAccountRepository;
         private readonly ILogger<AutoPostingService> _logger;
 
         public AutoPostingService(
@@ -34,6 +36,8 @@ namespace Application.Services.Ledger
             IPaymentsRepository paymentRepository,
             IVendorInvoicesRepository vendorInvoiceRepository,
             IVendorPaymentsRepository vendorPaymentRepository,
+            ILoansRepository loansRepository,
+            IBankAccountRepository bankAccountRepository,
             ILogger<AutoPostingService> logger)
         {
             _accountRepository = accountRepository;
@@ -43,6 +47,8 @@ namespace Application.Services.Ledger
             _paymentRepository = paymentRepository;
             _vendorInvoiceRepository = vendorInvoiceRepository;
             _vendorPaymentRepository = vendorPaymentRepository;
+            _loansRepository = loansRepository;
+            _bankAccountRepository = bankAccountRepository;
             _logger = logger;
         }
 
@@ -257,6 +263,198 @@ namespace Application.Services.Ledger
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error auto-posting vendor payment {VendorPaymentId}", vendorPaymentId);
+                throw;
+            }
+        }
+
+        public async Task<JournalEntry?> PostLoanPaymentAsync(
+            Guid loanTransactionId,
+            Guid loanId,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            try
+            {
+                var loan = await _loansRepository.GetByIdAsync(loanId);
+                if (loan == null)
+                {
+                    _logger.LogWarning("Loan {LoanId} not found for auto-posting", loanId);
+                    return null;
+                }
+
+                var transaction = await _loansRepository.GetTransactionByIdAsync(loanTransactionId);
+                if (transaction == null)
+                {
+                    _logger.LogWarning("Loan transaction {TransactionId} not found for auto-posting", loanTransactionId);
+                    return null;
+                }
+
+                // Get account codes from the loan's linked accounts
+                string? loanAccountCode = null;
+                string? interestAccountCode = null;
+                string? bankAccountCode = null;
+
+                if (loan.LedgerAccountId.HasValue)
+                {
+                    var loanAccount = await _accountRepository.GetByIdAsync(loan.LedgerAccountId.Value);
+                    loanAccountCode = loanAccount?.AccountCode;
+                }
+
+                if (loan.InterestExpenseAccountId.HasValue)
+                {
+                    var interestAccount = await _accountRepository.GetByIdAsync(loan.InterestExpenseAccountId.Value);
+                    interestAccountCode = interestAccount?.AccountCode;
+                }
+
+                // Get bank account code - use transaction's bank account or loan's default
+                var bankAccountId = transaction.BankAccountId ?? loan.BankAccountId;
+                if (bankAccountId.HasValue)
+                {
+                    var bankAccount = await _bankAccountRepository.GetByIdAsync(bankAccountId.Value);
+                    if (bankAccount?.LinkedAccountId != null)
+                    {
+                        var linkedAccount = await _accountRepository.GetByIdAsync(bankAccount.LinkedAccountId.Value);
+                        bankAccountCode = linkedAccount?.AccountCode;
+                    }
+                }
+
+                // Validate required accounts
+                if (string.IsNullOrEmpty(loanAccountCode))
+                {
+                    _logger.LogWarning("Loan {LoanId} does not have a linked ledger account. Cannot auto-post.", loanId);
+                    return null;
+                }
+
+                if (string.IsNullOrEmpty(interestAccountCode))
+                {
+                    // Use default interest expense account
+                    interestAccountCode = "5610"; // Interest on Borrowings
+                }
+
+                if (string.IsNullOrEmpty(bankAccountCode))
+                {
+                    _logger.LogWarning("No bank account linked for loan payment. Cannot auto-post.");
+                    return null;
+                }
+
+                var sourceData = new Dictionary<string, object>
+                {
+                    ["company_id"] = loan.CompanyId.ToString(),
+                    ["loan_name"] = loan.LoanName,
+                    ["lender_name"] = loan.LenderName,
+                    ["loan_account_code"] = loanAccountCode,
+                    ["interest_account_code"] = interestAccountCode,
+                    ["bank_account_code"] = bankAccountCode,
+                    ["principal_amount"] = transaction.PrincipalAmount,
+                    ["interest_amount"] = transaction.InterestAmount,
+                    ["total_amount"] = transaction.Amount,
+                    ["emi_number"] = transaction.Description?.Contains("EMI") == true ? transaction.Description : "EMI",
+                    ["payment_method"] = transaction.PaymentMethod ?? "bank_transfer",
+                    ["source_number"] = transaction.VoucherReference ?? $"EMI-{loanTransactionId.ToString()[..8]}"
+                };
+
+                var journalEntry = await PostFromSourceWithTriggerAsync(
+                    "loan_payment",
+                    loanTransactionId,
+                    sourceData,
+                    "on_create",
+                    postedBy,
+                    autoPost);
+
+                // Update the transaction with the journal entry ID
+                if (journalEntry != null)
+                {
+                    await _loansRepository.UpdateTransactionJournalEntryAsync(loanTransactionId, journalEntry.Id);
+                }
+
+                return journalEntry;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-posting loan payment {TransactionId}", loanTransactionId);
+                throw;
+            }
+        }
+
+        public async Task<JournalEntry?> PostLoanPrepaymentAsync(
+            Guid loanTransactionId,
+            Guid loanId,
+            Guid? postedBy = null,
+            bool autoPost = true)
+        {
+            try
+            {
+                var loan = await _loansRepository.GetByIdAsync(loanId);
+                if (loan == null)
+                {
+                    _logger.LogWarning("Loan {LoanId} not found for prepayment auto-posting", loanId);
+                    return null;
+                }
+
+                var transaction = await _loansRepository.GetTransactionByIdAsync(loanTransactionId);
+                if (transaction == null)
+                {
+                    _logger.LogWarning("Loan transaction {TransactionId} not found for prepayment auto-posting", loanTransactionId);
+                    return null;
+                }
+
+                // Get account codes
+                string? loanAccountCode = null;
+                string? bankAccountCode = null;
+
+                if (loan.LedgerAccountId.HasValue)
+                {
+                    var loanAccount = await _accountRepository.GetByIdAsync(loan.LedgerAccountId.Value);
+                    loanAccountCode = loanAccount?.AccountCode;
+                }
+
+                var bankAccountId = transaction.BankAccountId ?? loan.BankAccountId;
+                if (bankAccountId.HasValue)
+                {
+                    var bankAccount = await _bankAccountRepository.GetByIdAsync(bankAccountId.Value);
+                    if (bankAccount?.LinkedAccountId != null)
+                    {
+                        var linkedAccount = await _accountRepository.GetByIdAsync(bankAccount.LinkedAccountId.Value);
+                        bankAccountCode = linkedAccount?.AccountCode;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(loanAccountCode) || string.IsNullOrEmpty(bankAccountCode))
+                {
+                    _logger.LogWarning("Loan {LoanId} missing required ledger accounts for prepayment posting", loanId);
+                    return null;
+                }
+
+                var sourceData = new Dictionary<string, object>
+                {
+                    ["company_id"] = loan.CompanyId.ToString(),
+                    ["loan_name"] = loan.LoanName,
+                    ["lender_name"] = loan.LenderName,
+                    ["loan_account_code"] = loanAccountCode,
+                    ["bank_account_code"] = bankAccountCode,
+                    ["amount"] = transaction.Amount,
+                    ["payment_method"] = transaction.PaymentMethod ?? "bank_transfer",
+                    ["source_number"] = transaction.VoucherReference ?? $"PREPAY-{loanTransactionId.ToString()[..8]}"
+                };
+
+                var journalEntry = await PostFromSourceWithTriggerAsync(
+                    "loan_prepayment",
+                    loanTransactionId,
+                    sourceData,
+                    "on_create",
+                    postedBy,
+                    autoPost);
+
+                if (journalEntry != null)
+                {
+                    await _loansRepository.UpdateTransactionJournalEntryAsync(loanTransactionId, journalEntry.Id);
+                }
+
+                return journalEntry;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-posting loan prepayment {TransactionId}", loanTransactionId);
                 throw;
             }
         }

@@ -299,6 +299,32 @@ export const useAccountLedger = (
   })
 }
 
+// ==================== Data Quality Reports ====================
+
+/**
+ * Fetch abnormal balance report (accounts with balances opposite to normal)
+ */
+export const useAbnormalBalances = (companyId: string, enabled = true) => {
+  return useQuery({
+    queryKey: ledgerKeys.abnormalBalances(companyId),
+    queryFn: () => ledgerService.getAbnormalBalances(companyId),
+    enabled: enabled && !!companyId,
+    staleTime: 60 * 1000,
+  })
+}
+
+/**
+ * Fetch abnormal balance alert summary for dashboard
+ */
+export const useAbnormalBalanceAlert = (companyId: string, enabled = true) => {
+  return useQuery({
+    queryKey: ledgerKeys.abnormalBalanceAlert(companyId),
+    queryFn: () => ledgerService.getAbnormalBalanceAlert(companyId),
+    enabled: enabled && !!companyId,
+    staleTime: 60 * 1000,
+  })
+}
+
 // ==================== Auto-Posting Hooks ====================
 
 /**

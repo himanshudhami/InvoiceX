@@ -48,6 +48,7 @@ import {
   Coins,
   FileX,
   ArrowDownUp,
+  AlertTriangle,
   ClipboardList,
   FileBarChart,
   IndianRupee,
@@ -249,6 +250,7 @@ export const navigationGroups: NavigationItem[] = [
       { name: 'Income Statement', href: '/ledger/income-statement', icon: TrendingUp },
       { name: 'Balance Sheet', href: '/ledger/balance-sheet', icon: PieChart },
       { name: 'Account Ledger', href: '/ledger/account-ledger', icon: ScrollText },
+      { name: 'Abnormal Balances', href: '/ledger/abnormal-balances', icon: AlertTriangle },
     ],
   },
   {

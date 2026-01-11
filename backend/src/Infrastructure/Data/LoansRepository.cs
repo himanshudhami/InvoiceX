@@ -69,8 +69,8 @@ public class LoansRepository : ILoansRepository
     public async Task<Loan> AddAsync(Loan entity)
     {
         const string sql = @"INSERT INTO loans
-        (company_id, loan_name, lender_name, loan_type, asset_id, principal_amount, interest_rate, loan_start_date, loan_end_date, tenure_months, emi_amount, outstanding_principal, interest_type, compounding_frequency, status, loan_account_number, notes, created_at, updated_at)
-        VALUES (@CompanyId, @LoanName, @LenderName, @LoanType, @AssetId, @PrincipalAmount, @InterestRate, @LoanStartDate, @LoanEndDate, @TenureMonths, @EmiAmount, @OutstandingPrincipal, @InterestType, @CompoundingFrequency, @Status, @LoanAccountNumber, @Notes, NOW(), NOW())
+        (company_id, loan_name, lender_name, loan_type, asset_id, principal_amount, interest_rate, loan_start_date, loan_end_date, tenure_months, emi_amount, outstanding_principal, interest_type, compounding_frequency, status, loan_account_number, notes, ledger_account_id, interest_expense_account_id, bank_account_id, created_at, updated_at)
+        VALUES (@CompanyId, @LoanName, @LenderName, @LoanType, @AssetId, @PrincipalAmount, @InterestRate, @LoanStartDate, @LoanEndDate, @TenureMonths, @EmiAmount, @OutstandingPrincipal, @InterestType, @CompoundingFrequency, @Status, @LoanAccountNumber, @Notes, @LedgerAccountId, @InterestExpenseAccountId, @BankAccountId, NOW(), NOW())
         RETURNING *;";
         using var connection = new NpgsqlConnection(_connectionString);
         return await connection.QuerySingleAsync<Loan>(sql, entity);
@@ -95,6 +95,9 @@ public class LoansRepository : ILoansRepository
             status=@Status,
             loan_account_number=@LoanAccountNumber,
             notes=@Notes,
+            ledger_account_id=@LedgerAccountId,
+            interest_expense_account_id=@InterestExpenseAccountId,
+            bank_account_id=@BankAccountId,
             updated_at=NOW()
         WHERE id=@Id;";
         using var connection = new NpgsqlConnection(_connectionString);
@@ -173,6 +176,14 @@ public class LoansRepository : ILoansRepository
             new { loanId });
     }
 
+    public async Task<LoanTransaction?> GetTransactionByIdAsync(Guid transactionId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        return await connection.QueryFirstOrDefaultAsync<LoanTransaction>(
+            "SELECT * FROM loan_transactions WHERE id=@transactionId",
+            new { transactionId });
+    }
+
     public async Task<LoanTransaction> AddTransactionAsync(LoanTransaction transaction)
     {
         const string sql = @"INSERT INTO loan_transactions
@@ -207,6 +218,17 @@ public class LoansRepository : ILoansRepository
                 updated_at = NOW()
             WHERE id = @transactionId",
             new { transactionId });
+    }
+
+    public async Task UpdateTransactionJournalEntryAsync(Guid transactionId, Guid journalEntryId)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.ExecuteAsync(
+            @"UPDATE loan_transactions SET
+                journal_entry_id = @journalEntryId,
+                updated_at = NOW()
+            WHERE id = @transactionId",
+            new { transactionId, journalEntryId });
     }
 
     public async Task<IEnumerable<LoanTransaction>> GetInterestPaymentsAsync(Guid? loanId, DateTime? fromDate, DateTime? toDate)

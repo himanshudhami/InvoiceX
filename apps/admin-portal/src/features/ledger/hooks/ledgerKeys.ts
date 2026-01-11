@@ -37,4 +37,11 @@ export const ledgerKeys = {
     [...ledgerKeys.reports(), 'balance-sheet', { companyId, asOfDate }] as const,
   accountLedger: (accountId: string, fromDate: string, toDate: string) =>
     [...ledgerKeys.reports(), 'account-ledger', { accountId, fromDate, toDate }] as const,
+
+  // Data Quality Reports
+  dataQuality: () => [...ledgerKeys.all, 'data-quality'] as const,
+  abnormalBalances: (companyId: string) =>
+    [...ledgerKeys.dataQuality(), 'abnormal-balances', { companyId }] as const,
+  abnormalBalanceAlert: (companyId: string) =>
+    [...ledgerKeys.dataQuality(), 'abnormal-balance-alert', { companyId }] as const,
 }

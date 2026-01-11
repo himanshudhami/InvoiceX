@@ -21,6 +21,9 @@ public class LoanTransaction
     public string? ReconciledBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // Reference to the auto-posted journal entry
+    public Guid? JournalEntryId { get; set; }
 }
 
 

@@ -273,5 +273,102 @@ namespace Application.Services.Ledger
 
             return sections;
         }
+
+        public async Task<AbnormalBalanceReport> GetAbnormalBalancesAsync(Guid companyId)
+        {
+            _logger.LogInformation("Generating abnormal balance report for company {CompanyId}", companyId);
+
+            var data = await _reportRepository.GetAbnormalBalancesAsync(companyId);
+            var summary = await _reportRepository.GetAbnormalBalanceSummaryAsync(companyId);
+
+            var items = data.Select(d => new AbnormalBalanceItem
+            {
+                AccountId = d.AccountId,
+                AccountCode = d.AccountCode,
+                AccountName = d.AccountName,
+                AccountType = d.AccountType,
+                AccountSubtype = d.AccountSubtype,
+                ExpectedBalanceSide = d.NormalBalance,
+                ActualBalanceSide = d.ActualBalanceSide,
+                Amount = d.Amount,
+                Category = d.Category,
+                PossibleReason = d.PossibleReason,
+                RecommendedAction = d.RecommendedAction,
+                IsContraAccount = d.IsContraAccount
+            }).ToList();
+
+            var categorySummary = summary.Categories.Select(c => new AbnormalBalanceCategorySummary
+            {
+                CategoryName = c.CategoryName,
+                Count = c.Count,
+                TotalAmount = c.TotalAmount,
+                Severity = c.Severity
+            }).ToList();
+
+            var report = new AbnormalBalanceReport
+            {
+                CompanyId = companyId,
+                GeneratedAt = DateTime.UtcNow,
+                TotalAbnormalAccounts = summary.TotalAbnormalAccounts,
+                ActionableIssues = summary.TotalAbnormalAccounts - summary.ContraAccounts,
+                TotalAbnormalAmount = summary.TotalAbnormalAmount,
+                Items = items,
+                CategorySummary = categorySummary
+            };
+
+            _logger.LogInformation(
+                "Abnormal balance report: {TotalAccounts} accounts, {ActionableIssues} actionable issues, {Amount:C} total",
+                report.TotalAbnormalAccounts, report.ActionableIssues, report.TotalAbnormalAmount);
+
+            return report;
+        }
+
+        public async Task<AbnormalBalanceAlertSummary> GetAbnormalBalanceAlertAsync(Guid companyId)
+        {
+            var summary = await _reportRepository.GetAbnormalBalanceSummaryAsync(companyId);
+
+            var actionableIssues = summary.TotalAbnormalAccounts - summary.ContraAccounts;
+            var hasIssues = actionableIssues > 0;
+
+            string alertMessage;
+            string alertSeverity;
+
+            if (!hasIssues)
+            {
+                alertMessage = "No abnormal balances detected";
+                alertSeverity = "success";
+            }
+            else if (actionableIssues <= 3)
+            {
+                alertMessage = $"{actionableIssues} account(s) with abnormal balances need review";
+                alertSeverity = "warning";
+            }
+            else
+            {
+                alertMessage = $"{actionableIssues} accounts with abnormal balances - data quality review recommended";
+                alertSeverity = "error";
+            }
+
+            return new AbnormalBalanceAlertSummary
+            {
+                CompanyId = companyId,
+                HasIssues = hasIssues,
+                TotalIssues = actionableIssues,
+                CriticalIssues = summary.LiabilitiesWithDebit + summary.AssetsWithCredit,
+                TotalAmount = summary.TotalAbnormalAmount,
+                AlertMessage = alertMessage,
+                AlertSeverity = alertSeverity,
+                TopCategories = summary.Categories
+                    .Where(c => c.Severity == "warning")
+                    .Take(3)
+                    .Select(c => new AbnormalBalanceCategorySummary
+                    {
+                        CategoryName = c.CategoryName,
+                        Count = c.Count,
+                        TotalAmount = c.TotalAmount,
+                        Severity = c.Severity
+                    }).ToList()
+            };
+        }
     }
 }

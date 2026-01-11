@@ -209,7 +209,14 @@ namespace Infrastructure.Data.Ledger
         {
             using var connection = new NpgsqlConnection(_connectionString);
 
-            var sql = @"SELECT * FROM posting_rules
+            // Explicitly cast jsonb columns to text to avoid Npgsql JsonDocument mapping issues
+            var sql = @"SELECT id, company_id, rule_code, rule_name,
+                        source_type, trigger_event,
+                        conditions_json::text as conditions_json,
+                        posting_template::text as posting_template,
+                        financial_year, effective_from, effective_to,
+                        priority, is_active, is_system_rule, created_by, created_at, updated_at
+                        FROM posting_rules
                         WHERE (company_id = @companyId OR company_id IS NULL)
                         AND source_type = @sourceType
                         AND trigger_event = @triggerEvent
@@ -236,21 +243,32 @@ namespace Infrastructure.Data.Ledger
             DateOnly transactionDate)
         {
             var rules = await FindMatchingRulesAsync(companyId, sourceType, triggerEvent, transactionDate);
+            var ruleList = rules.ToList();
 
-            foreach (var rule in rules)
+            // Log for debugging
+            Console.WriteLine($"[GetBestMatchingRuleAsync] Found {ruleList.Count} rules for {sourceType}/{triggerEvent}");
+
+            foreach (var rule in ruleList)
             {
+                Console.WriteLine($"[GetBestMatchingRuleAsync] Checking rule {rule.RuleCode}, ConditionsJson='{rule.ConditionsJson ?? "NULL"}'");
+
                 if (string.IsNullOrEmpty(rule.ConditionsJson))
                 {
+                    Console.WriteLine($"[GetBestMatchingRuleAsync] Rule {rule.RuleCode} has no conditions - MATCH");
                     return rule; // No conditions means it matches all
                 }
 
                 // Parse and match conditions
-                if (MatchesConditions(rule.ConditionsJson, conditions))
+                var matched = MatchesConditions(rule.ConditionsJson, conditions);
+                Console.WriteLine($"[GetBestMatchingRuleAsync] Rule {rule.RuleCode} MatchesConditions={matched}");
+
+                if (matched)
                 {
                     return rule;
                 }
             }
 
+            Console.WriteLine($"[GetBestMatchingRuleAsync] No rules matched");
             return null;
         }
 
@@ -258,7 +276,10 @@ namespace Infrastructure.Data.Ledger
         {
             try
             {
-                var ruleConditions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(conditionsJson);
+                // Debug: Log what we're trying to match
+                System.Diagnostics.Debug.WriteLine($"MatchesConditions: JSON='{conditionsJson}', ActualKeys=[{string.Join(",", actualConditions.Keys)}]");
+
+                var ruleConditions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, System.Text.Json.JsonElement>>(conditionsJson);
                 if (ruleConditions == null) return true;
 
                 foreach (var kvp in ruleConditions)
@@ -268,13 +289,54 @@ namespace Infrastructure.Data.Ledger
                         return false; // Required condition not present
                     }
 
-                    // Simple equality check (could be enhanced for complex conditions)
-                    var ruleValue = kvp.Value?.ToString();
-                    var actual = actualValue?.ToString();
-
-                    if (!string.Equals(ruleValue, actual, StringComparison.OrdinalIgnoreCase))
+                    // Handle boolean comparison properly
+                    if (kvp.Value.ValueKind == System.Text.Json.JsonValueKind.True ||
+                        kvp.Value.ValueKind == System.Text.Json.JsonValueKind.False)
                     {
-                        return false;
+                        bool ruleBoolean = kvp.Value.GetBoolean();
+                        bool actualBoolean = actualValue switch
+                        {
+                            bool b => b,
+                            string s => bool.TryParse(s, out var parsed) && parsed,
+                            System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.True => true,
+                            System.Text.Json.JsonElement je when je.ValueKind == System.Text.Json.JsonValueKind.False => false,
+                            _ => false
+                        };
+
+                        if (ruleBoolean != actualBoolean)
+                        {
+                            return false;
+                        }
+                    }
+                    // Handle number comparison
+                    else if (kvp.Value.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        var ruleNumber = kvp.Value.GetDecimal();
+                        var actualNumber = actualValue switch
+                        {
+                            decimal d => d,
+                            double db => (decimal)db,
+                            int i => (decimal)i,
+                            long l => (decimal)l,
+                            string s when decimal.TryParse(s, out var parsed) => parsed,
+                            _ => decimal.MinValue
+                        };
+
+                        if (ruleNumber != actualNumber)
+                        {
+                            return false;
+                        }
+                    }
+                    // Handle string comparison (default)
+                    else
+                    {
+                        var ruleValue = kvp.Value.GetString();
+                        var actual = actualValue?.ToString();
+
+                        if (!string.Equals(ruleValue, actual, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
                     }
                 }
 

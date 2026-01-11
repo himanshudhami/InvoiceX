@@ -18,6 +18,11 @@ public class CreateLoanDto
     public string CompoundingFrequency { get; set; } = "monthly";
     public string? LoanAccountNumber { get; set; }
     public string? Notes { get; set; }
+
+    // Ledger account links for journal entry creation
+    public Guid? LedgerAccountId { get; set; }
+    public Guid? InterestExpenseAccountId { get; set; }
+    public Guid? BankAccountId { get; set; }
 }
 
 

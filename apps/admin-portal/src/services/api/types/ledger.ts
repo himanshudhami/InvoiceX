@@ -238,3 +238,48 @@ export interface JournalEntriesFilterParams extends PaginationParams {
   financialYear?: string;
   searchTerm?: string;
 }
+
+// Abnormal Balance Report
+export interface AbnormalBalanceItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  accountSubtype?: string;
+  expectedBalanceSide: NormalBalance;
+  actualBalanceSide: string;
+  amount: number;
+  category: string;
+  possibleReason: string;
+  recommendedAction: string;
+  isContraAccount: boolean;
+  severity: 'info' | 'warning';
+}
+
+export interface AbnormalBalanceCategorySummary {
+  categoryName: string;
+  count: number;
+  totalAmount: number;
+  severity: string;
+}
+
+export interface AbnormalBalanceReport {
+  companyId: string;
+  generatedAt: string;
+  totalAbnormalAccounts: number;
+  actionableIssues: number;
+  totalAbnormalAmount: number;
+  items: AbnormalBalanceItem[];
+  categorySummary: AbnormalBalanceCategorySummary[];
+}
+
+export interface AbnormalBalanceAlertSummary {
+  companyId: string;
+  hasIssues: boolean;
+  totalIssues: number;
+  criticalIssues: number;
+  totalAmount: number;
+  alertMessage: string;
+  alertSeverity: 'success' | 'warning' | 'error' | 'info';
+  topCategories: AbnormalBalanceCategorySummary[];
+}

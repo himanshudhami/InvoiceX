@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { Loan, CreateLoanDto, UpdateLoanDto } from '@/services/api/types';
 import { useCompanies } from '@/hooks/api/useCompanies';
 import { useCreateLoan, useUpdateLoan } from '@/hooks/api/useLoans';
+import { useAccounts } from '@/features/ledger/hooks/useLedger';
+import { useBankAccountsByCompany } from '@/hooks/api/useBankAccounts';
 import { cn } from '@/lib/utils';
 import { CompanySelect } from '@/components/ui/CompanySelect';
 
@@ -46,7 +48,24 @@ export const LoanForm = ({ loan, onSuccess, onCancel }: LoanFormProps) => {
     tenureMonths: 12,
     interestType: 'fixed',
     compoundingFrequency: 'monthly',
+    ledgerAccountId: undefined,
+    interestExpenseAccountId: undefined,
+    bankAccountId: undefined,
   });
+
+  // Fetch accounts for selected company
+  const { data: accounts = [] } = useAccounts(formData.companyId || undefined);
+  const { data: bankAccounts = [] } = useBankAccountsByCompany(formData.companyId || '', !!formData.companyId);
+
+  // Filter accounts by type for dropdowns
+  const liabilityAccounts = useMemo(() =>
+    accounts.filter(a => a.accountType === 'liability'),
+    [accounts]
+  );
+  const expenseAccounts = useMemo(() =>
+    accounts.filter(a => a.accountType === 'expense'),
+    [accounts]
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -88,6 +107,9 @@ export const LoanForm = ({ loan, onSuccess, onCancel }: LoanFormProps) => {
         compoundingFrequency: loan.compoundingFrequency as any,
         loanAccountNumber: loan.loanAccountNumber,
         notes: loan.notes,
+        ledgerAccountId: loan.ledgerAccountId,
+        interestExpenseAccountId: loan.interestExpenseAccountId,
+        bankAccountId: loan.bankAccountId,
       });
     }
   }, [loan]);
@@ -149,6 +171,9 @@ export const LoanForm = ({ loan, onSuccess, onCancel }: LoanFormProps) => {
           compoundingFrequency: formData.compoundingFrequency,
           loanAccountNumber: formData.loanAccountNumber,
           notes: formData.notes,
+          ledgerAccountId: formData.ledgerAccountId || undefined,
+          interestExpenseAccountId: formData.interestExpenseAccountId || undefined,
+          bankAccountId: formData.bankAccountId || undefined,
         };
         await updateLoan.mutateAsync({ id: loan.id, data: updateData });
       } else {
@@ -340,6 +365,74 @@ export const LoanForm = ({ loan, onSuccess, onCancel }: LoanFormProps) => {
             <p className="text-sm font-medium text-blue-900">Estimated EMI: ₹{emiPreview.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
             <p className="text-xs text-blue-700 mt-1">Total Interest: ₹{((emiPreview * formData.tenureMonths) - formData.principalAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
           </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Accounting Configuration</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Configure ledger accounts for automatic journal entry creation when EMI payments are recorded.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Loan Liability Account</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.ledgerAccountId || ''}
+              onChange={(e) => setField('ledgerAccountId', e.target.value || undefined)}
+              disabled={!formData.companyId}
+            >
+              <option value="">Select liability account...</option>
+              {liabilityAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.accountCode} - {account.accountName}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Debited when principal is repaid</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Interest Expense Account</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.interestExpenseAccountId || ''}
+              onChange={(e) => setField('interestExpenseAccountId', e.target.value || undefined)}
+              disabled={!formData.companyId}
+            >
+              <option value="">Select expense account...</option>
+              {expenseAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.accountCode} - {account.accountName}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Debited for interest portion of EMI</p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">Bank Account</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.bankAccountId || ''}
+              onChange={(e) => setField('bankAccountId', e.target.value || undefined)}
+              disabled={!formData.companyId}
+            >
+              <option value="">Select bank account...</option>
+              {bankAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.bankName} - {account.accountNumber}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Credited when EMI is paid</p>
+          </div>
+        </div>
+
+        {!formData.companyId && (
+          <p className="text-sm text-amber-600 mt-2">
+            Select a company first to load available accounts.
+          </p>
         )}
       </div>
 

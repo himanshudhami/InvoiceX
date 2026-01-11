@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.Interfaces;
 using Application.Interfaces.Audit;
+using Application.Interfaces.Ledger;
 using Application.DTOs.VendorInvoices;
 using Core.Entities;
 using Core.Interfaces;
@@ -21,6 +22,7 @@ namespace Application.Services
         private readonly IVendorInvoicesRepository _repository;
         private readonly IVendorsRepository _vendorsRepository;
         private readonly IAuditService _auditService;
+        private readonly IAutoPostingService _autoPostingService;
         private readonly IMapper _mapper;
         private readonly IValidator<CreateVendorInvoiceDto> _createValidator;
         private readonly IValidator<UpdateVendorInvoiceDto> _updateValidator;
@@ -29,6 +31,7 @@ namespace Application.Services
             IVendorInvoicesRepository repository,
             IVendorsRepository vendorsRepository,
             IAuditService auditService,
+            IAutoPostingService autoPostingService,
             IMapper mapper,
             IValidator<CreateVendorInvoiceDto> createValidator,
             IValidator<UpdateVendorInvoiceDto> updateValidator)
@@ -36,6 +39,7 @@ namespace Application.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _vendorsRepository = vendorsRepository ?? throw new ArgumentNullException(nameof(vendorsRepository));
             _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
+            _autoPostingService = autoPostingService ?? throw new ArgumentNullException(nameof(autoPostingService));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _createValidator = createValidator ?? throw new ArgumentNullException(nameof(createValidator));
             _updateValidator = updateValidator ?? throw new ArgumentNullException(nameof(updateValidator));
@@ -317,6 +321,10 @@ namespace Application.Services
             existingEntity.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(existingEntity);
+
+            // Trigger auto-posting after approval
+            await _autoPostingService.PostVendorInvoiceAsync(id, approvedBy);
+
             return Result.Success();
         }
 

@@ -24,6 +24,11 @@ public class LoanDto
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // Ledger account links for journal entry creation
+    public Guid? LedgerAccountId { get; set; }
+    public Guid? InterestExpenseAccountId { get; set; }
+    public Guid? BankAccountId { get; set; }
 }
 
 

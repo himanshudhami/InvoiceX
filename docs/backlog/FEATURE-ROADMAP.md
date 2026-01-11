@@ -171,7 +171,7 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 
 ### 7. Bank Reconciliation Matching
 **Module**: [04-BANKING](../modules/04-BANKING.md)
-**Status**: ⚠️ Partial (code complete, not actively used)
+**Status**: ✅ Complete (in active use)
 
 **Description**: Auto-import bank statements, categorization rules, smart reconciliation.
 
@@ -182,10 +182,14 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 - [x] Reversal detection - `ReversalDetectionService`
 - [x] Reconciliation UI with matching drawer
 - [x] Database: 3 accounts, 437 transactions
+- [x] Direct reconciliation to payments, contractors, expenses
 
-**Gap**: 0 matches recorded despite 437 transactions
+**Production Data** (Jan 2026):
+- 10 transactions reconciled (9 contractor, 1 payment)
+- 427 pending accountant review
+- Feature verified working via UI
 
-**Next Steps**: Investigate why matching isn't being used, improve UI workflow
+**Next Steps**: Accountant to complete reconciliation of remaining transactions
 
 ---
 
@@ -283,6 +287,29 @@ Prioritized feature backlog extracted from competitive analysis and gap review. 
 
 ---
 
+### 16. COA Modernization (Control Account Architecture)
+**Module**: [05-LEDGER](../modules/05-LEDGER.md)
+**Status**: 📋 Proposed (Pending Review)
+**Feature Doc**: [FEATURE-COA-MODERNIZATION.md](./FEATURE-COA-MODERNIZATION.md)
+
+**Description**: Modernize Chart of Accounts from Tally-style per-party ledgers to control account + subledger architecture (Zoho/Odoo pattern). Tally import/export maintained via dedicated mapping layer.
+
+**Key Changes**:
+- Single "Accounts Payable" / "Accounts Receivable" control accounts
+- Party reference (`party_type`, `party_id`) on journal entry lines
+- `tally_ledger_mapping` table for Tally ↔ Modern translation
+- Tally integration becomes a pluggable feature
+
+**Review Required**: CA Panel + Software Architects
+
+**Benefits**:
+- COA reduced from 500+ to ~100 accounts
+- Scalable to unlimited vendors/customers
+- Modern architecture aligned with Zoho/Odoo
+- Tally compatibility preserved via mapping layer
+
+---
+
 ## Completed Features
 
 ### Recently Completed (Verified in Codebase)
@@ -320,7 +347,7 @@ Based on gap analysis (Jan 2026):
 ### Tier 1: Enable Already-Built Features (Quick Wins)
 1. ~~**Audit Trail Activation**~~ - ✅ COMPLETE (Jan 2026) - Full audit logging active across all major services
 2. **GSTR-2B/3B Production Enablement** - Configure GSP, train users
-3. **Bank Reconciliation Matching** - Fix workflow gap
+3. ~~**Bank Reconciliation Matching**~~ - ✅ COMPLETE (Jan 2026) - Feature working, accountant reconciling transactions
 
 ### Tier 2: Complete Partial Implementations
 4. **E-Way Bill Workflow** - API integration + UI actions

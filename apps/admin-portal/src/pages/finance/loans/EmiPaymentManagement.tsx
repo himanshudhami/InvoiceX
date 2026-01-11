@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useOutstandingLoans, useRecordEmiPayment, useLoanSchedule } from '@/hooks/api/useLoans';
 import { useCompanies } from '@/hooks/api/useCompanies';
-import { Loan, CreateEmiPaymentDto } from '@/services/api/types';
+import { Loan, CreateEmiPaymentDto, LoanEmiScheduleItemDto } from '@/services/api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatINR } from '@/lib/financialUtils';
 import { Button } from '@/components/ui/button';
@@ -24,28 +24,56 @@ const EmiPaymentManagement = () => {
 
   const { data: schedule } = useLoanSchedule(selectedLoan?.id);
 
-  // Get next pending EMI
-  const nextEmi = useMemo(() => {
-    if (!schedule?.scheduleItems) return null;
-    return schedule.scheduleItems.find((item) => item.status === 'pending');
+  // Get all pending EMIs for dropdown
+  const pendingEmis = useMemo(() => {
+    if (!schedule?.scheduleItems) return [];
+    return schedule.scheduleItems.filter((item) => item.status === 'pending');
   }, [schedule]);
 
-  // Auto-fill payment data when loan or next EMI changes
-  useMemo(() => {
+  // Get next pending EMI (for initial selection)
+  const nextEmi = useMemo(() => {
+    return pendingEmis.length > 0 ? pendingEmis[0] : null;
+  }, [pendingEmis]);
+
+  // State for selected EMI number
+  const [selectedEmiNumber, setSelectedEmiNumber] = useState<number | null>(null);
+
+  // Get the currently selected EMI details
+  const selectedEmi = useMemo(() => {
+    if (!selectedEmiNumber || !schedule?.scheduleItems) return null;
+    return schedule.scheduleItems.find((item) => item.emiNumber === selectedEmiNumber);
+  }, [selectedEmiNumber, schedule]);
+
+  // Auto-select next pending EMI when loan is selected
+  useEffect(() => {
     if (nextEmi && selectedLoan) {
-      setPaymentData({
-        paymentDate: new Date().toISOString().split('T')[0],
-        amount: nextEmi.totalEmi,
-        principalAmount: nextEmi.principalAmount,
-        interestAmount: nextEmi.interestAmount,
-        paymentMethod: 'bank_transfer',
-        emiNumber: nextEmi.emiNumber,
-      });
+      setSelectedEmiNumber(nextEmi.emiNumber);
     }
   }, [nextEmi, selectedLoan]);
 
+  // Auto-fill payment data when selected EMI changes
+  useEffect(() => {
+    if (selectedEmi && selectedLoan) {
+      setPaymentData({
+        paymentDate: new Date().toISOString().split('T')[0],
+        amount: selectedEmi.totalEmi,
+        principalAmount: selectedEmi.principalAmount,
+        interestAmount: selectedEmi.interestAmount,
+        paymentMethod: 'bank_transfer',
+        emiNumber: selectedEmi.emiNumber,
+      });
+    }
+  }, [selectedEmi, selectedLoan]);
+
+  // Reset EMI selection when loan changes
+  useEffect(() => {
+    if (!selectedLoan) {
+      setSelectedEmiNumber(null);
+    }
+  }, [selectedLoan]);
+
   const handlePayment = async () => {
-    if (!selectedLoan) return;
+    if (!selectedLoan || !selectedEmiNumber) return;
 
     try {
       await recordPayment.mutateAsync({
@@ -53,6 +81,7 @@ const EmiPaymentManagement = () => {
         data: paymentData,
       });
       setSelectedLoan(null);
+      setSelectedEmiNumber(null);
       setPaymentData({
         paymentDate: new Date().toISOString().split('T')[0],
         amount: 0,
@@ -181,12 +210,36 @@ const EmiPaymentManagement = () => {
                   <p className="text-sm text-gray-600">{selectedLoan.lenderName}</p>
                 </div>
 
-                {nextEmi && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm font-medium text-blue-900">Next EMI Due</p>
-                    <p className="text-xs text-blue-700">
-                      EMI #{nextEmi.emiNumber} - Due: {new Date(nextEmi.dueDate).toLocaleDateString('en-IN')}
-                    </p>
+                {pendingEmis.length > 0 ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select EMI *</label>
+                    <select
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      value={selectedEmiNumber || ''}
+                      onChange={(e) => setSelectedEmiNumber(parseInt(e.target.value) || null)}
+                    >
+                      <option value="">Select EMI to pay...</option>
+                      {pendingEmis.map((emi) => (
+                        <option key={emi.emiNumber} value={emi.emiNumber}>
+                          EMI #{emi.emiNumber} - Due: {new Date(emi.dueDate).toLocaleDateString('en-IN')} - {formatINR(emi.totalEmi)}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedEmi && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm font-medium text-blue-900">EMI #{selectedEmi.emiNumber} Breakdown</p>
+                        <div className="grid grid-cols-2 gap-2 mt-1 text-xs text-blue-700">
+                          <span>Principal: {formatINR(selectedEmi.principalAmount)}</span>
+                          <span>Interest: {formatINR(selectedEmi.interestAmount)}</span>
+                          <span>Total: {formatINR(selectedEmi.totalEmi)}</span>
+                          <span>Due: {new Date(selectedEmi.dueDate).toLocaleDateString('en-IN')}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-sm text-gray-600">No pending EMIs for this loan.</p>
                   </div>
                 )}
 
@@ -275,10 +328,10 @@ const EmiPaymentManagement = () => {
 
                 <Button
                   onClick={handlePayment}
-                  disabled={recordPayment.isPending || !paymentData.amount || paymentData.amount <= 0}
+                  disabled={recordPayment.isPending || !selectedEmiNumber || !paymentData.amount || paymentData.amount <= 0}
                   className="w-full"
                 >
-                  {recordPayment.isPending ? 'Recording...' : 'Record Payment'}
+                  {recordPayment.isPending ? 'Recording...' : `Record EMI #${selectedEmiNumber || ''} Payment`}
                 </Button>
               </div>
             )}

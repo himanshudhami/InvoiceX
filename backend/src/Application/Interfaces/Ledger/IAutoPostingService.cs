@@ -52,6 +52,24 @@ namespace Application.Interfaces.Ledger
             bool autoPost = true);
 
         /// <summary>
+        /// Create and post a journal entry for a loan EMI payment
+        /// </summary>
+        Task<JournalEntry?> PostLoanPaymentAsync(
+            Guid loanTransactionId,
+            Guid loanId,
+            Guid? postedBy = null,
+            bool autoPost = true);
+
+        /// <summary>
+        /// Create and post a journal entry for a loan prepayment
+        /// </summary>
+        Task<JournalEntry?> PostLoanPrepaymentAsync(
+            Guid loanTransactionId,
+            Guid loanId,
+            Guid? postedBy = null,
+            bool autoPost = true);
+
+        /// <summary>
         /// Create and post a journal entry for a generic source
         /// </summary>
         Task<JournalEntry?> PostFromSourceAsync(

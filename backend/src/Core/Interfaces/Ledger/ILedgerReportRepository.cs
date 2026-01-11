@@ -50,6 +50,16 @@ namespace Core.Interfaces.Ledger
         /// Recalculate period balances for a financial year
         /// </summary>
         Task RecalculatePeriodBalancesAsync(Guid companyId, string financialYear);
+
+        /// <summary>
+        /// Get accounts with abnormal balances (opposite to their normal balance)
+        /// </summary>
+        Task<IEnumerable<AbnormalBalanceData>> GetAbnormalBalancesAsync(Guid companyId);
+
+        /// <summary>
+        /// Get count of accounts with abnormal balances (for dashboard alert)
+        /// </summary>
+        Task<AbnormalBalanceSummary> GetAbnormalBalanceSummaryAsync(Guid companyId);
     }
 
     // ==================== Data Transfer Objects for Repository ====================
@@ -95,5 +105,39 @@ namespace Core.Interfaces.Ledger
         public string AccountType { get; set; } = string.Empty;
         public string? AccountSubtype { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    public class AbnormalBalanceData
+    {
+        public Guid AccountId { get; set; }
+        public string AccountCode { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
+        public string AccountType { get; set; } = string.Empty;
+        public string? AccountSubtype { get; set; }
+        public string NormalBalance { get; set; } = string.Empty;
+        public string ActualBalanceSide { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string PossibleReason { get; set; } = string.Empty;
+        public string RecommendedAction { get; set; } = string.Empty;
+        public bool IsContraAccount { get; set; }
+    }
+
+    public class AbnormalBalanceSummary
+    {
+        public int TotalAbnormalAccounts { get; set; }
+        public int LiabilitiesWithDebit { get; set; }
+        public int AssetsWithCredit { get; set; }
+        public int ContraAccounts { get; set; }
+        public decimal TotalAbnormalAmount { get; set; }
+        public List<AbnormalBalanceCategory> Categories { get; set; } = new();
+    }
+
+    public class AbnormalBalanceCategory
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Severity { get; set; } = string.Empty;
     }
 }

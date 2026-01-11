@@ -50,6 +50,16 @@ namespace Application.Interfaces.Ledger
         Task RecalculatePeriodBalancesAsync(
             Guid companyId,
             string financialYear);
+
+        /// <summary>
+        /// Get accounts with abnormal balances (for data quality report)
+        /// </summary>
+        Task<AbnormalBalanceReport> GetAbnormalBalancesAsync(Guid companyId);
+
+        /// <summary>
+        /// Get summary of abnormal balances (for dashboard alert)
+        /// </summary>
+        Task<AbnormalBalanceAlertSummary> GetAbnormalBalanceAlertAsync(Guid companyId);
     }
 
     // ==================== Report DTOs ====================
@@ -156,5 +166,53 @@ namespace Application.Interfaces.Ledger
         public string AccountCode { get; set; } = string.Empty;
         public string AccountName { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+    }
+
+    public class AbnormalBalanceReport
+    {
+        public Guid CompanyId { get; set; }
+        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+        public int TotalAbnormalAccounts { get; set; }
+        public int ActionableIssues { get; set; }
+        public decimal TotalAbnormalAmount { get; set; }
+        public List<AbnormalBalanceItem> Items { get; set; } = new();
+        public List<AbnormalBalanceCategorySummary> CategorySummary { get; set; } = new();
+    }
+
+    public class AbnormalBalanceItem
+    {
+        public Guid AccountId { get; set; }
+        public string AccountCode { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
+        public string AccountType { get; set; } = string.Empty;
+        public string? AccountSubtype { get; set; }
+        public string ExpectedBalanceSide { get; set; } = string.Empty;
+        public string ActualBalanceSide { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string PossibleReason { get; set; } = string.Empty;
+        public string RecommendedAction { get; set; } = string.Empty;
+        public bool IsContraAccount { get; set; }
+        public string Severity => IsContraAccount ? "info" : "warning";
+    }
+
+    public class AbnormalBalanceCategorySummary
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Severity { get; set; } = string.Empty;
+    }
+
+    public class AbnormalBalanceAlertSummary
+    {
+        public Guid CompanyId { get; set; }
+        public bool HasIssues { get; set; }
+        public int TotalIssues { get; set; }
+        public int CriticalIssues { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string AlertMessage { get; set; } = string.Empty;
+        public string AlertSeverity { get; set; } = "info";
+        public List<AbnormalBalanceCategorySummary> TopCategories { get; set; } = new();
     }
 }

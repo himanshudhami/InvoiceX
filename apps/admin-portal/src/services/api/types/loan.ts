@@ -21,6 +21,10 @@ export interface Loan {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Ledger account links for journal entry creation
+  ledgerAccountId?: string;
+  interestExpenseAccountId?: string;
+  bankAccountId?: string;
 }
 
 export interface LoanEmiSchedule {
@@ -72,6 +76,10 @@ export interface CreateLoanDto {
   compoundingFrequency?: 'monthly' | 'quarterly' | 'annually';
   loanAccountNumber?: string;
   notes?: string;
+  // Ledger account links for journal entry creation
+  ledgerAccountId?: string;
+  interestExpenseAccountId?: string;
+  bankAccountId?: string;
 }
 
 export interface UpdateLoanDto extends Partial<CreateLoanDto> {
